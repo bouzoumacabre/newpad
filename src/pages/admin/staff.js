@@ -1,9 +1,10 @@
 import { renderAdminShell } from './shell.js';
-import { searchProfilesAnyRole, updateProfileRole, adminSetProfileStatus } from '../../lib/adminApi.js';
+import { searchProfilesAnyRole, updateProfileRole, adminSetProfileStatus, createAccount } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
 
 const ROLES = ['prospect', 'client', 'employee', 'admin', 'irs'];
 const STATUSES = ['active', 'suspended', 'frozen'];
+const CREATABLE_ROLES = ['employee', 'admin', 'irs'];
 
 export async function renderAdminStaff(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'staff');
@@ -17,11 +18,40 @@ export async function renderAdminStaff(app, profile) {
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Employés & rôles</h1>
       <p class="muted" style="margin-bottom:20px;">
-        Il n'existe pas de formulaire de création directe de compte employé/admin/IRS (cela nécessiterait une fonction
-        serveur avec clé service_role, non déployée). La marche à suivre : la personne s'inscrit normalement depuis la
-        page d'accueil (ce qui crée un profil « prospect »), puis vous la retrouvez ici par sa recherche et lui
-        attribuez le rôle et, le cas échéant, la fonction souhaités.
+        Deux façons de donner un accès personnel : créez directement un compte employé/admin/IRS ci-dessous (identifiant
+        + mot de passe), ou retrouvez un profil déjà inscrit (prospect/client) par sa recherche pour lui attribuer un
+        rôle et, le cas échéant, une fonction.
       </p>
+
+      <div class="card" style="margin-bottom:20px;">
+        <h3 style="margin-bottom:16px;">Créer un nouveau compte</h3>
+        <div class="grid" style="grid-template-columns: repeat(4, 1fr) auto; gap:12px; align-items:end;">
+          <div class="field" style="margin:0;">
+            <label>Identifiant</label>
+            <input type="text" id="new-username" placeholder="ex: mdupont" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Mot de passe</label>
+            <input type="password" id="new-password" placeholder="••••••••" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Nom affiché</label>
+            <input type="text" id="new-display-name" placeholder="Nom complet" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Rôle</label>
+            <select id="new-role">
+              ${CREATABLE_ROLES.map((r) => `<option value="${r}">${r}</option>`).join('')}
+            </select>
+          </div>
+          <button id="new-account-submit" class="btn btn-primary">Créer</button>
+        </div>
+        <div class="field" id="new-title-field" style="margin-top:12px;">
+          <label>Fonction (employé/admin)</label>
+          <input type="text" id="new-title" placeholder="Ex: Guichetier, Directeur d'agence..." />
+        </div>
+        <div id="new-account-msg" style="font-size:13px; margin-top:4px; display:none;"></div>
+      </div>
 
       <div class="grid" style="grid-template-columns: 1fr 1.3fr; align-items:start;">
         <div class="card">
@@ -113,6 +143,36 @@ export async function renderAdminStaff(app, profile) {
         selected = results.find((r) => r.id === selected.id) || selected;
       } catch (err) {
         msg.textContent = err.message || 'Erreur.';
+        msg.className = 'text-danger';
+        msg.style.display = 'block';
+      }
+    });
+
+    document.getElementById('new-account-submit').addEventListener('click', async () => {
+      const msg = document.getElementById('new-account-msg');
+      msg.style.display = 'none';
+      const username = document.getElementById('new-username').value.trim();
+      const password = document.getElementById('new-password').value;
+      const displayName = document.getElementById('new-display-name').value.trim();
+      const role = document.getElementById('new-role').value;
+      const title = document.getElementById('new-title').value.trim();
+      if (!username || !password || !displayName) {
+        msg.textContent = 'Identifiant, mot de passe et nom affiché sont requis.';
+        msg.className = 'text-danger';
+        msg.style.display = 'block';
+        return;
+      }
+      try {
+        await createAccount({ username, password, displayName, role, employeeTitle: title || null });
+        msg.textContent = `Compte "${username}" créé avec succès (rôle : ${role}).`;
+        msg.className = 'text-success';
+        msg.style.display = 'block';
+        document.getElementById('new-username').value = '';
+        document.getElementById('new-password').value = '';
+        document.getElementById('new-display-name').value = '';
+        document.getElementById('new-title').value = '';
+      } catch (err) {
+        msg.textContent = err.message || 'Erreur lors de la création du compte.';
         msg.className = 'text-danger';
         msg.style.display = 'block';
       }

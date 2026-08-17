@@ -4,6 +4,7 @@ import {
   createManualAccountOpening,
   finalizeManualAccountOpening,
   searchProfilesAnyRole,
+  createAccount,
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 
@@ -23,9 +24,9 @@ export async function renderAdminAccountOpening(app, profile) {
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Ouverture de compte au guichet</h1>
       <p class="muted" style="margin-bottom:20px;">
-        La création d'un tout nouveau compte d'authentification nécessite une fonctionnalité serveur (Edge Function,
-        clé service_role) pas encore déployée. En attendant : enregistrez la demande ci-dessous, puis finalisez-la
-        une fois que la personne a créé son accès prospect (auto-inscription) depuis la page d'accueil.
+        Enregistrez la demande ci-dessous, puis finalisez-la soit en créant directement le compte de la personne
+        (identifiant + mot de passe), soit en reliant une demande à un profil qu'elle a déjà créé elle-même
+        (auto-inscription prospect depuis la page d'accueil).
       </p>
 
       <div class="grid" style="grid-template-columns: 1fr 1.3fr; align-items:start;">
@@ -68,8 +69,23 @@ export async function renderAdminAccountOpening(app, profile) {
               ${
                 o.status === 'pending'
                   ? `
+                <div class="flex gap-sm" style="margin-bottom:8px;">
+                  <button class="btn btn-primary create-toggle-btn" data-id="${o.id}" style="flex:1;">Créer le compte maintenant</button>
+                </div>
+                <div class="create-account-form" data-id="${o.id}" style="display:none; margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
+                  <div class="field" style="margin-bottom:8px;">
+                    <label style="font-size:11px;">Identifiant</label>
+                    <input type="text" class="create-username" data-id="${o.id}" placeholder="ex: jdupont" />
+                  </div>
+                  <div class="field" style="margin-bottom:8px;">
+                    <label style="font-size:11px;">Mot de passe (min. 8 caractères)</label>
+                    <input type="password" class="create-password" data-id="${o.id}" placeholder="••••••••" />
+                  </div>
+                  <div class="create-account-error text-danger" data-id="${o.id}" style="font-size:12px; margin-bottom:8px; display:none;"></div>
+                  <button class="btn btn-primary create-submit-btn" data-id="${o.id}" style="width:100%;">Créer et finaliser</button>
+                </div>
                 <div class="flex gap-sm">
-                  <input type="text" class="finalize-username" data-id="${o.id}" placeholder="Identifiant du profil existant..." style="flex:1;" />
+                  <input type="text" class="finalize-username" data-id="${o.id}" placeholder="...ou identifiant d'un profil déjà existant" style="flex:1;" />
                   <button class="btn btn-secondary finalize-btn" data-id="${o.id}">Finaliser</button>
                 </div>
               `
@@ -119,6 +135,38 @@ export async function renderAdminAccountOpening(app, profile) {
           await draw();
         } catch (err) {
           alert(err.message || 'Erreur lors de la finalisation.');
+        }
+      });
+    });
+
+    content.querySelectorAll('.create-toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const form = content.querySelector(`.create-account-form[data-id="${id}"]`);
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+
+    content.querySelectorAll('.create-submit-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const opening = openings.find((o) => o.id === id);
+        const errorEl = content.querySelector(`.create-account-error[data-id="${id}"]`);
+        errorEl.style.display = 'none';
+        const username = content.querySelector(`.create-username[data-id="${id}"]`).value.trim();
+        const password = content.querySelector(`.create-password[data-id="${id}"]`).value;
+        if (!username || !password) {
+          errorEl.textContent = 'Identifiant et mot de passe requis.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        try {
+          const created = await createAccount({ username, password, displayName: opening.display_name, role: 'client' });
+          await finalizeManualAccountOpening(id, created.id);
+          await draw();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Erreur lors de la création du compte.';
+          errorEl.style.display = 'block';
         }
       });
     });

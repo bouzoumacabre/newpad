@@ -120,6 +120,29 @@ export async function finalizeManualAccountOpening(openingId, clientProfileId) {
 }
 
 // ----------------------------------------------------------------------------
+// CRÉATION DE COMPTE (Edge Function service_role — guichet / personnel)
+// ----------------------------------------------------------------------------
+// Seule opération du site qui a besoin de la clé service_role (créer un
+// utilisateur Supabase Auth). Réservé au personnel : un employé peut créer un
+// compte "client" (cas guichet), seul un admin peut créer "employee"/"admin"/
+// "irs" — l'Edge Function applique elle-même cette règle côté serveur.
+export async function createAccount({ username, password, displayName, role, employeeTitle }) {
+  const { data, error } = await supabase.functions.invoke('create-account', {
+    body: { username, password, displayName, role, employeeTitle: employeeTitle || null },
+  });
+  if (error) {
+    // Le corps JSON {error: "..."} renvoyé par la fonction est dans error.context
+    let message = error.message;
+    try {
+      const body = await error.context?.json?.();
+      if (body?.error) message = body.error;
+    } catch (_) { /* pas de corps JSON exploitable, on garde le message par défaut */ }
+    throw new Error(message);
+  }
+  return data;
+}
+
+// ----------------------------------------------------------------------------
 // FILE CLIENTS (guichet)
 // ----------------------------------------------------------------------------
 
