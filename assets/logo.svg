@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Newman Bank">
+  <defs>
+    <linearGradient id="nb-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8a6f2e"/>
+      <stop offset="45%" stop-color="#c9a227"/>
+      <stop offset="100%" stop-color="#e6c465"/>
+    </linearGradient>
+  </defs>
+  <path fill-rule="evenodd" clip-rule="evenodd" fill="url(#nb-gold)"
+    d="M100,18 L182,182 L18,182 Z M72,106 L46,182 L82,182 L74,106 Z"/>
+</svg>
