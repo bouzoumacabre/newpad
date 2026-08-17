@@ -47,7 +47,7 @@ function renderNavItem(item, activeKey) {
  * @param {Array} sections - mix of top-level items ({key,label,path,icon}) and
  *   categories ({category, items:[...]})
  * @param {string} activeKey
- * @param {object} [opts] - { footerItems: [...] }
+ * @param {object} [opts] - { footerItems: [...], banner: string }
  * @returns {{content: HTMLElement}}
  */
 export function renderShell(app, profile, roleLabel, sections, activeKey, opts = {}) {
@@ -112,6 +112,7 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
             </div>
           </div>
         </header>
+        ${opts.banner ? `<div class="readonly-banner">${opts.banner}</div>` : ''}
         <main class="content" id="content"></main>
       </div>
     </div>

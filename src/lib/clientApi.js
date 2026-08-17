@@ -20,25 +20,11 @@ function unwrap({ data, error }) {
 }
 
 // ----------------------------------------------------------------------------
-// FONCTIONNALITÉS (registre générique + permissions par compte)
+// FONCTIONNALITÉS (registre générique + permissions par compte) — voir
+// ./features.js (module partagé entre les coquilles Client/Employé)
 // ----------------------------------------------------------------------------
 
-export async function getClientFeatures() {
-  const user = await requireUser();
-  const [{ data: features, error: e1 }, { data: grants, error: e2 }] = await Promise.all([
-    supabase.from('feature_registry').select('*').eq('area', 'client'),
-    supabase.from('permission_grants').select('feature_key, granted').eq('account_id', user.id),
-  ]);
-  if (e1) throw e1;
-  if (e2) throw e2;
-  const overrides = new Map((grants || []).map((g) => [g.feature_key, g.granted]));
-  const flags = {};
-  for (const f of features || []) {
-    if (overrides.has(f.key)) { flags[f.key] = f.enabled && overrides.get(f.key); }
-    else { flags[f.key] = f.enabled && (f.default_roles || []).includes('client'); }
-  }
-  return { flags, features: features || [] };
-}
+export { getFeatureFlags } from './features.js';
 
 // ----------------------------------------------------------------------------
 // COMPTES

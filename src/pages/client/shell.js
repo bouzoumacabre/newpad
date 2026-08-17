@@ -5,13 +5,12 @@
 // ============================================================================
 
 import { renderShell } from '../../lib/shell.js';
-import { getClientFeatures } from '../../lib/clientApi.js';
+import { getFeatureFlags } from '../../lib/features.js';
 
 export async function renderClientShell(app, profile, activeKey) {
   let flags = {};
   try {
-    const res = await getClientFeatures();
-    flags = res.flags;
+    flags = await getFeatureFlags('client', 'client');
   } catch (_) { /* en cas d'échec réseau, on affiche tout par défaut ci-dessous */ }
 
   const has = (key) => (key in flags ? flags[key] : true);
