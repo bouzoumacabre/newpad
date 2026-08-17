@@ -57,8 +57,25 @@ export async function getClientCategories() {
   return unwrap(await supabase.from('client_categories').select('*').order('name', { ascending: true }));
 }
 
+export async function createClientCategory({ name, color, description }) {
+  return unwrap(
+    await supabase
+      .from('client_categories')
+      .insert({ name, color: color || '#c9a227', description: description || null })
+      .select()
+      .single()
+  );
+}
+
 export async function getClientCategoryLinks(clientId) {
   return unwrap(await supabase.from('client_category_links').select('*, client_categories(*)').eq('client_id', clientId));
+}
+
+// Renvoie les identifiants des clients rattachés à une catégorie donnée —
+// utilisé pour filtrer la recherche client par catégorie côté personnel.
+export async function getClientIdsInCategory(categoryId) {
+  const rows = unwrap(await supabase.from('client_category_links').select('client_id').eq('category_id', categoryId));
+  return rows.map((r) => r.client_id);
 }
 
 export async function addClientCategoryLink(clientId, categoryId) {
@@ -74,6 +91,10 @@ export async function removeClientCategoryLink(clientId, categoryId) {
 
 export async function getClientLoans(clientId) {
   return unwrap(await supabase.from('loans').select('*').eq('client_id', clientId).order('requested_at', { ascending: false }));
+}
+
+export async function getClientGoldBars(clientId) {
+  return unwrap(await supabase.from('gold_bars').select('*').eq('owner_client_id', clientId).order('weight_grams', { ascending: false }));
 }
 
 // ----------------------------------------------------------------------------
@@ -126,9 +147,9 @@ export async function finalizeManualAccountOpening(openingId, clientProfileId) {
 // utilisateur Supabase Auth). Réservé au personnel : un employé peut créer un
 // compte "client" (cas guichet), seul un admin peut créer "employee"/"admin"/
 // "irs" — l'Edge Function applique elle-même cette règle côté serveur.
-export async function createAccount({ username, password, displayName, role, employeeTitle }) {
+export async function createAccount({ username, password, displayName, role, employeeTitle, discordId }) {
   const { data, error } = await supabase.functions.invoke('create-account', {
-    body: { username, password, displayName, role, employeeTitle: employeeTitle || null },
+    body: { username, password, displayName, role, employeeTitle: employeeTitle || null, discordId: discordId || null },
   });
   if (error) {
     // Le corps JSON {error: "..."} renvoyé par la fonction est dans error.context

@@ -24,9 +24,16 @@ export async function renderAdminGold(app, profile) {
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
+    const inCirculation = allBars.filter((b) => b.status === 'sold');
+    const inCirculationWeight = inCirculation.reduce((s, b) => s + Number(b.weight_grams), 0);
 
     content.innerHTML = `
-      <h1 style="margin-bottom:20px;">Lingots & marché de revente</h1>
+      <h1 style="margin-bottom:6px;">Lingots & marché de revente</h1>
+      <p class="muted" style="margin-bottom:20px;">
+        Lingots en circulation (possédés par des clients) :
+        <span class="gold" style="font-weight:600;">${inCirculation.length}</span>
+        — poids total : ${inCirculationWeight} g
+      </p>
 
       <h3 style="margin-bottom:12px;">Achats banque</h3>
       <div class="card" style="margin-bottom:24px;">

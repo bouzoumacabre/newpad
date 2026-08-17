@@ -46,9 +46,15 @@ export async function renderAdminStaff(app, profile) {
           </div>
           <button id="new-account-submit" class="btn btn-primary">Créer</button>
         </div>
-        <div class="field" id="new-title-field" style="margin-top:12px;">
-          <label>Fonction (employé/admin)</label>
-          <input type="text" id="new-title" placeholder="Ex: Guichetier, Directeur d'agence..." />
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
+          <div class="field" id="new-title-field" style="margin:0;">
+            <label>Fonction (employé/admin)</label>
+            <input type="text" id="new-title" placeholder="Ex: Guichetier, Directeur d'agence..." />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>ID Discord (facultatif)</label>
+            <input type="text" id="new-discord-id" placeholder="Ex: 123456789012345678" />
+          </div>
         </div>
         <div id="new-account-msg" style="font-size:13px; margin-top:4px; display:none;"></div>
       </div>
@@ -94,6 +100,10 @@ export async function renderAdminStaff(app, profile) {
               <input type="text" id="edit-title" value="${escapeHtml(selected.employee_title || '')}" placeholder="Ex: Guichetier, Directeur d'agence..." />
             </div>
             <div class="field">
+              <label>ID Discord</label>
+              <input type="text" id="edit-discord-id" value="${escapeHtml(selected.discord_id || '')}" placeholder="Ex: 123456789012345678" />
+            </div>
+            <div class="field">
               <label>Statut du profil</label>
               <select id="edit-status">
                 ${STATUSES.map((s) => `<option value="${s}" ${s === selected.status ? 'selected' : ''}>${s}</option>`).join('')}
@@ -132,9 +142,10 @@ export async function renderAdminStaff(app, profile) {
       const msg = document.getElementById('staff-msg');
       const role = document.getElementById('edit-role').value;
       const title = document.getElementById('edit-title').value.trim();
+      const discordId = document.getElementById('edit-discord-id').value.trim();
       const status = document.getElementById('edit-status').value;
       try {
-        await updateProfileRole(selected.id, { role, employeeTitle: title || null });
+        await updateProfileRole(selected.id, { role, employeeTitle: title || null, discordId: discordId || null });
         if (status !== selected.status) await adminSetProfileStatus(selected.id, status);
         msg.textContent = 'Profil mis à jour.';
         msg.className = 'text-success';
@@ -156,6 +167,7 @@ export async function renderAdminStaff(app, profile) {
       const displayName = document.getElementById('new-display-name').value.trim();
       const role = document.getElementById('new-role').value;
       const title = document.getElementById('new-title').value.trim();
+      const discordId = document.getElementById('new-discord-id').value.trim();
       if (!username || !password || !displayName) {
         msg.textContent = 'Identifiant, mot de passe et nom affiché sont requis.';
         msg.className = 'text-danger';
@@ -163,7 +175,7 @@ export async function renderAdminStaff(app, profile) {
         return;
       }
       try {
-        await createAccount({ username, password, displayName, role, employeeTitle: title || null });
+        await createAccount({ username, password, displayName, role, employeeTitle: title || null, discordId: discordId || null });
         msg.textContent = `Compte "${username}" créé avec succès (rôle : ${role}).`;
         msg.className = 'text-success';
         msg.style.display = 'block';
@@ -171,6 +183,7 @@ export async function renderAdminStaff(app, profile) {
         document.getElementById('new-password').value = '';
         document.getElementById('new-display-name').value = '';
         document.getElementById('new-title').value = '';
+        document.getElementById('new-discord-id').value = '';
       } catch (err) {
         msg.textContent = err.message || 'Erreur lors de la création du compte.';
         msg.className = 'text-danger';

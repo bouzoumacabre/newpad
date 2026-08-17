@@ -88,10 +88,11 @@ export async function adminSetProfileStatus(profileId, status) {
   if (error) throw error;
 }
 
-export async function updateProfileRole(profileId, { role, employeeTitle } = {}) {
+export async function updateProfileRole(profileId, { role, employeeTitle, discordId } = {}) {
   const patch = {};
   if (role !== undefined) patch.role = role;
   if (employeeTitle !== undefined) patch.employee_title = employeeTitle || null;
+  if (discordId !== undefined) patch.discord_id = discordId || null;
   const { error } = await supabase.from('profiles').update(patch).eq('id', profileId);
   if (error) throw error;
 }

@@ -4,10 +4,13 @@ import {
   getClientProfile,
   getClientAccounts,
   getClientCategories,
+  createClientCategory,
   getClientCategoryLinks,
+  getClientIdsInCategory,
   addClientCategoryLink,
   removeClientCategoryLink,
   getClientLoans,
+  getClientGoldBars,
   adminSetProfileStatus,
   adminSetAccountStatus,
   updateProfileOverrides,
@@ -23,20 +26,29 @@ export async function renderAdminClients(app, profile, params = {}) {
 
   let selectedId = params.id || null;
   let query = '';
+  let categoryFilter = '';
+  let showNewCategoryForm = false;
 
   async function draw() {
-    const [results, allCategories] = await Promise.all([
+    let [results, allCategories] = await Promise.all([
       searchClients(query).catch(() => []),
       getClientCategories().catch(() => []),
     ]);
 
+    if (categoryFilter) {
+      const idsInCategory = await getClientIdsInCategory(categoryFilter).catch(() => []);
+      const idSet = new Set(idsInCategory);
+      results = results.filter((r) => idSet.has(r.id));
+    }
+
     let detailHtml = '<div class="card"><p class="muted">Sélectionnez un client dans la liste pour voir sa fiche.</p></div>';
     if (selectedId) {
-      const [detail, accounts, links, loans] = await Promise.all([
+      const [detail, accounts, links, loans, goldBars] = await Promise.all([
         getClientProfile(selectedId).catch(() => null),
         getClientAccounts(selectedId).catch(() => []),
         getClientCategoryLinks(selectedId).catch(() => []),
         getClientLoans(selectedId).catch(() => []),
+        getClientGoldBars(selectedId).catch(() => []),
       ]);
       if (detail) {
         const total = accounts.reduce((s, a) => s + Number(a.balance), 0);
@@ -103,6 +115,17 @@ export async function renderAdminClients(app, profile, params = {}) {
               }
             </div>
 
+            <div style="margin-bottom:16px;">
+              <div class="muted" style="font-size:12px; margin-bottom:8px;">Lingots possédés (${goldBars.length}${goldBars.length ? ` — ${goldBars.reduce((s, g) => s + Number(g.weight_grams), 0)} g` : ''})</div>
+              ${
+                goldBars.length
+                  ? `<table><tbody>${goldBars
+                      .map((g) => `<tr><td>N° ${escapeHtml(g.serial_number)} — ${g.weight_grams} g</td><td style="text-align:right;">${statusBadge(g.status)}</td></tr>`)
+                      .join('')}</tbody></table>`
+                  : `<p class="muted">Aucun lingot possédé.</p>`
+              }
+            </div>
+
             <div style="margin-bottom:16px; padding-top:12px; border-top:1px solid var(--card-border);">
               <div class="muted" style="font-size:12px; margin-bottom:8px;">Statut du profil (admin)</div>
               <div class="flex gap-sm items-center">
@@ -143,7 +166,34 @@ export async function renderAdminClients(app, profile, params = {}) {
           <div class="field">
             <input type="text" id="search-input" placeholder="Nom ou identifiant..." value="${escapeHtml(query)}" />
           </div>
-          <div style="max-height:520px; overflow-y:auto;">
+          <div class="field" style="margin-bottom:10px;">
+            <label>Filtrer par catégorie</label>
+            <select id="category-filter">
+              <option value="">Toutes les catégories</option>
+              ${allCategories.map((c) => `<option value="${c.id}" ${c.id === categoryFilter ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="margin-bottom:10px;">
+            ${
+              showNewCategoryForm
+                ? `
+              <div style="padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm); margin-bottom:8px;">
+                <div class="field" style="margin-bottom:8px;">
+                  <label style="font-size:11px;">Nom de la catégorie</label>
+                  <input type="text" id="new-cat-name" placeholder="Ex: VIP, Entreprise..." />
+                </div>
+                <div class="field" style="margin-bottom:8px;">
+                  <label style="font-size:11px;">Couleur</label>
+                  <input type="color" id="new-cat-color" value="#c9a227" style="padding:2px; height:36px;" />
+                </div>
+                <div id="new-cat-error" class="text-danger" style="font-size:12px; margin-bottom:8px; display:none;"></div>
+                <button id="new-cat-submit" class="btn btn-primary" style="width:100%;">Créer la catégorie</button>
+              </div>
+            `
+                : `<button id="new-cat-toggle" class="btn btn-secondary" style="width:100%;">+ Nouvelle catégorie</button>`
+            }
+          </div>
+          <div style="max-height:460px; overflow-y:auto;">
             ${
               results.length
                 ? results
@@ -172,6 +222,36 @@ export async function renderAdminClients(app, profile, params = {}) {
     });
     searchInput.focus();
     searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+
+    document.getElementById('category-filter').addEventListener('change', (e) => {
+      categoryFilter = e.target.value;
+      draw();
+    });
+
+    document.getElementById('new-cat-toggle')?.addEventListener('click', () => {
+      showNewCategoryForm = true;
+      draw();
+    });
+
+    document.getElementById('new-cat-submit')?.addEventListener('click', async () => {
+      const errorEl = document.getElementById('new-cat-error');
+      errorEl.style.display = 'none';
+      const name = document.getElementById('new-cat-name').value.trim();
+      const color = document.getElementById('new-cat-color').value;
+      if (!name) {
+        errorEl.textContent = 'Le nom de la catégorie est requis.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      try {
+        await createClientCategory({ name, color });
+        showNewCategoryForm = false;
+        await draw();
+      } catch (err) {
+        errorEl.textContent = err.message || 'Erreur lors de la création.';
+        errorEl.style.display = 'block';
+      }
+    });
 
     content.querySelectorAll('.client-row').forEach((el) => {
       el.addEventListener('click', () => { selectedId = el.getAttribute('data-id'); draw(); });

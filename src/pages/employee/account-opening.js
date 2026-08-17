@@ -81,6 +81,10 @@ export async function renderEmployeeAccountOpening(app, profile) {
                     <label style="font-size:11px;">Mot de passe (min. 8 caractères)</label>
                     <input type="password" class="create-password" data-id="${o.id}" placeholder="••••••••" />
                   </div>
+                  <div class="field" style="margin-bottom:8px;">
+                    <label style="font-size:11px;">ID Discord (facultatif)</label>
+                    <input type="text" class="create-discord-id" data-id="${o.id}" placeholder="Ex: 123456789012345678" />
+                  </div>
                   <div class="create-account-error text-danger" data-id="${o.id}" style="font-size:12px; margin-bottom:8px; display:none;"></div>
                   <button class="btn btn-primary create-submit-btn" data-id="${o.id}" style="width:100%;">Créer et finaliser</button>
                 </div>
@@ -155,13 +159,14 @@ export async function renderEmployeeAccountOpening(app, profile) {
         errorEl.style.display = 'none';
         const username = content.querySelector(`.create-username[data-id="${id}"]`).value.trim();
         const password = content.querySelector(`.create-password[data-id="${id}"]`).value;
+        const discordId = content.querySelector(`.create-discord-id[data-id="${id}"]`).value.trim();
         if (!username || !password) {
           errorEl.textContent = 'Identifiant et mot de passe requis.';
           errorEl.style.display = 'block';
           return;
         }
         try {
-          const created = await createAccount({ username, password, displayName: opening.display_name, role: 'client' });
+          const created = await createAccount({ username, password, displayName: opening.display_name, role: 'client', discordId: discordId || null });
           await finalizeManualAccountOpening(id, created.id);
           await draw();
         } catch (err) {

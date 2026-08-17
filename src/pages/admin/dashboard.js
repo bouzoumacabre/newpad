@@ -11,6 +11,7 @@ import {
   getBranchQueue,
   getCashierReports,
 } from '../../lib/employeeApi.js';
+import { getAllGoldBars } from '../../lib/adminApi.js';
 import { formatMoney, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 
@@ -22,7 +23,7 @@ export async function renderAdminDashboard(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports] = await Promise.all([
+  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, goldBars] = await Promise.all([
     getMembershipRequests(['pending', 'processing']).catch(() => []),
     getTransfersQueue().catch(() => []),
     getGoldBankQueue().catch(() => []),
@@ -33,15 +34,18 @@ export async function renderAdminDashboard(app, profile) {
     getAllSupportTickets('open').catch(() => []),
     getBranchQueue().catch(() => []),
     getCashierReports(1).catch(() => []),
+    getAllGoldBars().catch(() => []),
   ]);
 
   const loansAwaitingDecision = loans.filter((l) => l.status === 'processing').length;
   const lastReport = cashierReports[0];
+  const goldInCirculation = goldBars.filter((b) => b.status === 'sold').length;
 
   const stats = [
     { label: "Demandes d'adhésion", value: membership.length, path: '/admin/membership' },
     { label: 'Virements en attente', value: countPending(transfers), path: '/admin/transfers' },
     { label: 'Lingots (banque + marché)', value: countPending(goldBank) + countPending(goldMarket), path: '/admin/gold' },
+    { label: 'Lingots en circulation', value: goldInCirculation, path: '/admin/gold' },
     { label: 'Coffres en attente', value: countPending(safes), path: '/admin/safes' },
     { label: "File d'attente", value: queue.filter((q) => q.status === 'waiting').length, path: '/admin/branch-queue' },
     { label: 'Alertes fraude ouvertes', value: fraud.length, path: '/admin/fraud' },

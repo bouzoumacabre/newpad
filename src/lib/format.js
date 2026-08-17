@@ -69,3 +69,87 @@ export function statusBadge(status) {
 export function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+// ----------------------------------------------------------------------------
+// JOURNAL D'ACTIVITÉ — libellés lisibles pour l'action et le détail (jsonb)
+// ----------------------------------------------------------------------------
+
+const AUDIT_ACTION_LABELS = {
+  claim_transfer: 'Virement pris en charge',
+  approve_transfer: 'Virement validé',
+  reject_transfer: 'Virement refusé',
+  transfer_flagged_needs_admin: 'Virement signalé — autorisation admin requise',
+  approve_gold_bank_purchase: 'Achat de lingot (banque) validé',
+  reject_gold_bank_purchase: 'Achat de lingot (banque) refusé',
+  approve_gold_market_purchase: 'Achat de lingot (marché) validé',
+  reject_gold_market_purchase: 'Achat de lingot (marché) refusé',
+  claim_safe_request: 'Rendez-vous coffre programmé',
+  confirm_safe_rental: 'Location de coffre confirmée',
+  employee_review_loan: 'Prêt transmis pour décision finale',
+  approve_loan: 'Prêt validé',
+  reject_loan: 'Prêt refusé',
+  approve_membership: 'Adhésion validée',
+  reject_membership: 'Adhésion refusée',
+  membership_needs_admin: 'Adhésion signalée — autorisation admin requise',
+  resolve_support_ticket: 'Ticket support résolu',
+  assign_consulting_request: 'Conseiller attribué',
+  edge_create_account: 'Compte créé',
+  mint_gold_bar: 'Lingot frappé',
+  admin_update_gold_bar: 'Lingot modifié',
+  admin_set_visibility_mask: 'Masquage modifié',
+  admin_set_account_status: 'Statut de compte modifié',
+  admin_set_profile_status: 'Statut de profil modifié',
+  admin_adjust_cashier_report: 'Correction de caisse',
+};
+
+const AUDIT_DETAIL_KEY_LABELS = {
+  client: 'Client',
+  applicant: 'Demandeur',
+  from: 'De',
+  to: 'À',
+  buyer: 'Acheteur',
+  seller: 'Vendeur',
+  advisor: 'Conseiller',
+  amount: 'Montant',
+  price: 'Prix',
+  fee: 'Frais',
+  note: 'Note',
+  rate: 'Taux',
+  term_months: 'Durée (mois)',
+  role: 'Rôle',
+  username: 'Identifiant',
+  gold_bar_id: 'Lingot',
+  safe_code: 'Coffre',
+  annual_fee: 'Cotisation annuelle',
+  appointment_at: 'Rendez-vous',
+  subject: 'Sujet',
+  initial_deposit: 'Dépôt initial',
+  projected_total: 'Solde projeté',
+};
+
+export function auditActionLabel(action) {
+  return AUDIT_ACTION_LABELS[action] || action;
+}
+
+function formatAuditValue(key, value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (['amount', 'price', 'fee', 'annual_fee', 'initial_deposit', 'projected_total'].includes(key)) {
+    return formatMoney(value);
+  }
+  if (key === 'appointment_at') return formatDateTime(value);
+  return String(value);
+}
+
+// Rend le champ `details` (jsonb) du journal d'activité sous forme de texte
+// lisible "Client : X — Montant : Y $" plutôt que du JSON brut.
+export function auditDetailsText(details) {
+  if (!details || typeof details !== 'object') return '';
+  const parts = [];
+  for (const [key, rawValue] of Object.entries(details)) {
+    const value = formatAuditValue(key, rawValue);
+    if (value === null) continue;
+    const label = AUDIT_DETAIL_KEY_LABELS[key] || key;
+    parts.push(`${label} : ${value}`);
+  }
+  return parts.join(' — ');
+}

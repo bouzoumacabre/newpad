@@ -170,3 +170,45 @@ tr:last-child td { border-bottom: none; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
 .grid { display: grid; gap: var(--space-md); }
+
+/* ---------------------------------------------------------------------- */
+/* Adaptation mobile — la plupart des écrans posent leur mise en page en   */
+/* colonnes fixes via un style inline (grid-template-columns: 1fr 1.4fr,   */
+/* repeat(4, 1fr) auto, etc.) qui ne se réduit pas naturellement sur petit */
+/* écran et provoque le décalage/débordement de texte signalé. On force   */
+/* une colonne unique et on rend les tableaux défilables horizontalement  */
+/* plutôt que de les laisser écraser le texte.                            */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  html, body { font-size: 14px; overflow-x: hidden; }
+
+  .content { padding: 14px; max-width: 100%; }
+  .topbar { padding: 0 14px; }
+
+  h1 { font-size: 20px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 15px; }
+
+  .card { padding: var(--space-md); }
+
+  /* Toute grille à colonnes multiples (y compris celles définies en style
+     inline, qui l'emportent normalement sur une classe CSS) repasse en une
+     seule colonne pour éviter le texte tronqué ou chevauché. */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Les tableaux larges (journal, registre de lingots...) défilent
+     horizontalement au lieu d'écraser leurs colonnes. */
+  table { display: block; width: 100%; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  table thead, table tbody { display: table; width: 100%; table-layout: auto; }
+
+  .btn { padding: 10px 14px; font-size: 13px; }
+
+  /* Les en-têtes flex avec bouton à droite passent en colonne pour éviter
+     que le titre pousse le bouton hors de l'écran. */
+  .flex.justify-between { flex-wrap: wrap; gap: var(--space-sm); }
+
+  input, select, textarea { font-size: 16px; } /* évite le zoom automatique iOS */
+}

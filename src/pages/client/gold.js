@@ -2,6 +2,9 @@ import { renderClientShell } from './shell.js';
 import { getBankGoldStock, getMyGoldBars, buyGoldFromBank, getMyGoldPurchaseRequests, getEconomicSetting } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 
+// 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
+const GRAMS_PER_TROY_OUNCE = 31.1034768;
+
 export async function renderClientGold(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
@@ -14,10 +17,16 @@ export async function renderClientGold(app, profile) {
       getEconomicSetting('gold_price_per_gram').catch(() => null),
     ]);
     const pricePerGram = priceSetting?.amount ?? 60;
+    const pricePerOunce = pricePerGram * GRAMS_PER_TROY_OUNCE;
+    const myTotalWeight = myBars.reduce((s, g) => s + Number(g.weight_grams), 0);
+    const myTotalValue = myTotalWeight * pricePerGram;
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Lingots d'or</h1>
-      <p class="muted" style="margin-bottom:20px;">Cours actuel : <span class="gold" style="font-weight:600;">${formatMoney(pricePerGram)}/gramme</span></p>
+      <p class="muted" style="margin-bottom:20px;">
+        Cours actuel : <span class="gold" style="font-weight:600;">${formatMoney(pricePerGram)}/gramme</span>
+        — <span class="gold" style="font-weight:600;">${formatMoney(pricePerOunce)}/once</span>
+      </p>
 
       <h3 style="margin-bottom:12px;">Stock disponible à la banque</h3>
       <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom:28px;">
@@ -41,7 +50,12 @@ export async function renderClientGold(app, profile) {
 
       <div class="grid" style="grid-template-columns: 1fr 1fr; align-items:start;">
         <div class="card">
-          <h3 style="margin-bottom:12px;">Mes lingots (${myBars.length})</h3>
+          <h3 style="margin-bottom:4px;">Mes lingots (${myBars.length})</h3>
+          ${
+            myBars.length
+              ? `<p class="muted" style="font-size:12px; margin-bottom:12px;">Poids total possédé : ${myTotalWeight} g — valeur estimée au cours actuel : <span class="gold" style="font-weight:600;">${formatMoney(myTotalValue)}</span></p>`
+              : ''
+          }
           ${
             myBars.length
               ? `<table><tbody>${myBars

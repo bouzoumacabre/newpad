@@ -30,6 +30,11 @@ export function renderSignup(app) {
             <label for="password">Mot de passe</label>
             <input id="password" name="password" type="password" minlength="8" required />
           </div>
+          <div class="field">
+            <label for="discord_id">ID Discord (facultatif)</label>
+            <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" />
+            <div class="muted" style="font-size:12px; margin-top:4px;">Utilisé pour la réinitialisation de mot de passe et la liaison de compte.</div>
+          </div>
           <div id="signup-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <div id="signup-success" class="text-success" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">Créer mon accès prospect</button>
@@ -57,10 +62,11 @@ export function renderSignup(app) {
     const displayName = document.getElementById('display_name').value;
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
+    const discordId = document.getElementById('discord_id').value.trim();
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      await signUpProspect({ username, password, displayName });
+      await signUpProspect({ username, password, displayName, discordId });
       successEl.textContent = 'Accès créé. Vous pouvez maintenant vous connecter et demander à devenir client.';
       successEl.style.display = 'block';
       setTimeout(() => navigate('/login'), 1800);

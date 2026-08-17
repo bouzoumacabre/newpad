@@ -10,6 +10,8 @@ import {
 import { escapeHtml } from '../../lib/format.js';
 
 const SYSTEM_CATEGORY = 'système';
+// 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
+const GRAMS_PER_TROY_OUNCE = 31.1034768;
 
 function valueInputHtml(setting, cls) {
   const key = setting.key;
@@ -70,7 +72,14 @@ export async function renderAdminEconomicSettings(app, profile) {
                 .map(
                   (s) => `
                 <tr>
-                  <td>${escapeHtml(s.label)}<div class="muted" style="font-size:11px;">${escapeHtml(s.key)}</div></td>
+                  <td>
+                    ${escapeHtml(s.label)}<div class="muted" style="font-size:11px;">${escapeHtml(s.key)}</div>
+                    ${
+                      s.key === 'gold_price_per_gram' && s.value?.amount
+                        ? `<div class="gold" style="font-size:11px; margin-top:2px;">≈ ${(Number(s.value.amount) * GRAMS_PER_TROY_OUNCE).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $/once</div>`
+                        : ''
+                    }
+                  </td>
                   <td>${valueInputHtml(s, 'setting-value')}</td>
                   <td><button class="btn btn-secondary setting-save" data-key="${s.key}" data-type="${s.value_type}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
                 </tr>

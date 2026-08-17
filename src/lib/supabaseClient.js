@@ -40,13 +40,18 @@ export async function signInWithUsername(username, password) {
   return data;
 }
 
-export async function signUpProspect({ username, password, displayName }) {
+export async function signUpProspect({ username, password, displayName, discordId }) {
   const email = usernameToSyntheticEmail(username);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { username: username.trim().toLowerCase(), display_name: displayName, role: 'prospect' },
+      data: {
+        username: username.trim().toLowerCase(),
+        display_name: displayName,
+        role: 'prospect',
+        discord_id: discordId ? discordId.trim() : null,
+      },
     },
   });
   if (error) throw error;

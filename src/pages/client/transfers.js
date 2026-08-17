@@ -7,7 +7,30 @@ import {
   getMyTransfers,
   getEconomicSetting,
 } from '../../lib/clientApi.js';
-import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
+
+// Libellés spécifiques au suivi de virement (distincts du statut générique
+// partagé par les autres écrans) : le client doit voir la progression réelle
+// du traitement plutôt qu'un mot générique.
+const TRANSFER_STATUS_LABELS = {
+  pending: 'Demande envoyée',
+  processing: 'En cours de traitement',
+  validated: 'Virement effectué',
+  rejected: 'Refusé',
+  cancelled: 'Annulé',
+};
+const TRANSFER_STATUS_CLASSES = {
+  pending: 'badge-pending',
+  processing: 'badge-pending',
+  validated: 'badge-success',
+  rejected: 'badge-danger',
+  cancelled: 'badge-neutral',
+};
+function transferStatusBadge(status) {
+  const cls = TRANSFER_STATUS_CLASSES[status] || 'badge-neutral';
+  const label = TRANSFER_STATUS_LABELS[status] || status;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
 
 export async function renderClientTransfers(app, profile) {
   const { content } = await renderClientShell(app, profile, 'transfers');
@@ -97,7 +120,7 @@ export async function renderClientTransfers(app, profile) {
                       <td class="muted">${formatDateTime(t.created_at)}</td>
                       <td style="font-weight:600;">${formatMoney(t.amount)}</td>
                       <td class="muted">${t.is_internal ? 'Interne' : 'Externe'}</td>
-                      <td>${statusBadge(t.status)}</td>
+                      <td>${transferStatusBadge(t.status)}</td>
                     </tr>
                   `
                     )
@@ -193,7 +216,7 @@ export async function renderClientTransfers(app, profile) {
     btn.textContent = 'Envoi…';
     try {
       await submitTransfer({ senderAccountId, recipientAccountId, amount, motif });
-      successEl.textContent = 'Virement soumis avec succès — en attente de traitement par un employé.';
+      successEl.textContent = 'Demande de virement envoyée — vous serez notifié à chaque étape du traitement.';
       successEl.style.display = 'block';
       setTimeout(() => renderClientTransfers(app, profile), 1200);
     } catch (err) {
