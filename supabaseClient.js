@@ -63,6 +63,36 @@ export async function signUpProspect({ username, password, displayName, discordI
   return data;
 }
 
+// ----------------------------------------------------------------------------
+// MOT DE PASSE OUBLIÉ — via Discord (Edge Functions dédiées, aucune session
+// requise : ces deux appels sont volontairement accessibles sans être connecté)
+// ----------------------------------------------------------------------------
+
+async function invokePublicFunction(name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    let message = error.message;
+    try {
+      const errBody = await error.context?.json?.();
+      if (errBody?.error) message = errBody.error;
+    } catch (_) { /* pas de corps JSON exploitable */ }
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function requestPasswordReset(username) {
+  return invokePublicFunction('request-password-reset', { username: username.trim().toLowerCase() });
+}
+
+export async function confirmPasswordReset({ username, code, newPassword }) {
+  return invokePublicFunction('confirm-password-reset', {
+    username: username.trim().toLowerCase(),
+    code: code.trim(),
+    newPassword,
+  });
+}
+
 export async function getCurrentProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

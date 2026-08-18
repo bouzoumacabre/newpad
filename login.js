@@ -2,6 +2,7 @@ import logoUrl from '../../assets/logo.svg';
 import { signInWithUsername } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
 import { renderTurnstile } from '../../lib/turnstile.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 export async function renderLogin(app) {
   app.innerHTML = `
@@ -33,7 +34,13 @@ export async function renderLogin(app) {
           Pas encore client ? <a href="#/signup">Demander à devenir client</a>
         </p>
         <p style="margin-top:8px;text-align:center;font-size:13px;">
+          <a href="#/forgot-password">Mot de passe oublié ?</a>
+        </p>
+        <p style="margin-top:8px;text-align:center;font-size:13px;">
           <a href="#/" class="muted">&larr; Retour à l'accueil</a>
+        </p>
+        <p style="margin-top:8px;text-align:center;font-size:13px;">
+          <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer">Rejoindre le Discord</a>
         </p>
       </div>
     </div>

@@ -27,6 +27,14 @@ function unwrap({ data, error }) {
 export * from './employeeApi.js';
 
 // ----------------------------------------------------------------------------
+// TRÉSORERIE — fonds propres / actif en gestion / solde total
+// ----------------------------------------------------------------------------
+
+export async function getTreasuryStats() {
+  return unwrap(await supabase.rpc('admin_treasury_stats'));
+}
+
+// ----------------------------------------------------------------------------
 // PRÊTS — décision finale (admin uniquement)
 // ----------------------------------------------------------------------------
 

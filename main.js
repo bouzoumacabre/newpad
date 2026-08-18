@@ -3,6 +3,7 @@ import { route, setNotFound, initRouter, navigate } from './lib/router.js';
 import { renderPublicHome } from './pages/public/home.js';
 import { renderLogin } from './pages/auth/login.js';
 import { renderSignup } from './pages/auth/signup.js';
+import { renderForgotPassword } from './pages/auth/forgot-password.js';
 import { getCurrentProfile, supabase } from './lib/supabaseClient.js';
 import { renderMembershipRequest } from './pages/client/membership-request.js';
 import { renderClientDashboard } from './pages/client/dashboard.js';
@@ -16,6 +17,7 @@ import { renderClientLoans } from './pages/client/loans.js';
 import { renderClientConsulting } from './pages/client/consulting.js';
 import { renderClientDocuments } from './pages/client/documents.js';
 import { renderClientSupport } from './pages/client/support.js';
+import { renderClientMessages } from './pages/client/messages.js';
 import { renderClientSettings } from './pages/client/settings.js';
 import { renderEmployeeDashboard } from './pages/employee/dashboard.js';
 import { renderEmployeeClients } from './pages/employee/clients.js';
@@ -30,6 +32,7 @@ import { renderEmployeeConsulting } from './pages/employee/consulting.js';
 import { renderEmployeeCashier } from './pages/employee/cashier.js';
 import { renderEmployeeFraud } from './pages/employee/fraud.js';
 import { renderEmployeeSupport } from './pages/employee/support.js';
+import { renderEmployeeMessages } from './pages/employee/messages.js';
 import { renderEmployeeAudit } from './pages/employee/audit.js';
 import { renderEmployeeSettings } from './pages/employee/settings.js';
 import { renderAdminDashboard } from './pages/admin/dashboard.js';
@@ -45,6 +48,7 @@ import { renderAdminConsulting } from './pages/admin/consulting.js';
 import { renderAdminCashier } from './pages/admin/cashier.js';
 import { renderAdminFraud } from './pages/admin/fraud.js';
 import { renderAdminSupport } from './pages/admin/support.js';
+import { renderAdminMessages } from './pages/admin/messages.js';
 import { renderAdminAudit } from './pages/admin/audit.js';
 import { renderAdminSettings } from './pages/admin/settings.js';
 import { renderAdminStaff } from './pages/admin/staff.js';
@@ -59,6 +63,7 @@ import { renderIrsClients } from './pages/irs/clients.js';
 import { renderIrsAccounts } from './pages/irs/accounts.js';
 import { renderIrsTransactions } from './pages/irs/transactions.js';
 import { renderIrsGold } from './pages/irs/gold.js';
+import { renderIrsMessages } from './pages/irs/messages.js';
 import { renderIrsSettings } from './pages/irs/settings.js';
 
 const app = document.getElementById('app');
@@ -73,6 +78,7 @@ async function guardedRoleRender(expectedRole, renderFn) {
 route('/', async () => renderPublicHome(app));
 route('/login', async () => renderLogin(app));
 route('/signup', async () => renderSignup(app));
+route('/forgot-password', async () => renderForgotPassword(app));
 
 // Prospect — en attente de validation de sa demande d'adhésion (comble
 // l'absence antérieure de route pour ce rôle, qui provoquait une boucle de
@@ -95,6 +101,8 @@ route('/client/consulting', async () => guardedRoleRender('client', (p) => rende
 route('/client/documents', async () => guardedRoleRender('client', (p) => renderClientDocuments(app, p)));
 route('/client/support', async () => guardedRoleRender('client', (p) => renderClientSupport(app, p)));
 route('/client/support/:id', async (params) => guardedRoleRender('client', (p) => renderClientSupport(app, p, params)));
+route('/client/messages', async () => guardedRoleRender('client', (p) => renderClientMessages(app, p)));
+route('/client/messages/:id', async (params) => guardedRoleRender('client', (p) => renderClientMessages(app, p, params)));
 route('/client/settings', async () => guardedRoleRender('client', (p) => renderClientSettings(app, p)));
 
 // ----------------------------------------------------------------------------
@@ -115,6 +123,8 @@ route('/employee/cashier', async () => guardedRoleRender('employee', (p) => rend
 route('/employee/fraud', async () => guardedRoleRender('employee', (p) => renderEmployeeFraud(app, p)));
 route('/employee/support', async () => guardedRoleRender('employee', (p) => renderEmployeeSupport(app, p)));
 route('/employee/support/:id', async (params) => guardedRoleRender('employee', (p) => renderEmployeeSupport(app, p, params)));
+route('/employee/messages', async () => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p)));
+route('/employee/messages/:id', async (params) => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p, params)));
 route('/employee/audit', async () => guardedRoleRender('employee', (p) => renderEmployeeAudit(app, p)));
 route('/employee/settings', async () => guardedRoleRender('employee', (p) => renderEmployeeSettings(app, p)));
 
@@ -136,6 +146,8 @@ route('/admin/cashier', async () => guardedRoleRender('admin', (p) => renderAdmi
 route('/admin/fraud', async () => guardedRoleRender('admin', (p) => renderAdminFraud(app, p)));
 route('/admin/support', async () => guardedRoleRender('admin', (p) => renderAdminSupport(app, p)));
 route('/admin/support/:id', async (params) => guardedRoleRender('admin', (p) => renderAdminSupport(app, p, params)));
+route('/admin/messages', async () => guardedRoleRender('admin', (p) => renderAdminMessages(app, p)));
+route('/admin/messages/:id', async (params) => guardedRoleRender('admin', (p) => renderAdminMessages(app, p, params)));
 route('/admin/audit', async () => guardedRoleRender('admin', (p) => renderAdminAudit(app, p)));
 route('/admin/settings', async () => guardedRoleRender('admin', (p) => renderAdminSettings(app, p)));
 route('/admin/staff', async () => guardedRoleRender('admin', (p) => renderAdminStaff(app, p)));
@@ -156,6 +168,8 @@ route('/irs/clients', async () => guardedRoleRender('irs', (p) => renderIrsClien
 route('/irs/accounts', async () => guardedRoleRender('irs', (p) => renderIrsAccounts(app, p)));
 route('/irs/transactions', async () => guardedRoleRender('irs', (p) => renderIrsTransactions(app, p)));
 route('/irs/gold', async () => guardedRoleRender('irs', (p) => renderIrsGold(app, p)));
+route('/irs/messages', async () => guardedRoleRender('irs', (p) => renderIrsMessages(app, p)));
+route('/irs/messages/:id', async (params) => guardedRoleRender('irs', (p) => renderIrsMessages(app, p, params)));
 route('/irs/settings', async () => guardedRoleRender('irs', (p) => renderIrsSettings(app, p)));
 
 setNotFound(async () => { navigate('/'); });

@@ -1,0 +1,214 @@
+import { renderEmployeeShell } from './shell.js';
+import {
+  searchClients,
+  getClientProfile,
+  getClientAccounts,
+  getClientCategories,
+  createClientCategory,
+  getClientCategoryLinks,
+  getClientIdsInCategory,
+  addClientCategoryLink,
+  removeClientCategoryLink,
+  getClientLoans,
+} from '../../lib/employeeApi.js';
+import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
+
+export async function renderEmployeeClients(app, profile, params = {}) {
+  const { content } = await renderEmployeeShell(app, profile, 'clients');
+  content.innerHTML = `<p class="muted">Chargement…</p>`;
+
+  let selectedId = params.id || null;
+  let query = '';
+  let categoryFilter = '';
+  let showNewCategoryForm = false;
+
+  async function draw() {
+    let [results, allCategories] = await Promise.all([
+      searchClients(query).catch(() => []),
+      getClientCategories().catch(() => []),
+    ]);
+
+    if (categoryFilter) {
+      const idsInCategory = await getClientIdsInCategory(categoryFilter).catch(() => []);
+      const idSet = new Set(idsInCategory);
+      results = results.filter((r) => idSet.has(r.id));
+    }
+
+    let detailHtml = '<div class="card"><p class="muted">Sélectionnez un client dans la liste pour voir sa fiche.</p></div>';
+    if (selectedId) {
+      const [detail, accounts, links, loans] = await Promise.all([
+        getClientProfile(selectedId).catch(() => null),
+        getClientAccounts(selectedId).catch(() => []),
+        getClientCategoryLinks(selectedId).catch(() => []),
+        getClientLoans(selectedId).catch(() => []),
+      ]);
+      if (detail) {
+        const total = accounts.reduce((s, a) => s + Number(a.balance), 0);
+        const linkedIds = new Set(links.map((l) => l.category_id));
+        detailHtml = `
+          <div class="card">
+            <div class="flex justify-between items-center" style="margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0;">${escapeHtml(detail.display_name)}</h3>
+                <div class="muted" style="font-size:13px;">@${escapeHtml(detail.username)} — client depuis le ${detail.client_since ? formatDate(detail.client_since) : '—'}</div>
+              </div>
+              <div class="font-display gold" style="font-size:22px;">${formatMoney(total)}</div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="muted" style="font-size:12px; margin-bottom:6px;">Note de confiance : ${detail.trust_score}/100 — Statut : ${escapeHtml(detail.status)}</div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="muted" style="font-size:12px; margin-bottom:8px;">Catégories</div>
+              <div class="flex gap-sm" style="flex-wrap:wrap;">
+                ${allCategories
+                  .map((c) => {
+                    const active = linkedIds.has(c.id);
+                    return `<button class="badge cat-toggle" data-id="${c.id}" data-active="${active}" style="cursor:pointer; border:1px solid ${c.color}; ${active ? `background:${c.color}22; color:${c.color};` : 'background:transparent; color:var(--text-muted);'}">${escapeHtml(c.name)}</button>`;
+                  })
+                  .join('')}
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="muted" style="font-size:12px; margin-bottom:8px;">Comptes (${accounts.length})</div>
+              ${
+                accounts.length
+                  ? `<table><tbody>${accounts
+                      .map((a) => `<tr><td>${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)}</td><td style="text-align:right;">${formatMoney(a.balance)}</td></tr>`)
+                      .join('')}</tbody></table>`
+                  : `<p class="muted">Aucun compte.</p>`
+              }
+            </div>
+
+            <div>
+              <div class="muted" style="font-size:12px; margin-bottom:8px;">Prêts (${loans.length})</div>
+              ${
+                loans.length
+                  ? `<table><tbody>${loans
+                      .map((l) => `<tr><td>${formatMoney(l.requested_amount)}</td><td style="text-align:right;">${statusBadge(l.status)}</td></tr>`)
+                      .join('')}</tbody></table>`
+                  : `<p class="muted">Aucun prêt.</p>`
+              }
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    content.innerHTML = `
+      <h1 style="margin-bottom:20px;">Recherche clients</h1>
+      <div class="grid" style="grid-template-columns: 1fr 1.4fr; align-items:start;">
+        <div class="card">
+          <div class="field">
+            <input type="text" id="search-input" placeholder="Nom ou identifiant..." value="${escapeHtml(query)}" />
+          </div>
+          <div class="field" style="margin-bottom:10px;">
+            <label>Filtrer par catégorie</label>
+            <select id="category-filter">
+              <option value="">Toutes les catégories</option>
+              ${allCategories.map((c) => `<option value="${c.id}" ${c.id === categoryFilter ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+            </select>
+          </div>
+          <div style="margin-bottom:10px;">
+            ${
+              showNewCategoryForm
+                ? `
+              <div style="padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm); margin-bottom:8px;">
+                <div class="field" style="margin-bottom:8px;">
+                  <label style="font-size:11px;">Nom de la catégorie</label>
+                  <input type="text" id="new-cat-name" placeholder="Ex: VIP, Entreprise..." />
+                </div>
+                <div class="field" style="margin-bottom:8px;">
+                  <label style="font-size:11px;">Couleur</label>
+                  <input type="color" id="new-cat-color" value="#c9a227" style="padding:2px; height:36px;" />
+                </div>
+                <div id="new-cat-error" class="text-danger" style="font-size:12px; margin-bottom:8px; display:none;"></div>
+                <button id="new-cat-submit" class="btn btn-primary" style="width:100%;">Créer la catégorie</button>
+              </div>
+            `
+                : `<button id="new-cat-toggle" class="btn btn-secondary" style="width:100%;">+ Nouvelle catégorie</button>`
+            }
+          </div>
+          <div style="max-height:460px; overflow-y:auto;">
+            ${
+              results.length
+                ? results
+                    .map(
+                      (c) => `
+              <div class="client-row" data-id="${c.id}" style="padding:10px 8px; border-radius:var(--radius-sm); cursor:pointer; ${c.id === selectedId ? 'background: rgba(201,162,39,0.1);' : ''}">
+                <div style="font-weight:600; font-size:14px;">${escapeHtml(c.display_name)}</div>
+                <div class="muted" style="font-size:12px;">@${escapeHtml(c.username)}</div>
+              </div>
+            `
+                    )
+                    .join('')
+                : `<p class="muted" style="padding:8px;">Aucun résultat.</p>`
+            }
+          </div>
+        </div>
+        <div id="client-detail">${detailHtml}</div>
+      </div>
+    `;
+
+    const searchInput = document.getElementById('search-input');
+    let debounce;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => { query = searchInput.value; draw(); }, 300);
+    });
+    searchInput.focus();
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+
+    document.getElementById('category-filter').addEventListener('change', (e) => {
+      categoryFilter = e.target.value;
+      draw();
+    });
+
+    document.getElementById('new-cat-toggle')?.addEventListener('click', () => {
+      showNewCategoryForm = true;
+      draw();
+    });
+
+    document.getElementById('new-cat-submit')?.addEventListener('click', async () => {
+      const errorEl = document.getElementById('new-cat-error');
+      errorEl.style.display = 'none';
+      const name = document.getElementById('new-cat-name').value.trim();
+      const color = document.getElementById('new-cat-color').value;
+      if (!name) {
+        errorEl.textContent = 'Le nom de la catégorie est requis.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      try {
+        await createClientCategory({ name, color });
+        showNewCategoryForm = false;
+        await draw();
+      } catch (err) {
+        errorEl.textContent = err.message || 'Erreur lors de la création.';
+        errorEl.style.display = 'block';
+      }
+    });
+
+    content.querySelectorAll('.client-row').forEach((el) => {
+      el.addEventListener('click', () => { selectedId = el.getAttribute('data-id'); draw(); });
+    });
+
+    content.querySelectorAll('.cat-toggle').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const catId = btn.getAttribute('data-id');
+        const active = btn.getAttribute('data-active') === 'true';
+        try {
+          if (active) await removeClientCategoryLink(selectedId, catId);
+          else await addClientCategoryLink(selectedId, catId);
+          await draw();
+        } catch (err) {
+          alert(err.message || 'Erreur.');
+        }
+      });
+    });
+  }
+
+  await draw();
+}
