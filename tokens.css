@@ -1,0 +1,54 @@
+/* ============================================================================
+   NEWPAD — Design tokens (identité visuelle Newman Bank, à respecter partout)
+   ============================================================================ */
+
+:root {
+  /* Fond bleu marine profond en dégradé */
+  --bg-950: #050a16;
+  --bg-900: #0a1428;
+  --bg-800: #101f3d;
+  --bg-gradient: linear-gradient(180deg, var(--bg-950) 0%, var(--bg-900) 45%, var(--bg-800) 100%);
+
+  /* Cartes */
+  --card-bg: #0d1a33;
+  --card-border: #22335a;
+  --card-border-hover: #35497c;
+
+  /* Accents dorés */
+  --gold: #c9a227;
+  --gold-light: #e6c465;
+  --gold-dark: #8a6f2e;
+  --gold-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+
+  /* Texte */
+  --ivory: #f6f1e2;
+  --text: #e8ecf5;
+  --text-muted: #8b93ab;
+
+  /* Statuts */
+  --status-success: #4ade80;
+  --status-pending: #f0a838;
+  --status-danger: #f0605a;
+
+  /* Typographie */
+  --font-display: 'Playfair Display', 'Georgia', serif;
+  --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+
+  /* Rayons / ombres */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-gold-glow: 0 0 0 1px rgba(201, 162, 39, 0.25), 0 8px 24px rgba(201, 162, 39, 0.08);
+
+  /* Espacements */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  /* Layout */
+  --sidebar-width: 268px;
+  --topbar-height: 64px;
+}

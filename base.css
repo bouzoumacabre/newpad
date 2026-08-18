@@ -1,0 +1,214 @@
+/* ============================================================================
+   NEWPAD — Styles de base & composants partagés
+   ============================================================================ */
+
+@import './tokens.css';
+@import './shell.css';
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  color: var(--ivory);
+  font-weight: 600;
+  margin: 0 0 var(--space-sm) 0;
+}
+
+a { color: var(--gold-light); text-decoration: none; }
+a:hover { color: var(--gold); }
+
+/* ---------------------------------------------------------------------- */
+/* Boutons */
+/* ---------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--gold-gradient);
+  color: #1a1305;
+}
+.btn-primary:hover { filter: brightness(1.08); box-shadow: var(--shadow-gold-glow); }
+
+.btn-secondary {
+  background: transparent;
+  border-color: var(--card-border);
+  color: var(--text);
+}
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold-light); }
+
+.btn-danger { background: var(--status-danger); color: #2a0a08; }
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------------- */
+/* Cartes */
+/* ---------------------------------------------------------------------- */
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.card-tight { padding: var(--space-md); }
+
+/* ---------------------------------------------------------------------- */
+/* Formulaires */
+/* ---------------------------------------------------------------------- */
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+input, select, textarea {
+  width: 100%;
+  background: var(--bg-950);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+.field { margin-bottom: var(--space-md); }
+
+/* ---------------------------------------------------------------------- */
+/* Badges de statut */
+/* ---------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-success { background: rgba(74, 222, 128, 0.12); color: var(--status-success); }
+.badge-pending { background: rgba(240, 168, 56, 0.12); color: var(--status-pending); }
+.badge-danger { background: rgba(240, 96, 90, 0.12); color: var(--status-danger); }
+.badge-neutral { background: rgba(139, 147, 171, 0.12); color: var(--text-muted); }
+
+/* ---------------------------------------------------------------------- */
+/* Tableaux */
+/* ---------------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--card-border);
+}
+td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(34, 51, 90, 0.5);
+  font-size: 14px;
+}
+tr:last-child td { border-bottom: none; }
+
+/* ---------------------------------------------------------------------- */
+/* Scrollbar sobre */
+/* ---------------------------------------------------------------------- */
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
+
+/* ---------------------------------------------------------------------- */
+/* Utilitaires */
+/* ---------------------------------------------------------------------- */
+
+.muted { color: var(--text-muted); }
+.gold { color: var(--gold-light); }
+.text-success { color: var(--status-success); }
+.text-danger { color: var(--status-danger); }
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.grid { display: grid; gap: var(--space-md); }
+
+/* ---------------------------------------------------------------------- */
+/* Adaptation mobile — la plupart des écrans posent leur mise en page en   */
+/* colonnes fixes via un style inline (grid-template-columns: 1fr 1.4fr,   */
+/* repeat(4, 1fr) auto, etc.) qui ne se réduit pas naturellement sur petit */
+/* écran et provoque le décalage/débordement de texte signalé. On force   */
+/* une colonne unique et on rend les tableaux défilables horizontalement  */
+/* plutôt que de les laisser écraser le texte.                            */
+/* ---------------------------------------------------------------------- */
+
+@media (max-width: 720px) {
+  html, body { font-size: 14px; overflow-x: hidden; }
+
+  .content { padding: 14px; max-width: 100%; }
+  .topbar { padding: 0 14px; }
+
+  h1 { font-size: 20px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 15px; }
+
+  .card { padding: var(--space-md); }
+
+  /* Toute grille à colonnes multiples (y compris celles définies en style
+     inline, qui l'emportent normalement sur une classe CSS) repasse en une
+     seule colonne pour éviter le texte tronqué ou chevauché. */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Les tableaux larges (journal, registre de lingots...) défilent
+     horizontalement au lieu d'écraser leurs colonnes. */
+  table { display: block; width: 100%; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  table thead, table tbody { display: table; width: 100%; table-layout: auto; }
+
+  .btn { padding: 10px 14px; font-size: 13px; }
+
+  /* Les en-têtes flex avec bouton à droite passent en colonne pour éviter
+     que le titre pousse le bouton hors de l'écran. */
+  .flex.justify-between { flex-wrap: wrap; gap: var(--space-sm); }
+
+  input, select, textarea { font-size: 16px; } /* évite le zoom automatique iOS */
+}

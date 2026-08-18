@@ -4,7 +4,6 @@ import { renderPublicHome } from './pages/public/home.js';
 import { renderLogin } from './pages/auth/login.js';
 import { renderSignup } from './pages/auth/signup.js';
 import { getCurrentProfile, supabase } from './lib/supabaseClient.js';
-import { renderRoleShellPlaceholder } from './pages/shell-placeholder.js';
 import { renderMembershipRequest } from './pages/client/membership-request.js';
 import { renderClientDashboard } from './pages/client/dashboard.js';
 import { renderClientAccounts } from './pages/client/accounts.js';
@@ -55,6 +54,12 @@ import { renderAdminVisibility } from './pages/admin/visibility.js';
 import { renderAdminEconomicSettings } from './pages/admin/economic-settings.js';
 import { renderAdminCms } from './pages/admin/cms.js';
 import { renderAdminSystem } from './pages/admin/system.js';
+import { renderIrsDashboard } from './pages/irs/dashboard.js';
+import { renderIrsClients } from './pages/irs/clients.js';
+import { renderIrsAccounts } from './pages/irs/accounts.js';
+import { renderIrsTransactions } from './pages/irs/transactions.js';
+import { renderIrsGold } from './pages/irs/gold.js';
+import { renderIrsSettings } from './pages/irs/settings.js';
 
 const app = document.getElementById('app');
 
@@ -143,7 +148,15 @@ route('/admin/system', async () => guardedRoleRender('admin', (p) => renderAdmin
 
 // Placeholder — construit en détail dans la phase 6. La structure de routing +
 // garde d'accès par rôle est déjà en place et fonctionnelle.
-route('/irs', async () => guardedRoleRender('irs', (p) => renderRoleShellPlaceholder(app, p, 'IRS')));
+// ----------------------------------------------------------------------------
+// IRS — interface complète, strictement lecture seule (phase 6)
+// ----------------------------------------------------------------------------
+route('/irs', async () => guardedRoleRender('irs', (p) => renderIrsDashboard(app, p)));
+route('/irs/clients', async () => guardedRoleRender('irs', (p) => renderIrsClients(app, p)));
+route('/irs/accounts', async () => guardedRoleRender('irs', (p) => renderIrsAccounts(app, p)));
+route('/irs/transactions', async () => guardedRoleRender('irs', (p) => renderIrsTransactions(app, p)));
+route('/irs/gold', async () => guardedRoleRender('irs', (p) => renderIrsGold(app, p)));
+route('/irs/settings', async () => guardedRoleRender('irs', (p) => renderIrsSettings(app, p)));
 
 setNotFound(async () => { navigate('/'); });
 

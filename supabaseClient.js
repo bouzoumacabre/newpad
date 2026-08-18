@@ -1,0 +1,72 @@
+import { createClient } from '@supabase/supabase-js';
+
+// Renseignés au moment du déploiement (voir README — Supabase > Project Settings > API).
+// En local, créer un fichier .env.local avec VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[Newpad] Variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes. ' +
+    'Le site fonctionne en mode dégradé (aucune connexion à la base).'
+  );
+}
+
+export const supabase = createClient(SUPABASE_URL || 'https://placeholder.supabase.co', SUPABASE_ANON_KEY || 'placeholder', {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  realtime: {
+    params: { eventsPerSecond: 5 },
+  },
+});
+
+// L'identifiant saisi par l'utilisateur ne contient jamais "@" : on le
+// transforme en e-mail synthétique interne à Supabase Auth. Voir README.
+export function usernameToSyntheticEmail(username) {
+  return `${username.trim().toLowerCase()}@newpad.local`;
+}
+
+export async function signInWithUsername(username, password, captchaToken) {
+  const email = usernameToSyntheticEmail(username);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: captchaToken ? { captchaToken } : undefined,
+  });
+  // Journalise la tentative (succès/échec) pour la détection de fraude — best effort.
+  try {
+    await supabase.rpc('record_login_attempt', { p_username: username.trim().toLowerCase(), p_success: !error });
+  } catch (_) { /* non bloquant */ }
+  if (error) throw error;
+  return data;
+}
+
+export async function signUpProspect({ username, password, displayName, discordId, captchaToken }) {
+  const email = usernameToSyntheticEmail(username);
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        username: username.trim().toLowerCase(),
+        display_name: displayName,
+        role: 'prospect',
+        discord_id: discordId ? discordId.trim() : null,
+      },
+      ...(captchaToken ? { captchaToken } : {}),
+    },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function getCurrentProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  if (error) throw error;
+  return data;
+}
