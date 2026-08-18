@@ -4,6 +4,7 @@
 
 import { renderShell } from '../../lib/shell.js';
 import { getFeatureFlags } from '../../lib/features.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 export async function renderAdminShell(app, profile, activeKey) {
   let flags = {};
@@ -56,8 +57,10 @@ export async function renderAdminShell(app, profile, activeKey) {
     {
       category: 'Services',
       items: [
-        { key: 'support', label: 'Support', path: '/admin/support', icon: '✉' },
+        { key: 'messages', label: 'Messagerie', path: '/admin/messages', icon: '✉' },
+        { key: 'support', label: 'Support', path: '/admin/support', icon: '☏' },
         { key: 'audit', label: "Journal d'activité", path: '/admin/audit', icon: '▦' },
+        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },
   ].filter((s) => !s.category || s.items.length > 0);

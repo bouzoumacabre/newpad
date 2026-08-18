@@ -32,6 +32,16 @@ function timeAgo(iso) {
 
 function renderNavItem(item, activeKey) {
   const active = item.key === activeKey;
+  // Lien externe (ex: Discord) — nouvel onglet, ne passe jamais par le
+  // routeur interne basé sur le hash.
+  if (item.external) {
+    return `
+      <a class="sidebar-link" href="${item.path}" target="_blank" rel="noopener noreferrer">
+        <span class="icon">${item.icon || '•'}</span>
+        <span>${item.label}</span>
+      </a>
+    `;
+  }
   return `
     <a class="sidebar-link ${active ? 'sidebar-link-active' : ''}" href="#${item.path}">
       <span class="icon">${item.icon || '•'}</span>
@@ -134,6 +144,18 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
   return { content: document.getElementById('content') };
 }
 
+// notify_all_staff() envoie le même lien (généralement '/employee/...') à la
+// fois aux employés et aux admins (sauf notifications admin_only). Un admin
+// qui clique dessus se faisait auparavant rediriger vers son propre tableau
+// de bord par guardedRoleRender (rôle attendu 'employee' != 'admin' réel).
+// On adapte donc le préfixe du lien au rôle réel de l'utilisateur connecté.
+function remapLinkForRole(link, role) {
+  if (role === 'admin' && link.startsWith('/employee/')) {
+    return '/admin/' + link.slice('/employee/'.length);
+  }
+  return link;
+}
+
 async function setupNotifications(profile) {
   const bell = document.getElementById('notif-bell');
   const panel = document.getElementById('notif-panel');
@@ -169,7 +191,7 @@ async function setupNotifications(profile) {
         const link = el.getAttribute('data-link');
         try { await markNotificationsRead([id]); } catch (_) {}
         panel.classList.remove('open');
-        if (link) navigate(link);
+        if (link) navigate(remapLinkForRole(link, profile.role));
         else refresh();
       });
     });

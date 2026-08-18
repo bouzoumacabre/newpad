@@ -1,5 +1,6 @@
 import logoUrl from '../../assets/logo.svg';
 import { supabase } from '../../lib/supabaseClient.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 // Contenu de secours si la base n'est pas encore joignable (mode démo hors-ligne) —
 // une fois Supabase connecté, tout provient de la table `site_content` (pilotée
@@ -77,9 +78,10 @@ export async function renderPublicHome(app) {
             </div>
           </div>
           <nav class="public-nav">
-            <a href="#/">Accueil</a>
-            <a href="#services">Services</a>
-            <a href="#news">Actualités</a>
+            <a href="#/" data-scroll-top="1">Accueil</a>
+            <a href="#services" data-scroll-to="services">Services</a>
+            <a href="#news" data-scroll-to="news">Actualités</a>
+            <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer">Discord</a>
             <a href="#/login">Se connecter</a>
           </nav>
           <a href="#/signup" class="btn btn-primary">Espace client</a>
@@ -185,4 +187,23 @@ export async function renderPublicHome(app) {
       }
     </style>
   `;
+
+  // Le routeur de l'application intercepte tout changement de hash — un lien
+  // du type href="#services" était donc traité comme une route inconnue et
+  // renvoyait vers l'accueil (rechargement complet) au lieu de défiler
+  // jusqu'à la section. On empêche le changement de hash et on défile
+  // manuellement pour ces liens d'ancrage internes à la page.
+  app.querySelectorAll('[data-scroll-to]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.getElementById(el.getAttribute('data-scroll-to'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  app.querySelectorAll('[data-scroll-top]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
 }

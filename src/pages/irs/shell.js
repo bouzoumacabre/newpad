@@ -4,6 +4,7 @@
 
 import { renderShell } from '../../lib/shell.js';
 import { getFeatureFlags } from '../../lib/features.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 export async function renderIrsShell(app, profile, activeKey) {
   let flags = {};
@@ -24,12 +25,19 @@ export async function renderIrsShell(app, profile, activeKey) {
         ...(has('irs.gold.view') ? [{ key: 'gold', label: 'Lingots d\'or', path: '/irs/gold', icon: '●' }] : []),
       ],
     },
+    {
+      category: 'Support',
+      items: [
+        { key: 'messages', label: 'Messagerie', path: '/irs/messages', icon: '✉' },
+        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
+      ],
+    },
   ].filter((s) => !s.category || s.items.length > 0);
 
   const footerItems = [{ key: 'settings', label: 'Paramètres', path: '/irs/settings', icon: '⚙' }];
 
   return renderShell(app, profile, 'Espace IRS', sections, activeKey, {
     footerItems,
-    banner: '⚠ Accès en lecture seule — Hurricane FA. Aucune action de modification n\'est possible depuis cette interface.',
+    banner: '⚠ Accès en lecture seule sur les registres — Hurricane FA. Aucune action de modification des données bancaires n\'est possible depuis cette interface (seule la messagerie fait exception).',
   });
 }

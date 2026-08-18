@@ -6,6 +6,7 @@
 
 import { renderShell } from '../../lib/shell.js';
 import { getFeatureFlags } from '../../lib/features.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 export async function renderClientShell(app, profile, activeKey) {
   let flags = {};
@@ -46,7 +47,9 @@ export async function renderClientShell(app, profile, activeKey) {
       items: [
         ...(has('client.consulting') ? [{ key: 'consulting', label: 'Consulting Premium', path: '/client/consulting', icon: '★' }] : []),
         { key: 'documents', label: 'Documents', path: '/client/documents', icon: '▦' },
-        { key: 'support', label: 'Support', path: '/client/support', icon: '✉' },
+        { key: 'messages', label: 'Messagerie', path: '/client/messages', icon: '✉' },
+        { key: 'support', label: 'Support', path: '/client/support', icon: '☏' },
+        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },
   ].filter((s) => !s.category || s.items.length > 0);

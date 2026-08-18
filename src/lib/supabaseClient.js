@@ -29,9 +29,13 @@ export function usernameToSyntheticEmail(username) {
   return `${username.trim().toLowerCase()}@newpad.local`;
 }
 
-export async function signInWithUsername(username, password) {
+export async function signInWithUsername(username, password, captchaToken) {
   const email = usernameToSyntheticEmail(username);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: captchaToken ? { captchaToken } : undefined,
+  });
   // Journalise la tentative (succès/échec) pour la détection de fraude — best effort.
   try {
     await supabase.rpc('record_login_attempt', { p_username: username.trim().toLowerCase(), p_success: !error });
@@ -40,7 +44,7 @@ export async function signInWithUsername(username, password) {
   return data;
 }
 
-export async function signUpProspect({ username, password, displayName, discordId }) {
+export async function signUpProspect({ username, password, displayName, discordId, captchaToken }) {
   const email = usernameToSyntheticEmail(username);
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -52,10 +56,41 @@ export async function signUpProspect({ username, password, displayName, discordI
         role: 'prospect',
         discord_id: discordId ? discordId.trim() : null,
       },
+      ...(captchaToken ? { captchaToken } : {}),
     },
   });
   if (error) throw error;
   return data;
+}
+
+// ----------------------------------------------------------------------------
+// MOT DE PASSE OUBLIÉ — via Discord (Edge Functions dédiées, aucune session
+// requise : ces deux appels sont volontairement accessibles sans être connecté)
+// ----------------------------------------------------------------------------
+
+async function invokePublicFunction(name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    let message = error.message;
+    try {
+      const errBody = await error.context?.json?.();
+      if (errBody?.error) message = errBody.error;
+    } catch (_) { /* pas de corps JSON exploitable */ }
+    throw new Error(message);
+  }
+  return data;
+}
+
+export async function requestPasswordReset(username) {
+  return invokePublicFunction('request-password-reset', { username: username.trim().toLowerCase() });
+}
+
+export async function confirmPasswordReset({ username, code, newPassword }) {
+  return invokePublicFunction('confirm-password-reset', {
+    username: username.trim().toLowerCase(),
+    code: code.trim(),
+    newPassword,
+  });
 }
 
 export async function getCurrentProfile() {

@@ -1,8 +1,9 @@
 import logoUrl from '../../assets/logo.svg';
 import { signUpProspect } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
+import { renderTurnstile } from '../../lib/turnstile.js';
 
-export function renderSignup(app) {
+export async function renderSignup(app) {
   app.innerHTML = `
     <div class="auth-screen">
       <div class="auth-card card">
@@ -35,6 +36,7 @@ export function renderSignup(app) {
             <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" />
             <div class="muted" style="font-size:12px; margin-top:4px;">Utilisé pour la réinitialisation de mot de passe et la liaison de compte.</div>
           </div>
+          <div id="turnstile-widget" style="margin-bottom:16px;"></div>
           <div id="signup-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <div id="signup-success" class="text-success" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">Créer mon accès prospect</button>
@@ -53,6 +55,8 @@ export function renderSignup(app) {
     </style>
   `;
 
+  const turnstile = await renderTurnstile('turnstile-widget');
+
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('signup-error');
@@ -66,7 +70,7 @@ export function renderSignup(app) {
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      await signUpProspect({ username, password, displayName, discordId });
+      await signUpProspect({ username, password, displayName, discordId, captchaToken: turnstile.getToken() });
       successEl.textContent = 'Accès créé. Vous pouvez maintenant vous connecter et demander à devenir client.';
       successEl.style.display = 'block';
       setTimeout(() => navigate('/login'), 1800);
@@ -76,6 +80,7 @@ export function renderSignup(app) {
         : "Impossible de créer l'accès pour le moment.";
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
+      turnstile.reset();
     }
   });
 }

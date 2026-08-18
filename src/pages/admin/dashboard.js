@@ -11,7 +11,7 @@ import {
   getBranchQueue,
   getCashierReports,
 } from '../../lib/employeeApi.js';
-import { getAllGoldBars } from '../../lib/adminApi.js';
+import { getTreasuryStats } from '../../lib/adminApi.js';
 import { formatMoney, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 
@@ -23,7 +23,7 @@ export async function renderAdminDashboard(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, goldBars] = await Promise.all([
+  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, treasury] = await Promise.all([
     getMembershipRequests(['pending', 'processing']).catch(() => []),
     getTransfersQueue().catch(() => []),
     getGoldBankQueue().catch(() => []),
@@ -34,18 +34,16 @@ export async function renderAdminDashboard(app, profile) {
     getAllSupportTickets('open').catch(() => []),
     getBranchQueue().catch(() => []),
     getCashierReports(1).catch(() => []),
-    getAllGoldBars().catch(() => []),
+    getTreasuryStats().catch(() => null),
   ]);
 
   const loansAwaitingDecision = loans.filter((l) => l.status === 'processing').length;
   const lastReport = cashierReports[0];
-  const goldInCirculation = goldBars.filter((b) => b.status === 'sold').length;
 
   const stats = [
     { label: "Demandes d'adhésion", value: membership.length, path: '/admin/membership' },
     { label: 'Virements en attente', value: countPending(transfers), path: '/admin/transfers' },
     { label: 'Lingots (banque + marché)', value: countPending(goldBank) + countPending(goldMarket), path: '/admin/gold' },
-    { label: 'Lingots en circulation', value: goldInCirculation, path: '/admin/gold' },
     { label: 'Coffres en attente', value: countPending(safes), path: '/admin/safes' },
     { label: "File d'attente", value: queue.filter((q) => q.status === 'waiting').length, path: '/admin/branch-queue' },
     { label: 'Alertes fraude ouvertes', value: fraud.length, path: '/admin/fraud' },
@@ -68,6 +66,25 @@ export async function renderAdminDashboard(app, profile) {
       `
         )
         .join('')}
+    </div>
+
+    <h3 style="margin:28px 0 12px;">Trésorerie de la banque</h3>
+    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom:28px;">
+      <div class="card card-tight">
+        <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Fonds propres</div>
+        <div class="font-display gold" style="font-size:26px; margin-top:8px;">${treasury ? formatMoney(treasury.fonds_propres) : '—'}</div>
+        <div class="muted" style="font-size:11px; margin-top:4px;">Argent qui appartient réellement à la banque</div>
+      </div>
+      <div class="card card-tight">
+        <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Actif en gestion</div>
+        <div class="font-display gold" style="font-size:26px; margin-top:8px;">${treasury ? formatMoney(treasury.actif_gestion) : '—'}</div>
+        <div class="muted" style="font-size:11px; margin-top:4px;">Argent des clients géré par la banque</div>
+      </div>
+      <div class="card card-tight" style="border-color: var(--gold);">
+        <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em;">Solde total</div>
+        <div class="font-display gold" style="font-size:26px; margin-top:8px;">${treasury ? formatMoney(treasury.solde_total) : '—'}</div>
+        <div class="muted" style="font-size:11px; margin-top:4px;">Fonds propres + actif en gestion</div>
+      </div>
     </div>
 
     <h3 style="margin:28px 0 12px;">Caisse — dernière clôture</h3>

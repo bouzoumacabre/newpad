@@ -1,8 +1,10 @@
 import logoUrl from '../../assets/logo.svg';
 import { signInWithUsername } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
+import { renderTurnstile } from '../../lib/turnstile.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
-export function renderLogin(app) {
+export async function renderLogin(app) {
   app.innerHTML = `
     <div class="auth-screen">
       <div class="auth-card card">
@@ -24,6 +26,7 @@ export function renderLogin(app) {
             <label for="password">Mot de passe</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required />
           </div>
+          <div id="turnstile-widget" style="margin-bottom:16px;"></div>
           <div id="login-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">Se connecter</button>
         </form>
@@ -31,7 +34,13 @@ export function renderLogin(app) {
           Pas encore client ? <a href="#/signup">Demander à devenir client</a>
         </p>
         <p style="margin-top:8px;text-align:center;font-size:13px;">
+          <a href="#/forgot-password">Mot de passe oublié ?</a>
+        </p>
+        <p style="margin-top:8px;text-align:center;font-size:13px;">
           <a href="#/" class="muted">&larr; Retour à l'accueil</a>
+        </p>
+        <p style="margin-top:8px;text-align:center;font-size:13px;">
+          <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer">Rejoindre le Discord</a>
         </p>
       </div>
     </div>
@@ -44,6 +53,8 @@ export function renderLogin(app) {
     </style>
   `;
 
+  const turnstile = await renderTurnstile('turnstile-widget');
+
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('login-error');
@@ -54,13 +65,14 @@ export function renderLogin(app) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Connexion…';
     try {
-      await signInWithUsername(username, password);
+      await signInWithUsername(username, password, turnstile.getToken());
       // La redirection par rôle est gérée par onAuthStateChange dans main.js
     } catch (err) {
       errorEl.textContent = "Identifiant ou mot de passe incorrect.";
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Se connecter';
+      turnstile.reset();
     }
   });
 }
