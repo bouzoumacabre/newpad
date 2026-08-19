@@ -1,6 +1,14 @@
 # Newpad — Inventaire, phases, état d'avancement
 
-Dernière mise à jour : 19 août 2026 (retrait du CAPTCHA Cloudflare Turnstile, remplacé par un honeypot — voir §5quater ; lot précédent du 18 août : réinitialisation de mot de passe par Discord, liens Discord sur tout le site, messagerie inter-rôles, trésorerie fonds propres/actif en gestion, correction des liens de notification, correction de la navigation d'ancre de l'accueil — voir §5ter).
+Dernière mise à jour : 19 août 2026 (fusion inscription + demande d'adhésion en une seule étape — voir §5quinquies ; lot précédent du même jour : retrait du CAPTCHA Cloudflare Turnstile, remplacé par un honeypot — voir §5quater ; lot du 18 août : réinitialisation de mot de passe par Discord, liens Discord sur tout le site, messagerie inter-rôles, trésorerie fonds propres/actif en gestion, correction des liens de notification, correction de la navigation d'ancre de l'accueil — voir §5ter).
+
+## 5quinquies. Fusion inscription + demande d'adhésion en une seule étape (19/08/2026)
+
+Retour utilisateur : le parcours en deux étapes distinctes (1. `/signup` crée juste un identifiant/mot de passe puis renvoie vers `/login` ; 2. une fois reconnecté, l'écran `/prospect` propose de soumettre la demande d'adhésion) existait depuis la toute première version du site (Phase 1/3, confirmé par l'historique git — ce n'est pas un changement introduit par un lot précédent) mais ne correspondait pas au fonctionnement voulu : une seule étape, avec le message "Demande en cours d'examen" affiché immédiatement après l'inscription.
+
+`/signup` (`src/pages/auth/signup.js`) intègre désormais directement les champs de la demande d'adhésion (type de compte, dépôt initial, motivation) en plus des champs de création de compte. À la soumission : création du compte (`signUpProspect`, session ouverte immédiatement car la confirmation par e-mail est désactivée côté Supabase) puis, dans la foulée, envoi de la demande d'adhésion (`submitMembershipRequest`) — puis redirection vers `/prospect`, qui affiche directement l'écran d'attente "Demande en cours d'examen" (aucun passage par `/login` entre les deux). Si la création du compte réussit mais l'envoi de la demande échoue (cas limite), l'utilisateur est renvoyé vers `/prospect` où le formulaire de demande reste disponible pour réessayer manuellement — le compte n'est jamais perdu.
+
+L'écran `/prospect` et son formulaire (`src/pages/client/membership-request.js`) restent inchangés et toujours utiles : ils servent de filet de sécurité pour les anciens comptes prospects créés avant ce correctif, et pour la resoumission d'une demande refusée (`existing.status === 'rejected'`).
 
 ## 5quater. Retrait du CAPTCHA Cloudflare Turnstile — incompatibilité CEF (19/08/2026)
 
