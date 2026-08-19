@@ -1,7 +1,6 @@
 import logoUrl from '../../assets/logo.svg';
 import { signInWithUsername } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
-import { renderTurnstile } from '../../lib/turnstile.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 
 export async function renderLogin(app) {
@@ -26,7 +25,6 @@ export async function renderLogin(app) {
             <label for="password">Mot de passe</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required />
           </div>
-          <div id="turnstile-widget" style="margin-bottom:16px;"></div>
           <div id="login-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">Se connecter</button>
         </form>
@@ -53,8 +51,6 @@ export async function renderLogin(app) {
     </style>
   `;
 
-  const turnstile = await renderTurnstile('turnstile-widget');
-
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('login-error');
@@ -65,14 +61,13 @@ export async function renderLogin(app) {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Connexion…';
     try {
-      await signInWithUsername(username, password, turnstile.getToken());
+      await signInWithUsername(username, password);
       // La redirection par rôle est gérée par onAuthStateChange dans main.js
     } catch (err) {
       errorEl.textContent = "Identifiant ou mot de passe incorrect.";
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Se connecter';
-      turnstile.reset();
     }
   });
 }
