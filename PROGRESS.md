@@ -1,6 +1,12 @@
 # Newpad — Inventaire, phases, état d'avancement
 
-Dernière mise à jour : 18 août 2026 (CAPTCHA Turnstile, réinitialisation de mot de passe par Discord, liens Discord sur tout le site, messagerie inter-rôles, trésorerie fonds propres/actif en gestion, correction des liens de notification, correction de la navigation d'ancre de l'accueil — voir §5ter).
+Dernière mise à jour : 19 août 2026 (retrait du CAPTCHA Cloudflare Turnstile, remplacé par un honeypot — voir §5quater ; lot précédent du 18 août : réinitialisation de mot de passe par Discord, liens Discord sur tout le site, messagerie inter-rôles, trésorerie fonds propres/actif en gestion, correction des liens de notification, correction de la navigation d'ancre de l'accueil — voir §5ter).
+
+## 5quater. Retrait du CAPTCHA Cloudflare Turnstile — incompatibilité CEF (19/08/2026)
+
+Incident en production : une fois « Bot and Abuse Protection » activé côté Supabase (Authentication > Attack Protection), **toutes les connexions et inscriptions depuis le navigateur intégré de FiveM (CEF) ont commencé à échouer** avec l'erreur Cloudflare `600010` ("bot behavior detected"), alors que ça fonctionnait normalement depuis un navigateur classique (Chrome/Edge). Diagnostic confirmé via les logs Supabase (`captcha protection: request disallowed`) puis via un ticket officiel du dépôt CEF ([chromiumembedded/cef#3547](https://github.com/chromiumembedded/cef/issues/3547), fermé "not planned") : le moteur CEF échoue structurellement aux vérifications d'intégrité de navigateur de Cloudflare — ce n'est pas un problème de configuration côté Newpad, et ça ne peut pas être corrigé en ajustant le widget.
+
+Turnstile a donc été entièrement retiré (`src/lib/turnstile.js` supprimé, widgets retirés de `/login` et `/signup`, clé `VITE_TURNSTILE_SITE_KEY` inutilisée) et remplacé par un **honeypot** : un champ de formulaire invisible (`website`, positionné hors écran, jamais rempli par un humain) transmis dans les métadonnées d'inscription et vérifié côté serveur dans le trigger `handle_new_auth_user()` (migration `0011_honeypot_signup_guard`) — si le champ est renseigné, la création du compte est rejetée avant même l'insertion du profil. Fonctionne identiquement en jeu et hors jeu, sans dépendance à un service externe. La protection anti-abus « Bot and Abuse Protection » a été désactivée côté tableau de bord Supabase (elle est maintenant inutile et bloquerait à nouveau les joueurs en jeu si réactivée).
 
 ## 1. Inventaire (résumé de cadrage)
 
