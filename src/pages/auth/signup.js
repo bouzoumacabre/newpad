@@ -1,7 +1,6 @@
 import logoUrl from '../../assets/logo.svg';
 import { signUpProspect } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
-import { renderTurnstile } from '../../lib/turnstile.js';
 
 export async function renderSignup(app) {
   app.innerHTML = `
@@ -36,7 +35,10 @@ export async function renderSignup(app) {
             <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" />
             <div class="muted" style="font-size:12px; margin-top:4px;">Utilisé pour la réinitialisation de mot de passe et la liaison de compte.</div>
           </div>
-          <div id="turnstile-widget" style="margin-bottom:16px;"></div>
+          <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
+            <label for="website">Laissez ce champ vide</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
           <div id="signup-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <div id="signup-success" class="text-success" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <button type="submit" class="btn btn-primary" style="width:100%;">Créer mon accès prospect</button>
@@ -55,8 +57,6 @@ export async function renderSignup(app) {
     </style>
   `;
 
-  const turnstile = await renderTurnstile('turnstile-widget');
-
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('signup-error');
@@ -67,10 +67,11 @@ export async function renderSignup(app) {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const discordId = document.getElementById('discord_id').value.trim();
+    const honeypot = document.getElementById('website').value;
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      await signUpProspect({ username, password, displayName, discordId, captchaToken: turnstile.getToken() });
+      await signUpProspect({ username, password, displayName, discordId, honeypot });
       successEl.textContent = 'Accès créé. Vous pouvez maintenant vous connecter et demander à devenir client.';
       successEl.style.display = 'block';
       setTimeout(() => navigate('/login'), 1800);
@@ -80,7 +81,6 @@ export async function renderSignup(app) {
         : "Impossible de créer l'accès pour le moment.";
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
-      turnstile.reset();
     }
   });
 }
