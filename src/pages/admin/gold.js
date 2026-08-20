@@ -7,6 +7,9 @@ import {
   getAllGoldBars,
   mintGoldBar,
   adminUpdateGoldBar,
+  getAllMarketListings,
+  adminCreateMarketListing,
+  adminCancelMarketListing,
 } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 
@@ -17,15 +20,17 @@ export async function renderAdminGold(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [bankQueue, marketQueue, allBars] = await Promise.all([
+    const [bankQueue, marketQueue, allBars, marketListings] = await Promise.all([
       getGoldBankQueue().catch(() => []),
       getGoldMarketQueue().catch(() => []),
       getAllGoldBars().catch(() => []),
+      getAllMarketListings().catch(() => []),
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
     const inCirculation = allBars.filter((b) => b.status === 'sold');
     const inCirculationWeight = inCirculation.reduce((s, b) => s + Number(b.weight_grams), 0);
+    const availableForListing = allBars.filter((b) => b.status === 'in_vault');
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Lingots & marché de revente</h1>
@@ -92,6 +97,64 @@ export async function renderAdminGold(app, profile) {
                 )
                 .join('')
             : `<p class="muted">Aucune demande en attente.</p>`
+        }
+      </div>
+
+      <h3 style="margin-bottom:12px;">Mettre un lingot en vente sur le marché</h3>
+      <div class="card" style="margin-bottom:24px;">
+        <p class="muted" style="font-size:13px; margin-bottom:12px;">
+          Liste directement un lingot disponible (« in_vault ») sur le marché de revente, comme un client le ferait
+          pour son propre lingot. Si le lingot appartient à la banque (propriétaire vide), le prix intégral de la
+          vente revient à la trésorerie, sans commission.
+        </p>
+        <div class="grid" style="grid-template-columns: 2fr 1fr auto; gap:10px; align-items:end;">
+          <div class="field" style="margin:0;">
+            <label>Lingot à mettre en vente</label>
+            <select id="listing-bar">
+              ${
+                availableForListing.length
+                  ? availableForListing
+                      .map(
+                        (b) =>
+                          `<option value="${b.id}">N° ${escapeHtml(b.serial_number)} — ${b.weight_grams} g — ${escapeHtml(b.profiles?.display_name || 'Banque')}</option>`
+                      )
+                      .join('')
+                  : '<option value="">Aucun lingot disponible</option>'
+              }
+            </select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Prix ($)</label>
+            <input type="number" id="listing-price" min="0" step="0.01" />
+          </div>
+          <button id="listing-submit" class="btn btn-primary" ${availableForListing.length ? '' : 'disabled'}>Mettre en vente</button>
+        </div>
+        <div id="listing-error" class="text-danger" style="font-size:13px; margin-top:8px; display:none;"></div>
+      </div>
+
+      <h3 style="margin-bottom:12px;">Lingots actuellement en vente (${marketListings.length})</h3>
+      <div class="card" style="margin-bottom:24px;">
+        ${
+          marketListings.length
+            ? marketListings
+                .map(
+                  (l) => `
+          <div style="padding:14px 0; border-bottom:1px solid var(--card-border);" class="flex justify-between items-center">
+            <div>
+              <div style="font-weight:600;">N° ${escapeHtml(l.gold_bars?.serial_number || '')} — ${l.gold_bars?.weight_grams} g</div>
+              <div class="muted" style="font-size:12px;">
+                Vendeur : ${escapeHtml(l.profiles?.display_name || 'Banque')} — mis en vente le ${formatDateTime(l.created_at)}
+              </div>
+            </div>
+            <div class="flex items-center gap-md">
+              <strong class="gold">${formatMoney(l.listed_price)}</strong>
+              <button class="btn btn-danger listing-cancel" data-id="${l.id}" style="padding:4px 10px; font-size:12px;">Retirer</button>
+            </div>
+          </div>
+        `
+                )
+                .join('')
+            : `<p class="muted">Aucun lingot en vente actuellement.</p>`
         }
       </div>
 
@@ -173,6 +236,36 @@ export async function renderAdminGold(app, profile) {
       btn.addEventListener('click', async () => {
         const note = prompt('Motif du refus (optionnel) :') || null;
         try { await decideMarketPurchase(btn.getAttribute('data-id'), false, note); await draw(); }
+        catch (err) { alert(err.message || 'Erreur.'); }
+      });
+    });
+
+    const listingSubmitBtn = document.getElementById('listing-submit');
+    if (listingSubmitBtn) {
+      listingSubmitBtn.addEventListener('click', async () => {
+        const errorEl = document.getElementById('listing-error');
+        errorEl.style.display = 'none';
+        const barId = document.getElementById('listing-bar').value;
+        const price = parseFloat(document.getElementById('listing-price').value);
+        if (!barId || !price || price <= 0) {
+          errorEl.textContent = 'Veuillez choisir un lingot et un prix valide.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        try {
+          await adminCreateMarketListing(barId, price);
+          await draw();
+        } catch (err) {
+          errorEl.textContent = err.message || 'Erreur lors de la mise en vente.';
+          errorEl.style.display = 'block';
+        }
+      });
+    }
+
+    content.querySelectorAll('.listing-cancel').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Retirer ce lingot de la vente ?')) return;
+        try { await adminCancelMarketListing(btn.getAttribute('data-id')); await draw(); }
         catch (err) { alert(err.message || 'Erreur.'); }
       });
     });

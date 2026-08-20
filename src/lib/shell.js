@@ -9,6 +9,7 @@ import logoUrl from '../assets/logo.svg';
 import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
 import { getMyNotifications, markNotificationsRead, markAllNotificationsRead, subscribeToMyNotifications } from './notifications.js';
+import { attachExternalLinkCopy } from './externalLink.js';
 
 function initials(name) {
   return (name || '?')
@@ -33,10 +34,14 @@ function timeAgo(iso) {
 function renderNavItem(item, activeKey) {
   const active = item.key === activeKey;
   // Lien externe (ex: Discord) — nouvel onglet, ne passe jamais par le
-  // routeur interne basé sur le hash.
+  // routeur interne basé sur le hash. `data-copy` déclenche en plus une copie
+  // du lien dans le presse-papiers (voir attachExternalLinkCopy) : dans le
+  // navigateur intégré de FiveM (CEF), l'ouverture d'un nouvel onglet externe
+  // est bloquée silencieusement — la copie donne un moyen de repli pour que
+  // le joueur puisse coller le lien ailleurs (Discord, navigateur du jeu...).
   if (item.external) {
     return `
-      <a class="sidebar-link" href="${item.path}" target="_blank" rel="noopener noreferrer">
+      <a class="sidebar-link" href="${item.path}" target="_blank" rel="noopener noreferrer" data-copy="${item.path}">
         <span class="icon">${item.icon || '•'}</span>
         <span>${item.label}</span>
       </a>
@@ -140,6 +145,7 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
   }
 
   setupNotifications(profile);
+  attachExternalLinkCopy(app);
 
   return { content: document.getElementById('content') };
 }

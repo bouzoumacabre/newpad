@@ -2,6 +2,7 @@ import logoUrl from '../../assets/logo.svg';
 import { signInWithUsername } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
+import { attachExternalLinkCopy } from '../../lib/externalLink.js';
 
 export async function renderLogin(app) {
   app.innerHTML = `
@@ -38,7 +39,7 @@ export async function renderLogin(app) {
           <a href="#/" class="muted">&larr; Retour à l'accueil</a>
         </p>
         <p style="margin-top:8px;text-align:center;font-size:13px;">
-          <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer">Rejoindre le Discord</a>
+          <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer" data-copy="${DISCORD_INVITE_URL}">Discord Newman Bank</a>
         </p>
       </div>
     </div>
@@ -50,6 +51,8 @@ export async function renderLogin(app) {
       .auth-brand-sub { font-size:12px; letter-spacing:0.05em; }
     </style>
   `;
+
+  attachExternalLinkCopy(app);
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
 import logoUrl from '../../assets/logo.svg';
 import { supabase } from '../../lib/supabaseClient.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
+import { attachExternalLinkCopy } from '../../lib/externalLink.js';
 
 // Contenu de secours si la base n'est pas encore joignable (mode démo hors-ligne) —
 // une fois Supabase connecté, tout provient de la table `site_content` (pilotée
@@ -81,7 +82,7 @@ export async function renderPublicHome(app) {
             <a href="#/" data-scroll-top="1">Accueil</a>
             <a href="#services" data-scroll-to="services">Services</a>
             <a href="#news" data-scroll-to="news">Actualités</a>
-            <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer">Discord</a>
+            <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer" data-copy="${DISCORD_INVITE_URL}">Discord Newman Bank</a>
             <a href="#/login">Se connecter</a>
           </nav>
           <a href="#/signup" class="btn btn-primary">Espace client</a>
@@ -206,4 +207,5 @@ export async function renderPublicHome(app) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   });
+  attachExternalLinkCopy(app);
 }

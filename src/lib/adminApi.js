@@ -51,7 +51,7 @@ export async function getAllGoldBars() {
   return unwrap(
     await supabase
       .from('gold_bars')
-      .select('*, profiles(display_name, username)')
+      .select('*, profiles!gold_bars_owner_client_id_fkey(display_name, username)')
       .order('minted_at', { ascending: false })
   );
 }
@@ -70,6 +70,29 @@ export async function adminUpdateGoldBar(id, { status, location, ownerClientId, 
     p_owner_client_id: ownerClientId || null,
     p_notes: notes || null,
   });
+  if (error) throw error;
+}
+
+// ----------------------------------------------------------------------------
+// MARCHÉ DE REVENTE — mise en vente et suivi côté admin (stock banque)
+// ----------------------------------------------------------------------------
+
+export async function getAllMarketListings() {
+  return unwrap(
+    await supabase
+      .from('gold_market_listings')
+      .select('*, gold_bars(*), profiles!gold_market_listings_seller_client_id_fkey(display_name, username)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+  );
+}
+
+export async function adminCreateMarketListing(goldBarId, price) {
+  return unwrap(await supabase.rpc('admin_create_market_listing', { p_gold_bar_id: goldBarId, p_price: price }));
+}
+
+export async function adminCancelMarketListing(listingId) {
+  const { error } = await supabase.rpc('admin_cancel_market_listing', { p_listing_id: listingId });
   if (error) throw error;
 }
 
@@ -229,7 +252,7 @@ export async function setVisibilityMask({ type, id, hiddenFrom, reason }) {
 // ----------------------------------------------------------------------------
 
 export async function getIrsAccounts() {
-  return unwrap(await supabase.from('irs_accounts').select('*, profiles(display_name, username, role)').order('granted_at', { ascending: false }));
+  return unwrap(await supabase.from('irs_accounts').select('*, profiles!irs_accounts_profile_id_fkey(display_name, username, role)').order('granted_at', { ascending: false }));
 }
 
 export async function grantIrsAccount(profileId) {

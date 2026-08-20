@@ -22,6 +22,21 @@ import { navigate } from '../../lib/router.js';
 
 const ROLE_LABELS = { client: 'Client', employee: 'Employé', admin: 'Admin', irs: 'IRS' };
 
+// Les contacts arrivent déjà triés par rôle (list_messageable_contacts ORDER
+// BY role, display_name) — on les regroupe simplement en groupes contigus
+// pour l'affichage en <optgroup>, ce qui permet de choisir explicitement un
+// destinataire précis par rôle (ex: un employé en particulier plutôt qu'un
+// admin) plutôt qu'une liste plate mélangeant tout le monde.
+function groupContactsByRole(contacts) {
+  const groups = [];
+  for (const c of contacts) {
+    const last = groups[groups.length - 1];
+    if (last && last.role === c.role) last.items.push(c);
+    else groups.push({ role: c.role, items: [c] });
+  }
+  return groups;
+}
+
 /**
  * @param {HTMLElement} content - conteneur retourné par renderXxxShell()
  * @param {object} profile - profil de l'utilisateur connecté
@@ -90,8 +105,24 @@ async function openNewThreadModal(profile, basePath) {
       <div class="field">
         <label for="msg-recipient">Destinataire</label>
         <select id="msg-recipient">
-          ${contacts.map((c) => `<option value="${c.id}">${escapeHtml(c.display_name)} — ${ROLE_LABELS[c.role] || c.role}${c.employee_title ? ' (' + escapeHtml(c.employee_title) + ')' : ''}</option>`).join('')}
+          ${groupContactsByRole(contacts)
+            .map(
+              (group) => `
+            <optgroup label="${ROLE_LABELS[group.role] || group.role}">
+              ${group.items
+                .map(
+                  (c) =>
+                    `<option value="${c.id}">${escapeHtml(c.display_name)}${c.employee_title ? ' (' + escapeHtml(c.employee_title) + ')' : ''}</option>`
+                )
+                .join('')}
+            </optgroup>
+          `
+            )
+            .join('')}
         </select>
+        <div class="muted" style="font-size:12px; margin-top:4px;">
+          Choisissez précisément à qui envoyer ce message — un employé, un admin, un membre de l'IRS ou un client, selon votre rôle.
+        </div>
       </div>
       <div class="field">
         <label for="msg-subject">Sujet</label>

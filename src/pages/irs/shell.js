@@ -29,7 +29,7 @@ export async function renderIrsShell(app, profile, activeKey) {
       category: 'Support',
       items: [
         { key: 'messages', label: 'Messagerie', path: '/irs/messages', icon: '✉' },
-        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
+        { key: 'discord', label: 'Discord Newman Bank', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },
   ].filter((s) => !s.category || s.items.length > 0);

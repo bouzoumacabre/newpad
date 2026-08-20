@@ -48,7 +48,7 @@ export async function renderEmployeeShell(app, profile, activeKey) {
         { key: 'messages', label: 'Messagerie', path: '/employee/messages', icon: '✉' },
         { key: 'support', label: 'Support', path: '/employee/support', icon: '☏' },
         { key: 'audit', label: "Journal d'activité", path: '/employee/audit', icon: '▦' },
-        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
+        { key: 'discord', label: 'Discord Newman Bank', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },
   ].filter((s) => !s.category || s.items.length > 0);

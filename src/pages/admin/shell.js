@@ -60,7 +60,7 @@ export async function renderAdminShell(app, profile, activeKey) {
         { key: 'messages', label: 'Messagerie', path: '/admin/messages', icon: '✉' },
         { key: 'support', label: 'Support', path: '/admin/support', icon: '☏' },
         { key: 'audit', label: "Journal d'activité", path: '/admin/audit', icon: '▦' },
-        { key: 'discord', label: 'Rejoindre le Discord', path: DISCORD_INVITE_URL, icon: '💬', external: true },
+        { key: 'discord', label: 'Discord Newman Bank', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },
   ].filter((s) => !s.category || s.items.length > 0);
