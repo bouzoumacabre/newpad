@@ -1,4 +1,4 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import {
   getManualAccountOpenings,
   createManualAccountOpening,
@@ -15,8 +15,8 @@ const ACCOUNT_TYPES = [
   { value: 'entreprise', label: 'Compte entreprise' },
 ];
 
-export async function renderAdminAccountOpening(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'account-opening');
+export async function renderEmployeeAccountOpening(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'account-opening');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {

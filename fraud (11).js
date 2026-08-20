@@ -1,12 +1,12 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getFraudAlerts, createManualFraudAlert, updateFraudAlertStatus, searchProfilesAnyRole } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const SEVERITY_BADGE = { low: 'badge-neutral', medium: 'badge-pending', high: 'badge-danger' };
 
-export async function renderAdminFraud(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'fraud');
+export async function renderEmployeeFraud(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'fraud');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   let matchedClientId = null;

@@ -1,12 +1,12 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getBranchQueue, addToBranchQueue, updateBranchQueueStatus } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const STATUS_LABELS = { waiting: 'En attente', in_service: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
 
-export async function renderAdminBranchQueue(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'branch-queue');
+export async function renderEmployeeBranchQueue(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'branch-queue');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {

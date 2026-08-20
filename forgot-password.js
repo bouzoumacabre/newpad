@@ -1,6 +1,8 @@
 import logoUrl from '../../assets/logo.svg';
 import { requestPasswordReset, confirmPasswordReset } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
+import { DISCORD_INVITE_URL } from '../../lib/constants.js';
+import { attachExternalLinkCopy } from '../../lib/externalLink.js';
 
 export function renderForgotPassword(app) {
   let step = 'request'; // 'request' -> 'confirm'
@@ -22,9 +24,12 @@ export function renderForgotPassword(app) {
           ${
             step === 'request'
               ? `
-            <p class="muted" style="margin-bottom:20px;">
+            <p class="muted" style="margin-bottom:12px;">
               Un code à usage unique sera envoyé par message privé Discord au compte lié à votre identifiant.
-              Vous devez être membre du serveur Hurricane FA et autoriser les messages privés des membres du serveur.
+              Vous devez être membre du serveur Discord Newman Bank et autoriser les messages privés des membres du serveur.
+            </p>
+            <p style="margin-bottom:20px;font-size:13px;">
+              <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer" data-copy="${DISCORD_INVITE_URL}">Rejoindre / copier le lien du Discord Newman Bank</a>
             </p>
             <form id="request-form">
               <div class="field">
@@ -73,6 +78,8 @@ export function renderForgotPassword(app) {
         .auth-brand-sub { font-size:12px; letter-spacing:0.05em; }
       </style>
     `;
+
+    attachExternalLinkCopy(app);
 
     if (step === 'request') {
       document.getElementById('request-form').addEventListener('submit', async (e) => {

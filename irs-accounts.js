@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getIrsAccounts, grantIrsAccount, revokeIrsAccount, searchProfilesAnyRole } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminIrsAccounts(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'irs-accounts');
@@ -109,13 +110,13 @@ export async function renderAdminIrsAccounts(app, profile) {
     content.querySelectorAll('.grant-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await grantIrsAccount(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.revoke-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await revokeIrsAccount(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

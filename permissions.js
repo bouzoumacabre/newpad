@@ -9,6 +9,7 @@ import {
   deletePermissionGrant,
 } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const ROLES = ['prospect', 'client', 'employee', 'admin', 'irs'];
 const AREAS = ['client', 'employee', 'admin', 'irs', 'public'];
@@ -174,7 +175,7 @@ export async function renderAdminPermissions(app, profile) {
     content.querySelectorAll('.feat-enabled').forEach((el) => {
       el.addEventListener('change', async () => {
         try { await setFeatureEnabled(el.getAttribute('data-key'), el.checked); }
-        catch (err) { alert(err.message || 'Erreur.'); el.checked = !el.checked; }
+        catch (err) { await showAlert(err.message || 'Erreur.'); el.checked = !el.checked; }
       });
     });
     content.querySelectorAll('.feat-label, .feat-category').forEach((el) => {
@@ -195,7 +196,7 @@ export async function renderAdminPermissions(app, profile) {
             enabled: f.enabled,
             isCore: f.is_core,
           });
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 
@@ -246,13 +247,13 @@ export async function renderAdminPermissions(app, profile) {
       try {
         await upsertPermissionGrant({ accountId: selectedAccount.id, featureKey, granted, note: note || null });
         await draw();
-      } catch (err) { alert(err.message || 'Erreur.'); }
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.grant-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await deletePermissionGrant(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

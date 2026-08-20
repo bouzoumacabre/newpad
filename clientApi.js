@@ -128,12 +128,12 @@ export async function getMyGoldPurchaseRequests() {
 }
 
 export async function getMarketListings() {
-  return unwrap(await supabase.from('gold_market_listings').select('*, gold_bars(*)').eq('status', 'active').order('listed_at', { ascending: false }));
+  return unwrap(await supabase.from('gold_market_listings').select('*, gold_bars(*)').eq('status', 'active').order('created_at', { ascending: false }));
 }
 
 export async function getMyMarketListings() {
   const user = await requireUser();
-  return unwrap(await supabase.from('gold_market_listings').select('*, gold_bars(*)').eq('seller_client_id', user.id).order('listed_at', { ascending: false }));
+  return unwrap(await supabase.from('gold_market_listings').select('*, gold_bars(*)').eq('seller_client_id', user.id).order('created_at', { ascending: false }));
 }
 
 export async function listGoldForSale(goldBarId, price) {
@@ -154,7 +154,7 @@ export async function getMyMarketPurchaseRequests() {
 // ----------------------------------------------------------------------------
 
 export async function getAvailableSafeBoxes() {
-  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('annual_fee', { ascending: true }));
+  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('weekly_fee', { ascending: true }));
 }
 
 export async function getMySafeBoxes() {

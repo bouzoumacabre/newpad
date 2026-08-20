@@ -1,6 +1,7 @@
 import { renderClientShell } from './shell.js';
 import { getBeneficiaries, addBeneficiary, deleteBeneficiary, resolveAccountByIban } from '../../lib/clientApi.js';
 import { escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderClientBeneficiaries(app, profile) {
   const { content } = await renderClientShell(app, profile, 'beneficiaries');
@@ -92,7 +93,7 @@ export async function renderClientBeneficiaries(app, profile) {
 
     content.querySelectorAll('.ben-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Supprimer ce bénéficiaire ?')) return;
+        if (!await showConfirm('Supprimer ce bénéficiaire ?')) return;
         await deleteBeneficiary(btn.getAttribute('data-id'));
         await draw();
       });

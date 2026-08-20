@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getLoansQueue, decideLoanFinal } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminLoans(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'loans');
@@ -93,16 +94,16 @@ export async function renderAdminLoans(app, profile) {
 
     content.querySelectorAll('.decide-approve').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Note (optionnel) :') || null;
+        const note = await showPrompt('Note (optionnel) :') || null;
         try { await decideLoanFinal(btn.getAttribute('data-id'), true, note); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.decide-reject').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Motif du refus (optionnel) :') || null;
+        const note = await showPrompt('Motif du refus (optionnel) :') || null;
         try { await decideLoanFinal(btn.getAttribute('data-id'), false, note); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

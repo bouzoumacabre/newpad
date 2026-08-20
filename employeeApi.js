@@ -168,7 +168,7 @@ export async function createAccount({ username, password, displayName, role, emp
 // ----------------------------------------------------------------------------
 
 export async function getBranchQueue() {
-  return unwrap(await supabase.from('branch_queue').select('*, profiles(display_name, username)').order('joined_at', { ascending: true }));
+  return unwrap(await supabase.from('branch_queue').select('*, profiles!branch_queue_client_id_fkey(display_name, username)').order('joined_at', { ascending: true }));
 }
 
 export async function addToBranchQueue({ visitorName, reason, clientId }) {
@@ -205,7 +205,7 @@ export async function decideTransfer(id, approve, note) {
 
 export async function getAccountsByIds(ids) {
   if (!ids.length) return [];
-  return unwrap(await supabase.from('accounts').select('*, profiles(display_name)').in('id', ids));
+  return unwrap(await supabase.from('accounts').select('*, profiles!accounts_client_id_fkey(display_name)').in('id', ids));
 }
 
 // ----------------------------------------------------------------------------
@@ -213,7 +213,7 @@ export async function getAccountsByIds(ids) {
 // ----------------------------------------------------------------------------
 
 export async function getGoldBankQueue() {
-  return unwrap(await supabase.from('gold_bank_purchase_requests').select('*, gold_bars(*), profiles(display_name, username)').order('requested_at', { ascending: false }));
+  return unwrap(await supabase.from('gold_bank_purchase_requests').select('*, gold_bars(*), profiles!gold_bank_purchase_requests_client_id_fkey(display_name, username)').order('requested_at', { ascending: false }));
 }
 
 export async function decideGoldBankPurchase(id, approve, note) {
@@ -235,16 +235,34 @@ export async function decideMarketPurchase(id, approve, note) {
   if (error) throw error;
 }
 
+// Lingots actuellement en vente sur le marché de revente, quel que soit le
+// vendeur (client ou banque) — permet au personnel de voir les lingots mis en
+// vente côté client, pas seulement les demandes d'achat en attente.
+export async function getAllMarketListings() {
+  return unwrap(
+    await supabase
+      .from('gold_market_listings')
+      .select('*, gold_bars(*), profiles!gold_market_listings_seller_client_id_fkey(display_name, username)')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+  );
+}
+
+export async function cancelMarketListing(listingId) {
+  const { error } = await supabase.rpc('admin_cancel_market_listing', { p_listing_id: listingId });
+  if (error) throw error;
+}
+
 // ----------------------------------------------------------------------------
 // COFFRES-FORTS
 // ----------------------------------------------------------------------------
 
 export async function getSafeRequestsQueue() {
-  return unwrap(await supabase.from('safe_rental_requests').select('*, profiles(display_name, username), safe_deposit_boxes(*)').order('requested_at', { ascending: false }));
+  return unwrap(await supabase.from('safe_rental_requests').select('*, profiles!safe_rental_requests_client_id_fkey(display_name, username), safe_deposit_boxes(*)').order('requested_at', { ascending: false }));
 }
 
 export async function getAvailableSafeBoxesForAssignment() {
-  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('annual_fee', { ascending: true }));
+  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('weekly_fee', { ascending: true }));
 }
 
 export async function claimSafeRequest(id, safeBoxId, appointmentAt, appointmentLocation) {
@@ -262,12 +280,17 @@ export async function confirmSafeRental(id) {
   if (error) throw error;
 }
 
+export async function rejectSafeRequest(id, note) {
+  const { error } = await supabase.rpc('reject_safe_request', { p_request_id: id, p_note: note || null });
+  if (error) throw error;
+}
+
 // ----------------------------------------------------------------------------
 // PRÊTS PROFESSIONNELS (réception employé — décision finale réservée à l'admin)
 // ----------------------------------------------------------------------------
 
 export async function getLoansQueue() {
-  return unwrap(await supabase.from('loans').select('*, profiles(display_name, username)').order('requested_at', { ascending: false }));
+  return unwrap(await supabase.from('loans').select('*, profiles!loans_client_id_fkey(display_name, username)').order('requested_at', { ascending: false }));
 }
 
 export async function reviewLoan(id, note) {
@@ -280,11 +303,16 @@ export async function reviewLoan(id, note) {
 // ----------------------------------------------------------------------------
 
 export async function getConsultingQueue() {
-  return unwrap(await supabase.from('consulting_requests').select('*, profiles(display_name, username)').order('created_at', { ascending: false }));
+  return unwrap(await supabase.from('consulting_requests').select('*, profiles!consulting_requests_client_id_fkey(display_name, username)').order('created_at', { ascending: false }));
 }
 
 export async function assignConsultingRequest(id, advisorId) {
   const { error } = await supabase.rpc('assign_consulting_request', { p_id: id, p_advisor_id: advisorId });
+  if (error) throw error;
+}
+
+export async function rejectConsultingRequest(id, note) {
+  const { error } = await supabase.rpc('reject_consulting_request', { p_id: id, p_note: note || null });
   if (error) throw error;
 }
 
@@ -301,7 +329,7 @@ export async function getCashierReports(limit = 30) {
 // ----------------------------------------------------------------------------
 
 export async function getFraudAlerts(statusFilter) {
-  let q = supabase.from('fraud_alerts').select('*, profiles(display_name, username)').order('created_at', { ascending: false });
+  let q = supabase.from('fraud_alerts').select('*, profiles!fraud_alerts_related_client_id_fkey(display_name, username)').order('created_at', { ascending: false });
   if (statusFilter) q = q.eq('status', statusFilter);
   return unwrap(await q);
 }
@@ -331,7 +359,7 @@ export async function updateFraudAlertStatus(id, status) {
 // ----------------------------------------------------------------------------
 
 export async function getAllSupportTickets(statusFilter) {
-  let q = supabase.from('support_tickets').select('*, profiles(display_name, username)').order('updated_at', { ascending: false });
+  let q = supabase.from('support_tickets').select('*, profiles!support_tickets_client_id_fkey(display_name, username)').order('updated_at', { ascending: false });
   if (statusFilter) q = q.eq('status', statusFilter);
   return unwrap(await q);
 }
@@ -356,6 +384,26 @@ export async function resolveSupportTicket(ticketId) {
 
 export async function getAuditLog(limit = 100) {
   return unwrap(await supabase.from('audit_log').select('*, profiles(display_name, username)').order('created_at', { ascending: false }).limit(limit));
+}
+
+// ----------------------------------------------------------------------------
+// HISTORIQUE DES TRANSACTIONS (personnel — employé & admin)
+// ----------------------------------------------------------------------------
+
+export async function listStaffTransactions({ search, txType, categoryId, limit = 300 } = {}) {
+  return unwrap(
+    await supabase.rpc('staff_list_transactions', {
+      p_search: search || null,
+      p_tx_type: txType || null,
+      p_category_id: categoryId || null,
+      p_limit: limit,
+    })
+  );
+}
+
+export async function listDistinctTxTypes() {
+  const rows = await unwrap(await supabase.rpc('list_distinct_tx_types'));
+  return rows.map((r) => r.tx_type);
 }
 
 // ----------------------------------------------------------------------------

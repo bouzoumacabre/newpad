@@ -1,10 +1,10 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getMembershipRequests, claimMembershipRequest, decideMembershipRequest } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
-export async function renderAdminMembership(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'membership');
+export async function renderEmployeeMembership(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'membership');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {

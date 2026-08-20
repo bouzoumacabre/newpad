@@ -1,24 +1,22 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest } from '../../lib/employeeApi.js';
-import { getAllSafeBoxes, adminCreateSafeBox, adminUpdateSafeBox } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
-export async function renderAdminSafes(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'safes');
+export async function renderEmployeeSafes(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'safes');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [requests, availableBoxes, allBoxes] = await Promise.all([
+    const [requests, availableBoxes] = await Promise.all([
       getSafeRequestsQueue().catch(() => []),
       getAvailableSafeBoxesForAssignment().catch(() => []),
-      getAllSafeBoxes().catch(() => []),
     ]);
     const relevant = requests.filter((r) => r.status === 'pending' || r.status === 'processing');
 
     content.innerHTML = `
       <h1 style="margin-bottom:20px;">Coffres-forts à traiter</h1>
-      <div class="card" style="margin-bottom:24px;">
+      <div class="card">
         ${
           relevant.length
             ? relevant
@@ -67,55 +65,6 @@ export async function renderAdminSafes(app, profile) {
             : `<p class="muted">Aucune demande en attente.</p>`
         }
       </div>
-
-      <h3 style="margin-bottom:12px;">Ajouter un coffre</h3>
-      <div class="card" style="margin-bottom:24px;">
-        <div class="grid" style="grid-template-columns: 1fr 1.5fr 1fr auto; gap:10px; align-items:end;">
-          <div class="field" style="margin:0;">
-            <label>Code</label>
-            <input type="text" id="new-box-code" placeholder="Ex: CF-006" />
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Agence</label>
-            <input type="text" id="new-box-branch" placeholder="Ex: Agence centrale — Los Santos" />
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Loyer hebdomadaire ($)</label>
-            <input type="number" id="new-box-fee" min="0" step="0.01" />
-          </div>
-          <button id="new-box-submit" class="btn btn-primary">Créer</button>
-        </div>
-        <div id="new-box-error" class="text-danger" style="font-size:13px; margin-top:8px; display:none;"></div>
-      </div>
-
-      <h3 style="margin-bottom:12px;">Parc de coffres (${allBoxes.length})</h3>
-      <div class="card">
-        ${
-          allBoxes.length
-            ? `<table>
-                <thead><tr><th>Code</th><th>Agence</th><th>Statut</th><th>Locataire</th><th style="text-align:right;">Loyer/semaine</th><th></th></tr></thead>
-                <tbody>
-                  ${allBoxes
-                    .map(
-                      (b) => `
-                    <tr>
-                      <td style="font-weight:600;">${escapeHtml(b.code)}</td>
-                      <td class="muted">${escapeHtml(b.branch)}</td>
-                      <td>${statusBadge(b.status)}</td>
-                      <td class="muted">${escapeHtml(b.profiles?.display_name || '—')}</td>
-                      <td style="text-align:right;">
-                        <input type="number" class="box-fee" data-id="${b.id}" value="${b.weekly_fee}" min="0" step="0.01" style="width:100px; padding:4px 8px; font-size:12px; text-align:right;" />
-                      </td>
-                      <td><button class="btn btn-secondary box-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
-                    </tr>
-                  `
-                    )
-                    .join('')}
-                </tbody>
-              </table>`
-            : `<p class="muted">Aucun coffre enregistré.</p>`
-        }
-      </div>
     `;
 
     content.querySelectorAll('.claim-btn').forEach((btn) => {
@@ -141,36 +90,6 @@ export async function renderAdminSafes(app, profile) {
       btn.addEventListener('click', async () => {
         const note = await showPrompt('Motif du refus (optionnel) :') || null;
         try { await rejectSafeRequest(btn.getAttribute('data-id'), note); await draw(); }
-        catch (err) { await showAlert(err.message || 'Erreur.'); }
-      });
-    });
-
-    document.getElementById('new-box-submit').addEventListener('click', async () => {
-      const errorEl = document.getElementById('new-box-error');
-      errorEl.style.display = 'none';
-      const code = document.getElementById('new-box-code').value.trim();
-      const branch = document.getElementById('new-box-branch').value.trim();
-      const fee = parseFloat(document.getElementById('new-box-fee').value);
-      if (!code || isNaN(fee) || fee < 0) {
-        errorEl.textContent = 'Veuillez renseigner un code et un loyer hebdomadaire valide.';
-        errorEl.style.display = 'block';
-        return;
-      }
-      try {
-        await adminCreateSafeBox({ code, branch: branch || null, weeklyFee: fee });
-        await draw();
-      } catch (err) {
-        errorEl.textContent = err.message || 'Erreur lors de la création.';
-        errorEl.style.display = 'block';
-      }
-    });
-
-    content.querySelectorAll('.box-save').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const fee = parseFloat(content.querySelector(`.box-fee[data-id="${id}"]`).value);
-        if (isNaN(fee) || fee < 0) { await showAlert('Loyer hebdomadaire invalide.'); return; }
-        try { await adminUpdateSafeBox(id, { weeklyFee: fee }); await draw(); }
         catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });

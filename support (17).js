@@ -1,4 +1,4 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getAllSupportTickets, getSupportMessages, postSupportMessage, resolveSupportTicket } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
@@ -7,8 +7,8 @@ import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 const STATUS_LABELS = { open: 'Ouvert', in_progress: 'En cours', resolved: 'Résolu' };
 const STATUS_BADGE = { open: 'badge-pending', in_progress: 'badge-pending', resolved: 'badge-success' };
 
-export async function renderAdminSupport(app, profile, params = {}) {
-  const { content } = await renderAdminShell(app, profile, 'support');
+export async function renderEmployeeSupport(app, profile, params = {}) {
+  const { content } = await renderEmployeeShell(app, profile, 'support');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   if (params.id) await drawThread(content, params.id);
@@ -48,7 +48,7 @@ async function drawList(content) {
     `;
 
     content.querySelectorAll('.ticket-row').forEach((row) => {
-      row.addEventListener('click', () => navigate(`/admin/support/${row.getAttribute('data-id')}`));
+      row.addEventListener('click', () => navigate(`/employee/support/${row.getAttribute('data-id')}`));
     });
   }
   await draw();
@@ -63,7 +63,7 @@ async function drawThread(content, ticketId) {
     const ticket = tickets.find((t) => t.id === ticketId);
 
     content.innerHTML = `
-      <a href="#/admin/support" style="display:inline-block; margin-bottom:16px;">← Retour aux tickets</a>
+      <a href="#/employee/support" style="display:inline-block; margin-bottom:16px;">← Retour aux tickets</a>
       <div class="card">
         <div class="flex justify-between items-center" style="margin-bottom:20px;">
           <div>

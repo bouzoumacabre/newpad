@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getSiteContent, upsertSiteContent, deleteSiteContent } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const AREAS = ['public', 'client', 'employee', 'admin', 'irs'];
 // Sections lues par la page d'accueil publique (src/pages/public/home.js) :
@@ -120,9 +121,9 @@ export async function renderAdminCms(app, profile) {
 
     content.querySelectorAll('.content-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Supprimer cette section de contenu ?')) return;
+        if (!await showConfirm('Supprimer cette section de contenu ?')) return;
         try { await deleteSiteContent(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 

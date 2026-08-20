@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getCashierReports, adjustCashierReport } from '../../lib/adminApi.js';
 import { formatMoney, formatDate, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminCashier(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'cashier');
@@ -75,12 +76,12 @@ export async function renderAdminCashier(app, profile) {
       btn.addEventListener('click', async () => {
         const amount = parseFloat(document.getElementById('adjust-amount').value);
         const note = document.getElementById('adjust-note').value.trim();
-        if (!amount) { alert('Veuillez saisir un montant.'); return; }
+        if (!amount) { await showAlert('Veuillez saisir un montant.'); return; }
         try {
           await adjustCashierReport(btn.getAttribute('data-id'), amount, note || null);
           correctingId = null;
           await draw();
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

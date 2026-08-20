@@ -9,6 +9,7 @@ import {
   getEconomicSetting,
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderClientGoldMarket(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold-market');
@@ -117,14 +118,14 @@ export async function renderClientGoldMarket(app, profile) {
 
     content.querySelectorAll('.buy-listing').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Confirmer l\'achat de ce lingot ?')) return;
+        if (!await showConfirm('Confirmer l\'achat de ce lingot ?')) return;
         btn.disabled = true;
         try {
           await buyFromMarket(btn.getAttribute('data-id'));
-          alert('Demande d\'achat soumise — en attente de traitement.');
+          await showAlert('Demande d\'achat soumise — en attente de traitement.');
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur lors de la demande.');
+          await showAlert(err.message || 'Erreur lors de la demande.');
           btn.disabled = false;
         }
       });

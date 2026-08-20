@@ -1,7 +1,13 @@
 import logoUrl from '../../assets/logo.svg';
 import { signUpProspect } from '../../lib/supabaseClient.js';
+import { submitMembershipRequest } from '../../lib/clientApi.js';
 import { navigate } from '../../lib/router.js';
-import { renderTurnstile } from '../../lib/turnstile.js';
+
+const ACCOUNT_TYPES = [
+  { value: 'courant', label: 'Compte courant' },
+  { value: 'epargne', label: 'Compte épargne' },
+  { value: 'entreprise', label: 'Compte entreprise' },
+];
 
 export async function renderSignup(app) {
   app.innerHTML = `
@@ -16,7 +22,7 @@ export async function renderSignup(app) {
         </div>
         <h2>Devenir client</h2>
         <p class="muted" style="margin-bottom:20px;">
-          Créez un accès prospect pour consulter nos services et soumettre une demande d'adhésion.
+          Créez votre accès et soumettez votre demande d'adhésion en une seule étape.
         </p>
         <form id="signup-form">
           <div class="field">
@@ -32,14 +38,38 @@ export async function renderSignup(app) {
             <input id="password" name="password" type="password" minlength="8" required />
           </div>
           <div class="field">
-            <label for="discord_id">ID Discord (facultatif)</label>
-            <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" />
-            <div class="muted" style="font-size:12px; margin-top:4px;">Utilisé pour la réinitialisation de mot de passe et la liaison de compte.</div>
+            <label for="discord_id">ID Discord (obligatoire)</label>
+            <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" required pattern="[0-9]{15,25}" title="Identifiant numérique Discord (clic droit sur votre profil → Copier l'identifiant, en mode développeur)" />
+            <div class="muted" style="font-size:12px; margin-top:4px;">
+              Obligatoire : c'est le seul moyen de réinitialiser votre mot de passe en cas d'oubli (via un message privé Discord). Sans ID Discord valide et à jour, un mot de passe perdu ne pourra pas être récupéré.
+            </div>
           </div>
-          <div id="turnstile-widget" style="margin-bottom:16px;"></div>
+          <hr style="border-color: var(--border-color, rgba(255,255,255,0.1)); margin: 20px 0;" />
+          <h3 style="font-size:15px; margin: 0 0 4px;">Demande d'adhésion</h3>
+          <p class="muted" style="font-size:13px; margin-bottom:16px;">
+            Devenez client de Newman Bank en une seule étape — cette demande sera examinée par notre personnel.
+          </p>
+          <div class="field">
+            <label for="account_type">Type de compte souhaité</label>
+            <select id="account_type" name="account_type">
+              ${ACCOUNT_TYPES.map((t) => `<option value="${t.value}">${t.label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label for="initial_deposit">Dépôt initial ($)</label>
+            <input id="initial_deposit" name="initial_deposit" type="number" min="0" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="motivation">Motivation</label>
+            <textarea id="motivation" name="motivation" rows="4" placeholder="Présentez-vous brièvement..."></textarea>
+          </div>
+          <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
+            <label for="website">Laissez ce champ vide</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+          </div>
           <div id="signup-error" class="text-danger" style="display:none;margin-bottom:12px;font-size:13px;"></div>
           <div id="signup-success" class="text-success" style="display:none;margin-bottom:12px;font-size:13px;"></div>
-          <button type="submit" class="btn btn-primary" style="width:100%;">Créer mon accès prospect</button>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Créer mon compte et envoyer ma demande</button>
         </form>
         <p class="muted" style="margin-top:20px;text-align:center;font-size:13px;">
           Déjà client ou membre du personnel ? <a href="#/login">Se connecter</a>
@@ -55,8 +85,6 @@ export async function renderSignup(app) {
     </style>
   `;
 
-  const turnstile = await renderTurnstile('turnstile-widget');
-
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('signup-error');
@@ -67,20 +95,37 @@ export async function renderSignup(app) {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const discordId = document.getElementById('discord_id').value.trim();
+    const requestedAccountType = document.getElementById('account_type').value;
+    const initialDeposit = parseFloat(document.getElementById('initial_deposit').value);
+    const motivation = document.getElementById('motivation').value.trim();
+    const honeypot = document.getElementById('website').value;
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      await signUpProspect({ username, password, displayName, discordId, captchaToken: turnstile.getToken() });
-      successEl.textContent = 'Accès créé. Vous pouvez maintenant vous connecter et demander à devenir client.';
-      successEl.style.display = 'block';
-      setTimeout(() => navigate('/login'), 1800);
+      await signUpProspect({ username, password, displayName, discordId, honeypot });
+      // Le compte est créé et la session ouverte immédiatement (email de
+      // confirmation désactivé côté Supabase) : on peut donc enchaîner
+      // directement sur la demande d'adhésion, en une seule étape pour
+      // l'utilisateur, sans repasser par un écran de connexion intermédiaire.
+      try {
+        await submitMembershipRequest({ requestedAccountType, initialDeposit, motivation });
+        successEl.textContent = 'Accès créé et demande d\'adhésion envoyée. Redirection...';
+        successEl.style.display = 'block';
+        setTimeout(() => navigate('/prospect'), 1200);
+      } catch (reqErr) {
+        // Le compte existe déjà à ce stade — on ne le perd pas : on renvoie
+        // simplement vers l'espace prospect pour que la demande soit
+        // (re)soumise manuellement depuis là.
+        successEl.textContent = 'Accès créé, mais l\'envoi de la demande a échoué. Redirection vers votre espace pour réessayer...';
+        successEl.style.display = 'block';
+        setTimeout(() => navigate('/prospect'), 1800);
+      }
     } catch (err) {
       errorEl.textContent = err.message?.includes('already') || err.message?.includes('exist')
         ? 'Cet identifiant est déjà utilisé.'
         : "Impossible de créer l'accès pour le moment.";
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
-      turnstile.reset();
     }
   });
 }

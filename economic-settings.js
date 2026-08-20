@@ -8,6 +8,7 @@ import {
   deleteClientOverride,
 } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const SYSTEM_CATEGORY = 'système';
 // 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
@@ -177,7 +178,7 @@ export async function renderAdminEconomicSettings(app, profile) {
           await upsertEconomicSetting({ key, value });
           await draw();
         } catch (err) {
-          alert(err.message || 'Valeur JSON invalide.');
+          await showAlert(err.message || 'Valeur JSON invalide.');
         }
       });
     });
@@ -219,7 +220,7 @@ export async function renderAdminEconomicSettings(app, profile) {
     content.querySelectorAll('.override-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await deleteClientOverride(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

@@ -1,10 +1,10 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getTransfersQueue, getAccountsByIds, claimTransfer, decideTransfer } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
-export async function renderAdminTransfers(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'transfers');
+export async function renderEmployeeTransfers(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'transfers');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {

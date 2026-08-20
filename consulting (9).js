@@ -1,12 +1,12 @@
-import { renderAdminShell } from './shell.js';
+import { renderEmployeeShell } from './shell.js';
 import { getConsultingQueue, assignConsultingRequest, rejectConsultingRequest } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const STATUS_LABELS = { pending: 'En attente', assigned: 'Assigné', closed: 'Clôturé', rejected: 'Refusé' };
 
-export async function renderAdminConsulting(app, profile) {
-  const { content } = await renderAdminShell(app, profile, 'consulting');
+export async function renderEmployeeConsulting(app, profile) {
+  const { content } = await renderEmployeeShell(app, profile, 'consulting');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
