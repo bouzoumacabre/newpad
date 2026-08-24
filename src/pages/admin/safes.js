@@ -1,21 +1,24 @@
 import { renderAdminShell } from './shell.js';
-import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental } from '../../lib/employeeApi.js';
+import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest } from '../../lib/employeeApi.js';
+import { getAllSafeBoxes, adminCreateSafeBox, adminUpdateSafeBox } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminSafes(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'safes');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [requests, availableBoxes] = await Promise.all([
+    const [requests, availableBoxes, allBoxes] = await Promise.all([
       getSafeRequestsQueue().catch(() => []),
       getAvailableSafeBoxesForAssignment().catch(() => []),
+      getAllSafeBoxes().catch(() => []),
     ]);
     const relevant = requests.filter((r) => r.status === 'pending' || r.status === 'processing');
 
     content.innerHTML = `
       <h1 style="margin-bottom:20px;">Coffres-forts à traiter</h1>
-      <div class="card">
+      <div class="card" style="margin-bottom:24px;">
         ${
           relevant.length
             ? relevant
@@ -32,12 +35,15 @@ export async function renderAdminSafes(app, profile) {
                 </div>
                 <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
                   <select class="assign-box" data-id="${r.id}">
-                    ${availableBoxes.map((b) => `<option value="${b.id}">${escapeHtml(b.code)} — ${formatMoney(b.annual_fee)}/an</option>`).join('')}
+                    ${availableBoxes.map((b) => `<option value="${b.id}">${escapeHtml(b.code)} — ${formatMoney(b.weekly_fee)}/semaine</option>`).join('')}
                   </select>
                   <input type="datetime-local" class="assign-datetime" data-id="${r.id}" />
                   <input type="text" class="assign-location" data-id="${r.id}" placeholder="Lieu du rendez-vous" />
                 </div>
-                <button class="btn btn-primary claim-btn" data-id="${r.id}">Programmer le rendez-vous</button>
+                <div class="flex gap-sm">
+                  <button class="btn btn-primary claim-btn" data-id="${r.id}">Programmer le rendez-vous</button>
+                  <button class="btn btn-danger reject-btn" data-id="${r.id}">Refuser</button>
+                </div>
               </div>
             `;
                   }
@@ -50,12 +56,64 @@ export async function renderAdminSafes(app, profile) {
                   </div>
                   ${statusBadge(r.status)}
                 </div>
-                <button class="btn btn-primary confirm-btn" data-id="${r.id}">Confirmer la location</button>
+                <div class="flex gap-sm">
+                  <button class="btn btn-primary confirm-btn" data-id="${r.id}">Confirmer la location</button>
+                  <button class="btn btn-danger reject-btn" data-id="${r.id}">Refuser</button>
+                </div>
               </div>
             `;
                 })
                 .join('')
             : `<p class="muted">Aucune demande en attente.</p>`
+        }
+      </div>
+
+      <h3 style="margin-bottom:12px;">Ajouter un coffre</h3>
+      <div class="card" style="margin-bottom:24px;">
+        <div class="grid" style="grid-template-columns: 1fr 1.5fr 1fr auto; gap:10px; align-items:end;">
+          <div class="field" style="margin:0;">
+            <label>Code</label>
+            <input type="text" id="new-box-code" placeholder="Ex: CF-006" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Agence</label>
+            <input type="text" id="new-box-branch" placeholder="Ex: Agence centrale — Los Santos" />
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Loyer hebdomadaire ($)</label>
+            <input type="number" id="new-box-fee" min="0" step="0.01" />
+          </div>
+          <button id="new-box-submit" class="btn btn-primary">Créer</button>
+        </div>
+        <div id="new-box-error" class="text-danger" style="font-size:13px; margin-top:8px; display:none;"></div>
+      </div>
+
+      <h3 style="margin-bottom:12px;">Parc de coffres (${allBoxes.length})</h3>
+      <div class="card">
+        ${
+          allBoxes.length
+            ? `<table>
+                <thead><tr><th>Code</th><th>Agence</th><th>Statut</th><th>Locataire</th><th style="text-align:right;">Loyer/semaine</th><th></th></tr></thead>
+                <tbody>
+                  ${allBoxes
+                    .map(
+                      (b) => `
+                    <tr>
+                      <td style="font-weight:600;">${escapeHtml(b.code)}</td>
+                      <td class="muted">${escapeHtml(b.branch)}</td>
+                      <td>${statusBadge(b.status)}</td>
+                      <td class="muted">${escapeHtml(b.profiles?.display_name || '—')}</td>
+                      <td style="text-align:right;">
+                        <input type="number" class="box-fee" data-id="${b.id}" value="${b.weekly_fee}" min="0" step="0.01" style="width:100px; padding:4px 8px; font-size:12px; text-align:right;" />
+                      </td>
+                      <td><button class="btn btn-secondary box-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
+                    </tr>
+                  `
+                    )
+                    .join('')}
+                </tbody>
+              </table>`
+            : `<p class="muted">Aucun coffre enregistré.</p>`
         }
       </div>
     `;
@@ -66,17 +124,54 @@ export async function renderAdminSafes(app, profile) {
         const boxId = content.querySelector(`.assign-box[data-id="${id}"]`).value;
         const datetime = content.querySelector(`.assign-datetime[data-id="${id}"]`).value;
         const location = content.querySelector(`.assign-location[data-id="${id}"]`).value.trim();
-        if (!boxId || !datetime) { alert('Veuillez choisir un coffre et une date de rendez-vous.'); return; }
+        if (!boxId || !datetime) { await showAlert('Veuillez choisir un coffre et une date de rendez-vous.'); return; }
         try {
           await claimSafeRequest(id, boxId, new Date(datetime).toISOString(), location || null);
           await draw();
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.confirm-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await confirmSafeRental(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
+      });
+    });
+    content.querySelectorAll('.reject-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const note = await showPrompt('Motif du refus (optionnel) :') || null;
+        try { await rejectSafeRequest(btn.getAttribute('data-id'), note); await draw(); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
+      });
+    });
+
+    document.getElementById('new-box-submit').addEventListener('click', async () => {
+      const errorEl = document.getElementById('new-box-error');
+      errorEl.style.display = 'none';
+      const code = document.getElementById('new-box-code').value.trim();
+      const branch = document.getElementById('new-box-branch').value.trim();
+      const fee = parseFloat(document.getElementById('new-box-fee').value);
+      if (!code || isNaN(fee) || fee < 0) {
+        errorEl.textContent = 'Veuillez renseigner un code et un loyer hebdomadaire valide.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      try {
+        await adminCreateSafeBox({ code, branch: branch || null, weeklyFee: fee });
+        await draw();
+      } catch (err) {
+        errorEl.textContent = err.message || 'Erreur lors de la création.';
+        errorEl.style.display = 'block';
+      }
+    });
+
+    content.querySelectorAll('.box-save').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const fee = parseFloat(content.querySelector(`.box-fee[data-id="${id}"]`).value);
+        if (isNaN(fee) || fee < 0) { await showAlert('Loyer hebdomadaire invalide.'); return; }
+        try { await adminUpdateSafeBox(id, { weeklyFee: fee }); await draw(); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

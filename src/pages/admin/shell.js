@@ -33,6 +33,7 @@ export async function renderAdminShell(app, profile, activeKey) {
         { key: 'safes', label: 'Coffres-forts', path: '/admin/safes', icon: '▣' },
         ...(has('admin.loans.decide') ? [{ key: 'loans', label: 'Prêts', path: '/admin/loans', icon: '§' }] : []),
         { key: 'consulting', label: 'Consulting Premium', path: '/admin/consulting', icon: '★' },
+        { key: 'transactions', label: 'Historique transactions', path: '/admin/transactions', icon: '≡' },
       ],
     },
     {

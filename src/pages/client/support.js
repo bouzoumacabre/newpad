@@ -2,6 +2,7 @@ import { renderClientShell } from './shell.js';
 import { getMySupportTickets, getSupportMessages, createSupportTicket, postSupportMessage } from '../../lib/clientApi.js';
 import { formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const CATEGORIES = ['Compte', 'Virement', 'Lingots & marché', 'Coffre-fort', 'Prêt', 'Autre'];
 
@@ -151,7 +152,7 @@ async function drawThread(content, ticketId) {
         input.value = '';
         await draw();
       } catch (err) {
-        alert(err.message || "Erreur lors de l'envoi du message.");
+        await showAlert(err.message || "Erreur lors de l'envoi du message.");
       }
     });
   }

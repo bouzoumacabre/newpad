@@ -16,6 +16,7 @@ import {
   updateProfileOverrides,
 } from '../../lib/adminApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const PROFILE_STATUSES = ['active', 'suspended', 'frozen'];
 const ACCOUNT_STATUSES = ['active', 'frozen', 'closed'];
@@ -266,7 +267,7 @@ export async function renderAdminClients(app, profile, params = {}) {
           else await addClientCategoryLink(selectedId, catId);
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur.');
+          await showAlert(err.message || 'Erreur.');
         }
       });
     });
@@ -276,14 +277,14 @@ export async function renderAdminClients(app, profile, params = {}) {
         const id = btn.getAttribute('data-id');
         const select = content.querySelector(`.account-status-select[data-id="${id}"]`);
         try { await adminSetAccountStatus(id, select.value); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 
     document.getElementById('profile-status-save')?.addEventListener('click', async () => {
       const status = document.getElementById('profile-status-select').value;
       try { await adminSetProfileStatus(selectedId, status); await draw(); }
-      catch (err) { alert(err.message || 'Erreur.'); }
+      catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     document.getElementById('overrides-save')?.addEventListener('click', async () => {
@@ -297,7 +298,7 @@ export async function renderAdminClients(app, profile, params = {}) {
           trustScore: trustScoreRaw === '' ? undefined : parseFloat(trustScoreRaw),
         });
         await draw();
-      } catch (err) { alert(err.message || 'Erreur.'); }
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
   }
 

@@ -26,6 +26,7 @@ import { renderEmployeeAccountOpening } from './pages/employee/account-opening.j
 import { renderEmployeeBranchQueue } from './pages/employee/branch-queue.js';
 import { renderEmployeeTransfers } from './pages/employee/transfers.js';
 import { renderEmployeeGold } from './pages/employee/gold.js';
+import { renderEmployeeTransactions } from './pages/employee/transactions.js';
 import { renderEmployeeSafes } from './pages/employee/safes.js';
 import { renderEmployeeLoans } from './pages/employee/loans.js';
 import { renderEmployeeConsulting } from './pages/employee/consulting.js';
@@ -42,6 +43,7 @@ import { renderAdminAccountOpening } from './pages/admin/account-opening.js';
 import { renderAdminBranchQueue } from './pages/admin/branch-queue.js';
 import { renderAdminTransfers } from './pages/admin/transfers.js';
 import { renderAdminGold } from './pages/admin/gold.js';
+import { renderAdminTransactions } from './pages/admin/transactions.js';
 import { renderAdminSafes } from './pages/admin/safes.js';
 import { renderAdminLoans } from './pages/admin/loans.js';
 import { renderAdminConsulting } from './pages/admin/consulting.js';
@@ -116,6 +118,7 @@ route('/employee/account-opening', async () => guardedRoleRender('employee', (p)
 route('/employee/branch-queue', async () => guardedRoleRender('employee', (p) => renderEmployeeBranchQueue(app, p)));
 route('/employee/transfers', async () => guardedRoleRender('employee', (p) => renderEmployeeTransfers(app, p)));
 route('/employee/gold', async () => guardedRoleRender('employee', (p) => renderEmployeeGold(app, p)));
+route('/employee/transactions', async () => guardedRoleRender('employee', (p) => renderEmployeeTransactions(app, p)));
 route('/employee/safes', async () => guardedRoleRender('employee', (p) => renderEmployeeSafes(app, p)));
 route('/employee/loans', async () => guardedRoleRender('employee', (p) => renderEmployeeLoans(app, p)));
 route('/employee/consulting', async () => guardedRoleRender('employee', (p) => renderEmployeeConsulting(app, p)));
@@ -139,6 +142,7 @@ route('/admin/account-opening', async () => guardedRoleRender('admin', (p) => re
 route('/admin/branch-queue', async () => guardedRoleRender('admin', (p) => renderAdminBranchQueue(app, p)));
 route('/admin/transfers', async () => guardedRoleRender('admin', (p) => renderAdminTransfers(app, p)));
 route('/admin/gold', async () => guardedRoleRender('admin', (p) => renderAdminGold(app, p)));
+route('/admin/transactions', async () => guardedRoleRender('admin', (p) => renderAdminTransactions(app, p)));
 route('/admin/safes', async () => guardedRoleRender('admin', (p) => renderAdminSafes(app, p)));
 route('/admin/loans', async () => guardedRoleRender('admin', (p) => renderAdminLoans(app, p)));
 route('/admin/consulting', async () => guardedRoleRender('admin', (p) => renderAdminConsulting(app, p)));

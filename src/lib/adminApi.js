@@ -292,3 +292,26 @@ export async function deleteSiteContent(id) {
   const { error } = await supabase.from('site_content').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ----------------------------------------------------------------------------
+// COFFRES-FORTS — gestion du parc (admin uniquement)
+// ----------------------------------------------------------------------------
+
+export async function getAllSafeBoxes() {
+  return unwrap(await supabase.from('safe_deposit_boxes').select('*, profiles!safe_deposit_boxes_client_id_fkey(display_name, username)').order('code', { ascending: true }));
+}
+
+export async function adminCreateSafeBox({ code, branch, weeklyFee }) {
+  const { error } = await supabase.rpc('admin_create_safe_box', { p_code: code, p_branch: branch || null, p_weekly_fee: weeklyFee });
+  if (error) throw error;
+}
+
+export async function adminUpdateSafeBox(boxId, { weeklyFee, branch, status } = {}) {
+  const { error } = await supabase.rpc('admin_update_safe_box', {
+    p_box_id: boxId,
+    p_weekly_fee: weeklyFee ?? null,
+    p_branch: branch ?? null,
+    p_status: status ?? null,
+  });
+  if (error) throw error;
+}

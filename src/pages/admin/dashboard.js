@@ -10,9 +10,10 @@ import {
   getAllSupportTickets,
   getBranchQueue,
   getCashierReports,
+  getConsultingQueue,
 } from '../../lib/employeeApi.js';
 import { getTreasuryStats } from '../../lib/adminApi.js';
-import { formatMoney, escapeHtml } from '../../lib/format.js';
+import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 
 function countPending(list, statuses = ['pending', 'processing']) {
@@ -23,7 +24,7 @@ export async function renderAdminDashboard(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, treasury] = await Promise.all([
+  const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, treasury, consulting] = await Promise.all([
     getMembershipRequests(['pending', 'processing']).catch(() => []),
     getTransfersQueue().catch(() => []),
     getGoldBankQueue().catch(() => []),
@@ -35,21 +36,39 @@ export async function renderAdminDashboard(app, profile) {
     getBranchQueue().catch(() => []),
     getCashierReports(1).catch(() => []),
     getTreasuryStats().catch(() => null),
+    getConsultingQueue().catch(() => []),
   ]);
 
   const loansAwaitingDecision = loans.filter((l) => l.status === 'processing').length;
   const lastReport = cashierReports[0];
+  const consultingPending = consulting.filter((c) => c.status === 'pending');
 
   const stats = [
     { label: "Demandes d'adhésion", value: membership.length, path: '/admin/membership' },
     { label: 'Virements en attente', value: countPending(transfers), path: '/admin/transfers' },
     { label: 'Lingots (banque + marché)', value: countPending(goldBank) + countPending(goldMarket), path: '/admin/gold' },
     { label: 'Coffres en attente', value: countPending(safes), path: '/admin/safes' },
+    { label: 'Consulting en attente', value: consultingPending.length, path: '/admin/consulting' },
     { label: "File d'attente", value: queue.filter((q) => q.status === 'waiting').length, path: '/admin/branch-queue' },
     { label: 'Alertes fraude ouvertes', value: fraud.length, path: '/admin/fraud' },
     { label: 'Tickets support ouverts', value: tickets.length, path: '/admin/support' },
     { label: 'Prêts en attente de décision finale', value: loansAwaitingDecision, path: '/admin/loans', highlight: true },
   ];
+
+  // Vue 360 : aperçu combiné des demandes les plus récentes, tous types
+  // confondus, pour ne pas avoir à ouvrir chaque écran un par un.
+  const overview = [
+    ...membership.map((m) => ({ type: 'Adhésion', name: m.profiles?.display_name || m.applicant_id, date: m.created_at, path: '/admin/membership' })),
+    ...transfers.filter((t) => ['pending', 'processing'].includes(t.status)).map((t) => ({ type: 'Virement', name: t.motif || t.amount + ' $', date: t.requested_at || t.created_at, path: '/admin/transfers' })),
+    ...safes.filter((s) => ['pending', 'processing'].includes(s.status)).map((s) => ({ type: 'Coffre-fort', name: s.profiles?.display_name || '', date: s.requested_at, path: '/admin/safes' })),
+    ...loans.filter((l) => ['pending', 'processing'].includes(l.status)).map((l) => ({ type: 'Prêt', name: l.profiles?.display_name || '', date: l.requested_at, path: '/admin/loans' })),
+    ...consultingPending.map((c) => ({ type: 'Consulting', name: c.profiles?.display_name || '', date: c.created_at, path: '/admin/consulting' })),
+    ...tickets.map((t) => ({ type: 'Support', name: t.subject || '', date: t.created_at, path: '/admin/support' })),
+    ...fraud.map((f) => ({ type: 'Fraude', name: f.description || '', date: f.created_at, path: '/admin/fraud' })),
+  ]
+    .filter((o) => o.date)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 12);
 
   content.innerHTML = `
     <h1 style="margin-bottom:6px;">Bienvenue, ${escapeHtml(profile.display_name)}.</h1>
@@ -66,6 +85,30 @@ export async function renderAdminDashboard(app, profile) {
       `
         )
         .join('')}
+    </div>
+
+    <h3 style="margin:28px 0 12px;">Aperçu global — activité récente en attente</h3>
+    <div class="card" style="margin-bottom:28px;">
+      ${
+        overview.length
+          ? `<table>
+              <thead><tr><th>Type</th><th>Détail</th><th>Date</th></tr></thead>
+              <tbody>
+                ${overview
+                  .map(
+                    (o) => `
+                  <tr class="overview-row" data-path="${o.path}" style="cursor:pointer;">
+                    <td><span class="badge badge-neutral" style="font-size:11px;">${escapeHtml(o.type)}</span></td>
+                    <td>${escapeHtml(String(o.name))}</td>
+                    <td class="muted" style="white-space:nowrap;">${formatDateTime(o.date)}</td>
+                  </tr>
+                `
+                  )
+                  .join('')}
+              </tbody>
+            </table>`
+          : `<p class="muted">Rien en attente pour le moment — tout est à jour.</p>`
+      }
     </div>
 
     <h3 style="margin:28px 0 12px;">Trésorerie de la banque</h3>
@@ -100,7 +143,7 @@ export async function renderAdminDashboard(app, profile) {
     </div>
   `;
 
-  content.querySelectorAll('.stat-card').forEach((el) => {
+  content.querySelectorAll('.stat-card, .overview-row').forEach((el) => {
     el.addEventListener('click', () => navigate(el.getAttribute('data-path')));
   });
 }

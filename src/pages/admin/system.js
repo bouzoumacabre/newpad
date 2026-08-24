@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getEconomicSettings, upsertEconomicSetting } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const SYSTEM_CATEGORY = 'système';
 const KNOWN_KEYS = ['maintenance_mode', 'announcement_banner'];
@@ -91,7 +92,7 @@ export async function renderAdminSystem(app, profile) {
       try {
         await upsertEconomicSetting({ key: 'maintenance_mode', value: { enabled: document.getElementById('maintenance-toggle').checked } });
         await draw();
-      } catch (err) { alert(err.message || 'Erreur.'); }
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     document.getElementById('banner-save')?.addEventListener('click', async () => {
@@ -101,7 +102,7 @@ export async function renderAdminSystem(app, profile) {
           value: { enabled: document.getElementById('banner-enabled').checked, message: document.getElementById('banner-message').value.trim() },
         });
         await draw();
-      } catch (err) { alert(err.message || 'Erreur.'); }
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.other-save').forEach((btn) => {
@@ -112,7 +113,7 @@ export async function renderAdminSystem(app, profile) {
           const value = JSON.parse(textarea.value);
           await upsertEconomicSetting({ key, value });
           await draw();
-        } catch (err) { alert(err.message || 'JSON invalide.'); }
+        } catch (err) { await showAlert(err.message || 'JSON invalide.'); }
       });
     });
   }

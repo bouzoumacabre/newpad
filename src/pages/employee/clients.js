@@ -12,6 +12,7 @@ import {
   getClientLoans,
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderEmployeeClients(app, profile, params = {}) {
   const { content } = await renderEmployeeShell(app, profile, 'clients');
@@ -204,7 +205,7 @@ export async function renderEmployeeClients(app, profile, params = {}) {
           else await addClientCategoryLink(selectedId, catId);
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur.');
+          await showAlert(err.message || 'Erreur.');
         }
       });
     });

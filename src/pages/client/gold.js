@@ -1,6 +1,7 @@
 import { renderClientShell } from './shell.js';
 import { getBankGoldStock, getMyGoldBars, buyGoldFromBank, getMyGoldPurchaseRequests, getEconomicSetting } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 // 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
 const GRAMS_PER_TROY_OUNCE = 31.1034768;
@@ -96,15 +97,15 @@ export async function renderClientGold(app, profile) {
 
     content.querySelectorAll('.buy-bar').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Confirmer l\'achat de ce lingot ?')) return;
+        if (!await showConfirm('Confirmer l\'achat de ce lingot ?')) return;
         btn.disabled = true;
         btn.textContent = 'Envoi…';
         try {
           await buyGoldFromBank(btn.getAttribute('data-id'));
-          alert('Demande d\'achat soumise — en attente de traitement.');
+          await showAlert('Demande d\'achat soumise — en attente de traitement.');
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur lors de la demande.');
+          await showAlert(err.message || 'Erreur lors de la demande.');
           btn.disabled = false;
           btn.textContent = 'Acheter';
         }

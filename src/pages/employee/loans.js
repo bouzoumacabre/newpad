@@ -1,6 +1,7 @@
 import { renderEmployeeShell } from './shell.js';
 import { getLoansQueue, reviewLoan } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderEmployeeLoans(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'loans');
@@ -67,9 +68,9 @@ export async function renderEmployeeLoans(app, profile) {
 
     content.querySelectorAll('.review-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Note pour l\'admin (optionnel) :') || null;
+        const note = await showPrompt('Note pour l\'admin (optionnel) :') || null;
         try { await reviewLoan(btn.getAttribute('data-id'), note); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

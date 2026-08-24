@@ -37,6 +37,7 @@ export async function renderClientConsulting(app, profile) {
                   ${statusBadge(r.status)}
                 </div>
                 <div style="font-size:14px;">${escapeHtml(r.message)}</div>
+                ${r.status === 'rejected' && r.decision_note ? `<div class="muted" style="font-size:12px; margin-top:6px;">Motif : ${escapeHtml(r.decision_note)}</div>` : ''}
               </div>
             `
                   )

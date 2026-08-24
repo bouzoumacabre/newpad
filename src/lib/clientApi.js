@@ -154,7 +154,7 @@ export async function getMyMarketPurchaseRequests() {
 // ----------------------------------------------------------------------------
 
 export async function getAvailableSafeBoxes() {
-  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('annual_fee', { ascending: true }));
+  return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('weekly_fee', { ascending: true }));
 }
 
 export async function getMySafeBoxes() {

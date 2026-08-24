@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getMembershipRequests, claimMembershipRequest, decideMembershipRequest } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminMembership(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'membership');
@@ -53,7 +54,7 @@ export async function renderAdminMembership(app, profile) {
     content.querySelectorAll('.claim-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await claimMembershipRequest(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.approve-btn').forEach((btn) => {
@@ -61,16 +62,16 @@ export async function renderAdminMembership(app, profile) {
         try {
           await decideMembershipRequest(btn.getAttribute('data-id'), true, null);
           await draw();
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.reject-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Motif du refus (optionnel) :') || null;
+        const note = await showPrompt('Motif du refus (optionnel) :') || null;
         try {
           await decideMembershipRequest(btn.getAttribute('data-id'), false, note);
           await draw();
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

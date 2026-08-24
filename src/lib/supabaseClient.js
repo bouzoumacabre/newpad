@@ -46,6 +46,14 @@ export async function signInWithUsername(username, password) {
 // `honeypot_signup_guard`) — remplace le CAPTCHA Cloudflare Turnstile, devenu
 // incompatible avec le navigateur intégré de FiveM (CEF).
 export async function signUpProspect({ username, password, displayName, discordId, honeypot }) {
+  // L'ID Discord est obligatoire depuis 5sexies bis : c'est le seul moyen de
+  // récupération de mot de passe (voir /forgot-password), donc un compte créé
+  // sans lui serait irrécupérable en cas d'oubli. Vérifié ici en plus du
+  // `required` côté formulaire, au cas où cette fonction serait appelée
+  // autrement.
+  if (!discordId || !discordId.trim()) {
+    throw new Error("L'ID Discord est obligatoire à l'inscription (nécessaire pour la réinitialisation de mot de passe).");
+  }
   const email = usernameToSyntheticEmail(username);
   const { data, error } = await supabase.auth.signUp({
     email,

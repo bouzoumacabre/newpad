@@ -1,6 +1,7 @@
 import { renderEmployeeShell } from './shell.js';
 import { getFraudAlerts, createManualFraudAlert, updateFraudAlertStatus, searchProfilesAnyRole } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const SEVERITY_BADGE = { low: 'badge-neutral', medium: 'badge-pending', high: 'badge-danger' };
 
@@ -82,23 +83,23 @@ export async function renderEmployeeFraud(app, profile) {
     document.getElementById('fraud-submit').addEventListener('click', async () => {
       const severity = document.getElementById('fraud-severity').value;
       const description = document.getElementById('fraud-description').value.trim();
-      if (!description) { alert('Veuillez décrire le comportement suspect.'); return; }
+      if (!description) { await showAlert('Veuillez décrire le comportement suspect.'); return; }
       try {
         await createManualFraudAlert({ severity, clientId: matchedClientId, description });
         await draw();
-      } catch (err) { alert(err.message || 'Erreur.'); }
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.reviewed-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await updateFraudAlertStatus(btn.getAttribute('data-id'), 'reviewed'); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.dismiss-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await updateFraudAlertStatus(btn.getAttribute('data-id'), 'dismissed'); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

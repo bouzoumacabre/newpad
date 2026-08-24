@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { getBranchQueue, addToBranchQueue, updateBranchQueueStatus } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const STATUS_LABELS = { waiting: 'En attente', in_service: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
 
@@ -76,25 +77,25 @@ export async function renderAdminBranchQueue(app, profile) {
       const reason = document.getElementById('visitor-reason').value.trim();
       if (!visitorName) return;
       try { await addToBranchQueue({ visitorName, reason }); await draw(); }
-      catch (err) { alert(err.message || 'Erreur.'); }
+      catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.call-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await updateBranchQueueStatus(btn.getAttribute('data-id'), 'in_service'); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.done-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await updateBranchQueueStatus(btn.getAttribute('data-id'), 'done'); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.cancel-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await updateBranchQueueStatus(btn.getAttribute('data-id'), 'cancelled'); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

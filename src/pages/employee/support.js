@@ -2,6 +2,7 @@ import { renderEmployeeShell } from './shell.js';
 import { getAllSupportTickets, getSupportMessages, postSupportMessage, resolveSupportTicket } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const STATUS_LABELS = { open: 'Ouvert', in_progress: 'En cours', resolved: 'Résolu' };
 const STATUS_BADGE = { open: 'badge-pending', in_progress: 'badge-pending', resolved: 'badge-success' };
@@ -102,12 +103,12 @@ async function drawThread(content, ticketId) {
       const body = input.value.trim();
       if (!body) return;
       try { await postSupportMessage(ticketId, body); input.value = ''; await draw(); }
-      catch (err) { alert(err.message || "Erreur lors de l'envoi."); }
+      catch (err) { await showAlert(err.message || "Erreur lors de l'envoi."); }
     });
 
     document.getElementById('resolve-btn')?.addEventListener('click', async () => {
       try { await resolveSupportTicket(ticketId); await draw(); }
-      catch (err) { alert(err.message || 'Erreur.'); }
+      catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
   }
   await draw();

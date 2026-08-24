@@ -38,9 +38,11 @@ export async function renderSignup(app) {
             <input id="password" name="password" type="password" minlength="8" required />
           </div>
           <div class="field">
-            <label for="discord_id">ID Discord (facultatif)</label>
-            <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" />
-            <div class="muted" style="font-size:12px; margin-top:4px;">Utilisé pour la réinitialisation de mot de passe et la liaison de compte.</div>
+            <label for="discord_id">ID Discord (obligatoire)</label>
+            <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" required pattern="[0-9]{15,25}" title="Identifiant numérique Discord (clic droit sur votre profil → Copier l'identifiant, en mode développeur)" />
+            <div class="muted" style="font-size:12px; margin-top:4px;">
+              Obligatoire : c'est le seul moyen de réinitialiser votre mot de passe en cas d'oubli (via un message privé Discord). Sans ID Discord valide et à jour, un mot de passe perdu ne pourra pas être récupéré.
+            </div>
           </div>
           <hr style="border-color: var(--border-color, rgba(255,255,255,0.1)); margin: 20px 0;" />
           <h3 style="font-size:15px; margin: 0 0 4px;">Demande d'adhésion</h3>

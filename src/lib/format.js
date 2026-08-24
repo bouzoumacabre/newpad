@@ -85,6 +85,9 @@ const AUDIT_ACTION_LABELS = {
   reject_gold_market_purchase: 'Achat de lingot (marché) refusé',
   claim_safe_request: 'Rendez-vous coffre programmé',
   confirm_safe_rental: 'Location de coffre confirmée',
+  reject_safe_request: 'Demande de coffre refusée',
+  admin_create_safe_box: 'Coffre créé',
+  admin_update_safe_box: 'Coffre modifié',
   employee_review_loan: 'Prêt transmis pour décision finale',
   approve_loan: 'Prêt validé',
   reject_loan: 'Prêt refusé',
@@ -93,9 +96,12 @@ const AUDIT_ACTION_LABELS = {
   membership_needs_admin: 'Adhésion signalée — autorisation admin requise',
   resolve_support_ticket: 'Ticket support résolu',
   assign_consulting_request: 'Conseiller attribué',
+  reject_consulting_request: 'Demande de consulting refusée',
   edge_create_account: 'Compte créé',
   mint_gold_bar: 'Lingot frappé',
   admin_update_gold_bar: 'Lingot modifié',
+  admin_create_market_listing: 'Lingot mis en vente (banque)',
+  admin_cancel_market_listing: 'Mise en vente retirée',
   admin_set_visibility_mask: 'Masquage modifié',
   admin_set_account_status: 'Statut de compte modifié',
   admin_set_profile_status: 'Statut de profil modifié',
@@ -120,11 +126,15 @@ const AUDIT_DETAIL_KEY_LABELS = {
   username: 'Identifiant',
   gold_bar_id: 'Lingot',
   safe_code: 'Coffre',
-  annual_fee: 'Cotisation annuelle',
+  weekly_fee: 'Loyer hebdomadaire',
   appointment_at: 'Rendez-vous',
   subject: 'Sujet',
   initial_deposit: 'Dépôt initial',
   projected_total: 'Solde projeté',
+  processing_fee: 'Frais de dossier',
+  code: 'Code',
+  branch: 'Agence',
+  status: 'Statut',
 };
 
 export function auditActionLabel(action) {
@@ -133,7 +143,7 @@ export function auditActionLabel(action) {
 
 function formatAuditValue(key, value) {
   if (value === null || value === undefined || value === '') return null;
-  if (['amount', 'price', 'fee', 'annual_fee', 'initial_deposit', 'projected_total'].includes(key)) {
+  if (['amount', 'price', 'fee', 'weekly_fee', 'initial_deposit', 'projected_total', 'processing_fee'].includes(key)) {
     return formatMoney(value);
   }
   if (key === 'appointment_at') return formatDateTime(value);

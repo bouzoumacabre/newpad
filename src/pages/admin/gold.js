@@ -12,6 +12,7 @@ import {
   adminCancelMarketListing,
 } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const GOLD_BAR_STATUSES = ['in_vault', 'listed', 'reserved', 'sold'];
 
@@ -26,8 +27,12 @@ export async function renderAdminGold(app, profile) {
       getAllGoldBars().catch(() => []),
       getAllMarketListings().catch(() => []),
     ]);
-    const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
-    const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing');
+    const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'bank' }));
+    const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'market' }));
+    // Vue 360 : une seule liste combinée, triée par date, pour éviter d'avoir
+    // à parcourir deux panneaux quasi identiques (achats banque / achats
+    // marché) — chaque ligne indique sa nature via une étiquette.
+    const allPending = [...bankPending, ...marketPending].sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
     const inCirculation = allBars.filter((b) => b.status === 'sold');
     const inCirculationWeight = inCirculation.reduce((s, b) => s + Number(b.weight_grams), 0);
     const availableForListing = allBars.filter((b) => b.status === 'in_vault');
@@ -40,61 +45,36 @@ export async function renderAdminGold(app, profile) {
         — poids total : ${inCirculationWeight} g
       </p>
 
-      <h3 style="margin-bottom:12px;">Achats banque</h3>
+      <h3 style="margin-bottom:12px;">Demandes d'achat en attente (${allPending.length})</h3>
       <div class="card" style="margin-bottom:24px;">
         ${
-          bankPending.length
-            ? bankPending
-                .map(
-                  (r) => `
+          allPending.length
+            ? allPending
+                .map((r) => {
+                  const isBank = r._kind === 'bank';
+                  const serial = isBank ? r.gold_bars?.serial_number : r.gold_market_listings?.gold_bars?.serial_number;
+                  const weight = isBank ? r.gold_bars?.weight_grams : r.gold_market_listings?.gold_bars?.weight_grams;
+                  const price = isBank ? r.price : r.gold_market_listings?.listed_price;
+                  return `
           <div style="padding:14px 0; border-bottom:1px solid var(--card-border);">
             <div class="flex justify-between items-center" style="margin-bottom:8px;">
               <div>
-                <div style="font-weight:600;">${escapeHtml(r.profiles?.display_name || '')} — N° ${escapeHtml(r.gold_bars?.serial_number || '')}</div>
-                <div class="muted" style="font-size:12px;">${r.gold_bars?.weight_grams} g — ${formatDateTime(r.requested_at)}</div>
+                <span class="badge ${isBank ? 'badge-neutral' : 'badge-pending'}" style="margin-right:8px; font-size:11px;">${isBank ? 'Achat banque' : 'Achat marché'}</span>
+                <div style="font-weight:600; display:inline;">${escapeHtml(r.profiles?.display_name || '')} — N° ${escapeHtml(serial || '')}</div>
+                <div class="muted" style="font-size:12px;">${weight ? weight + ' g — ' : ''}${formatDateTime(r.requested_at)}</div>
               </div>
               ${statusBadge(r.status)}
             </div>
             <div style="font-size:14px; margin-bottom:10px;">
-              Prix : <strong class="gold">${formatMoney(r.price)}</strong>
+              Prix : <strong class="gold">${formatMoney(price)}</strong>
             </div>
             <div class="flex gap-sm">
-              <button class="btn btn-primary bank-approve" data-id="${r.id}">Valider</button>
-              <button class="btn btn-danger bank-reject" data-id="${r.id}">Refuser</button>
+              <button class="btn btn-primary ${isBank ? 'bank-approve' : 'market-approve'}" data-id="${r.id}">Valider</button>
+              <button class="btn btn-danger ${isBank ? 'bank-reject' : 'market-reject'}" data-id="${r.id}">Refuser</button>
             </div>
           </div>
-        `
-                )
-                .join('')
-            : `<p class="muted">Aucune demande en attente.</p>`
-        }
-      </div>
-
-      <h3 style="margin-bottom:12px;">Achats sur le marché de revente</h3>
-      <div class="card" style="margin-bottom:24px;">
-        ${
-          marketPending.length
-            ? marketPending
-                .map(
-                  (r) => `
-          <div style="padding:14px 0; border-bottom:1px solid var(--card-border);">
-            <div class="flex justify-between items-center" style="margin-bottom:8px;">
-              <div>
-                <div style="font-weight:600;">${escapeHtml(r.profiles?.display_name || '')} — N° ${escapeHtml(r.gold_market_listings?.gold_bars?.serial_number || '')}</div>
-                <div class="muted" style="font-size:12px;">${formatDateTime(r.requested_at)}</div>
-              </div>
-              ${statusBadge(r.status)}
-            </div>
-            <div style="font-size:14px; margin-bottom:10px;">
-              Prix : <strong class="gold">${formatMoney(r.gold_market_listings?.listed_price)}</strong>
-            </div>
-            <div class="flex gap-sm">
-              <button class="btn btn-primary market-approve" data-id="${r.id}">Valider</button>
-              <button class="btn btn-danger market-reject" data-id="${r.id}">Refuser</button>
-            </div>
-          </div>
-        `
-                )
+        `;
+                })
                 .join('')
             : `<p class="muted">Aucune demande en attente.</p>`
         }
@@ -216,27 +196,27 @@ export async function renderAdminGold(app, profile) {
     content.querySelectorAll('.bank-approve').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await decideGoldBankPurchase(btn.getAttribute('data-id'), true, null); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.bank-reject').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Motif du refus (optionnel) :') || null;
+        const note = await showPrompt('Motif du refus (optionnel) :') || null;
         try { await decideGoldBankPurchase(btn.getAttribute('data-id'), false, note); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.market-approve').forEach((btn) => {
       btn.addEventListener('click', async () => {
         try { await decideMarketPurchase(btn.getAttribute('data-id'), true, null); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
     content.querySelectorAll('.market-reject').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const note = prompt('Motif du refus (optionnel) :') || null;
+        const note = await showPrompt('Motif du refus (optionnel) :') || null;
         try { await decideMarketPurchase(btn.getAttribute('data-id'), false, note); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 
@@ -264,9 +244,9 @@ export async function renderAdminGold(app, profile) {
 
     content.querySelectorAll('.listing-cancel').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Retirer ce lingot de la vente ?')) return;
+        if (!await showConfirm('Retirer ce lingot de la vente ?')) return;
         try { await adminCancelMarketListing(btn.getAttribute('data-id')); await draw(); }
-        catch (err) { alert(err.message || 'Erreur.'); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 
@@ -300,7 +280,7 @@ export async function renderAdminGold(app, profile) {
         try {
           await adminUpdateGoldBar(id, { status, location: location || null, ownerClientId: owner || null, notes: notes || null });
           await draw();
-        } catch (err) { alert(err.message || 'Erreur.'); }
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
   }

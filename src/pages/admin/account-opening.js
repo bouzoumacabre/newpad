@@ -7,6 +7,7 @@ import {
   createAccount,
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
@@ -130,15 +131,15 @@ export async function renderAdminAccountOpening(app, profile) {
         const id = btn.getAttribute('data-id');
         const input = content.querySelector(`.finalize-username[data-id="${id}"]`);
         const username = input.value.trim();
-        if (!username) { alert('Veuillez saisir l\'identifiant du profil déjà créé par le client.'); return; }
+        if (!username) { await showAlert('Veuillez saisir l\'identifiant du profil déjà créé par le client.'); return; }
         try {
           const matches = await searchProfilesAnyRole(username);
           const exact = matches.find((m) => m.username.toLowerCase() === username.toLowerCase());
-          if (!exact) { alert('Aucun profil trouvé avec cet identifiant exact. Le client doit d\'abord créer son accès prospect.'); return; }
+          if (!exact) { await showAlert('Aucun profil trouvé avec cet identifiant exact. Le client doit d\'abord créer son accès prospect.'); return; }
           await finalizeManualAccountOpening(id, exact.id);
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur lors de la finalisation.');
+          await showAlert(err.message || 'Erreur lors de la finalisation.');
         }
       });
     });

@@ -1,6 +1,7 @@
 import { renderClientShell } from './shell.js';
 import { getMyLoans, getLoanSchedule, requestLoan, repayLoanEarly, getEconomicSetting } from '../../lib/clientApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderClientLoans(app, profile) {
   const { content } = await renderClientShell(app, profile, 'loans');
@@ -134,12 +135,12 @@ export async function renderClientLoans(app, profile) {
 
     content.querySelectorAll('.repay-early').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Confirmer le remboursement anticipé du solde restant ?')) return;
+        if (!await showConfirm('Confirmer le remboursement anticipé du solde restant ?')) return;
         try {
           await repayLoanEarly(btn.getAttribute('data-id'));
           await draw();
         } catch (err) {
-          alert(err.message || 'Erreur lors du remboursement.');
+          await showAlert(err.message || 'Erreur lors du remboursement.');
         }
       });
     });

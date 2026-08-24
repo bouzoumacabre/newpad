@@ -1,6 +1,7 @@
 import { renderClientShell } from './shell.js';
 import { getAvailableSafeBoxes, getMySafeBoxes, getMySafeRequests, requestSafeBox } from '../../lib/clientApi.js';
 import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderClientSafes(app, profile) {
   const { content } = await renderClientShell(app, profile, 'safes');
@@ -29,7 +30,7 @@ export async function renderClientSafes(app, profile) {
           ${
             available.length
               ? `<table>
-                  <thead><tr><th>Code</th><th>Succursale</th><th style="text-align:right;">Frais annuels</th></tr></thead>
+                  <thead><tr><th>Code</th><th>Succursale</th><th style="text-align:right;">Loyer hebdomadaire</th></tr></thead>
                   <tbody>
                     ${available
                       .map(
@@ -37,7 +38,7 @@ export async function renderClientSafes(app, profile) {
                       <tr>
                         <td style="font-weight:600;">${escapeHtml(b.code)}</td>
                         <td class="muted">${escapeHtml(b.branch)}</td>
-                        <td style="text-align:right;">${formatMoney(b.annual_fee)}</td>
+                        <td style="text-align:right;">${formatMoney(b.weekly_fee)}/semaine</td>
                       </tr>
                     `
                       )
@@ -72,7 +73,7 @@ export async function renderClientSafes(app, profile) {
         ${
           myRequests.length
             ? `<table>
-                <thead><tr><th>Date</th><th>Rendez-vous</th><th>Statut</th></tr></thead>
+                <thead><tr><th>Date</th><th>Rendez-vous</th><th>Statut</th><th>Motif</th></tr></thead>
                 <tbody>
                   ${myRequests
                     .map(
@@ -81,6 +82,7 @@ export async function renderClientSafes(app, profile) {
                       <td class="muted">${formatDateTime(r.requested_at)}</td>
                       <td class="muted">${r.appointment_at ? formatDateTime(r.appointment_at) + (r.appointment_location ? ' — ' + escapeHtml(r.appointment_location) : '') : '—'}</td>
                       <td>${statusBadge(r.status)}</td>
+                      <td class="muted">${r.status === 'rejected' && r.decision_note ? escapeHtml(r.decision_note) : '—'}</td>
                     </tr>
                   `
                     )
@@ -101,7 +103,7 @@ export async function renderClientSafes(app, profile) {
         await requestSafeBox();
         await draw();
       } catch (err) {
-        alert(err.message || 'Erreur lors de la demande.');
+        await showAlert(err.message || 'Erreur lors de la demande.');
         btn.disabled = false;
         btn.textContent = 'Demander un coffre';
       }
