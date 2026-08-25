@@ -1,5 +1,5 @@
 import { renderEmployeeShell } from './shell.js';
-import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest } from '../../lib/employeeApi.js';
+import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
@@ -31,17 +31,24 @@ export async function renderEmployeeSafes(app, profile) {
                   </div>
                   ${statusBadge(r.status)}
                 </div>
-                <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
-                  <select class="assign-box" data-id="${r.id}">
-                    ${availableBoxes.map((b) => `<option value="${b.id}">${escapeHtml(b.code)} — ${formatMoney(b.weekly_fee)}/semaine</option>`).join('')}
+                <div class="grid" style="grid-template-columns: 1fr auto auto; gap:8px; align-items:end; margin-bottom:10px;">
+                  <select class="simple-assign-box" data-id="${r.id}">
+                    ${availableBoxes.length ? availableBoxes.map((b) => `<option value="${b.id}">${escapeHtml(b.code)} — ${formatMoney(b.weekly_fee)}/semaine</option>`).join('') : '<option value="">Aucun coffre disponible</option>'}
                   </select>
-                  <input type="datetime-local" class="assign-datetime" data-id="${r.id}" />
-                  <input type="text" class="assign-location" data-id="${r.id}" placeholder="Lieu du rendez-vous" />
-                </div>
-                <div class="flex gap-sm">
-                  <button class="btn btn-primary claim-btn" data-id="${r.id}">Programmer le rendez-vous</button>
+                  <button class="btn btn-primary simple-approve-btn" data-id="${r.id}" ${availableBoxes.length ? '' : 'disabled'}>Autoriser</button>
                   <button class="btn btn-danger reject-btn" data-id="${r.id}">Refuser</button>
                 </div>
+                <details>
+                  <summary class="muted" style="font-size:12px; cursor:pointer;">Programmer un rendez-vous à la place (optionnel)</summary>
+                  <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:8px; margin:10px 0;">
+                    <select class="assign-box" data-id="${r.id}">
+                      ${availableBoxes.map((b) => `<option value="${b.id}">${escapeHtml(b.code)} — ${formatMoney(b.weekly_fee)}/semaine</option>`).join('')}
+                    </select>
+                    <input type="datetime-local" class="assign-datetime" data-id="${r.id}" />
+                    <input type="text" class="assign-location" data-id="${r.id}" placeholder="Lieu du rendez-vous" />
+                  </div>
+                  <button class="btn btn-secondary claim-btn" data-id="${r.id}">Programmer le rendez-vous</button>
+                </details>
               </div>
             `;
                   }
@@ -66,6 +73,18 @@ export async function renderEmployeeSafes(app, profile) {
         }
       </div>
     `;
+
+    content.querySelectorAll('.simple-approve-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const boxId = content.querySelector(`.simple-assign-box[data-id="${id}"]`).value;
+        if (!(await showConfirm('Autoriser cette demande de coffre-fort maintenant ? Le client sera notifié et le loyer de la première semaine sera prélevé immédiatement.'))) return;
+        try {
+          await decideSafeRequestSimple(id, true, boxId || null, null);
+          await draw();
+        } catch (err) { await showAlert(err.message || 'Erreur.'); }
+      });
+    });
 
     content.querySelectorAll('.claim-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {

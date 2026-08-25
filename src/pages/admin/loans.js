@@ -50,18 +50,28 @@ export async function renderAdminLoans(app, profile) {
       </div>
 
       <h3 style="margin-bottom:12px;">Nouvelles demandes (non encore réceptionnées par un employé)</h3>
+      <p class="muted" style="margin-bottom:12px; font-size:12px;">
+        L'admin dispose déjà de toutes les permissions du personnel — inutile d'attendre qu'un employé la réceptionne
+        d'abord, vous pouvez décider directement ci-dessous.
+      </p>
       <div class="card" style="margin-bottom:24px;">
         ${
           pending.length
             ? pending
                 .map(
                   (l) => `
-          <div style="padding:12px 0; border-bottom:1px solid var(--card-border);" class="flex justify-between items-center">
-            <div>
-              <div style="font-weight:600;">${escapeHtml(l.profiles?.display_name || '')}</div>
-              <div class="muted" style="font-size:12px;">${formatMoney(l.requested_amount)} — ${l.term_months} mois</div>
+          <div style="padding:12px 0; border-bottom:1px solid var(--card-border);">
+            <div class="flex justify-between items-center" style="margin-bottom:8px;">
+              <div>
+                <div style="font-weight:600;">${escapeHtml(l.profiles?.display_name || '')}</div>
+                <div class="muted" style="font-size:12px;">${formatMoney(l.requested_amount)} — ${l.term_months} mois${l.purpose ? ' — ' + escapeHtml(l.purpose) : ''}</div>
+              </div>
+              ${statusBadge(l.status)}
             </div>
-            ${statusBadge(l.status)}
+            <div class="flex gap-sm">
+              <button class="btn btn-primary decide-approve" data-id="${l.id}">Approuver et débloquer</button>
+              <button class="btn btn-danger decide-reject" data-id="${l.id}">Refuser</button>
+            </div>
           </div>
         `
                 )

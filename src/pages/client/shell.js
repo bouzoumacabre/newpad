@@ -46,6 +46,7 @@ export async function renderClientShell(app, profile, activeKey) {
       category: 'Services',
       items: [
         ...(has('client.consulting') ? [{ key: 'consulting', label: 'Consulting Premium', path: '/client/consulting', icon: '★' }] : []),
+        ...(has('client.info.view') ? [{ key: 'info', label: 'Infos', path: '/client/info', icon: 'ⓘ' }] : []),
         { key: 'documents', label: 'Documents', path: '/client/documents', icon: '▦' },
         { key: 'messages', label: 'Messagerie', path: '/client/messages', icon: '✉' },
         { key: 'support', label: 'Support', path: '/client/support', icon: '☏' },

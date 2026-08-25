@@ -2,6 +2,8 @@ import logoUrl from '../../assets/logo.svg';
 import { supabase } from '../../lib/supabaseClient.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 import { attachExternalLinkCopy } from '../../lib/externalLink.js';
+import { getSystemFlags } from '../../lib/systemSettings.js';
+import { escapeHtml } from '../../lib/format.js';
 
 // Contenu de secours si la base n'est pas encore joignable (mode démo hors-ligne) —
 // une fois Supabase connecté, tout provient de la table `site_content` (pilotée
@@ -65,7 +67,8 @@ async function loadContent() {
 
 export async function renderPublicHome(app) {
   app.innerHTML = `<div class="flex justify-between items-center" style="padding:24px;"><span class="muted">Chargement…</span></div>`;
-  const c = await loadContent();
+  const [c, flags] = await Promise.all([loadContent(), getSystemFlags().catch(() => null)]);
+  const maintenance = flags?.maintenanceEnabled;
 
   app.innerHTML = `
     <div class="public-home">
@@ -89,12 +92,15 @@ export async function renderPublicHome(app) {
         </div>
       </header>
 
+      ${flags?.bannerEnabled && flags.bannerMessage ? `<div class="readonly-banner" style="background: rgba(201,162,39,0.12); border-color: var(--gold); margin:0;">📣 ${escapeHtml(flags.bannerMessage)}</div>` : ''}
+      ${maintenance ? `<div class="readonly-banner" style="margin:0;">🛠 Newman Bank effectue actuellement une opération de maintenance — l'ouverture de nouveaux comptes est temporairement suspendue. Les clients et le personnel déjà enregistrés peuvent continuer à se connecter.</div>` : ''}
+
       <section class="hero">
         <div class="hero-content">
           <h1 class="font-display hero-title">${c.hero.title_line1}<br/>${c.hero.title_line2}</h1>
           <p class="muted hero-subtitle">${c.hero.subtitle}</p>
           <div class="flex gap-md" style="margin-top:24px;">
-            <a href="#/signup" class="btn btn-primary">${c.hero.cta_primary}</a>
+            ${maintenance ? `<span class="btn btn-secondary" style="opacity:0.6; cursor:not-allowed;" title="Ouvertures de compte suspendues pendant la maintenance">${c.hero.cta_primary} (suspendu)</span>` : `<a href="#/signup" class="btn btn-primary">${c.hero.cta_primary}</a>`}
           </div>
           <p style="margin-top:16px;"><a href="#/login" class="muted">${c.hero.cta_secondary}</a></p>
         </div>

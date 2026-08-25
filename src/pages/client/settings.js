@@ -1,5 +1,5 @@
 import { renderClientShell } from './shell.js';
-import { updateDisplayName, updatePassword } from '../../lib/clientApi.js';
+import { updateDisplayName, updatePhoneNumber, updatePassword } from '../../lib/clientApi.js';
 import { escapeHtml, formatDate } from '../../lib/format.js';
 
 export async function renderClientSettings(app, profile) {
@@ -18,6 +18,10 @@ export async function renderClientSettings(app, profile) {
         <div class="field">
           <label>Nom affiché</label>
           <input type="text" id="display-name" value="${escapeHtml(profile.display_name)}" />
+        </div>
+        <div class="field">
+          <label>Numéro de téléphone</label>
+          <input type="text" id="phone-number" value="${escapeHtml(profile.phone_number || '')}" placeholder="Pour être joignable par la banque" />
         </div>
         <div class="field">
           <label>Client depuis</label>
@@ -46,9 +50,11 @@ export async function renderClientSettings(app, profile) {
   document.getElementById('save-profile').addEventListener('click', async () => {
     const msg = document.getElementById('profile-msg');
     const displayName = document.getElementById('display-name').value.trim();
+    const phoneNumber = document.getElementById('phone-number').value.trim();
     if (!displayName) return;
     try {
       await updateDisplayName(displayName);
+      await updatePhoneNumber(phoneNumber);
       msg.textContent = 'Profil mis à jour.';
       msg.className = 'text-success';
       msg.style.display = 'block';

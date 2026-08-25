@@ -55,6 +55,10 @@ export async function renderAdminStaff(app, profile) {
             <label>ID Discord (facultatif)</label>
             <input type="text" id="new-discord-id" placeholder="Ex: 123456789012345678" />
           </div>
+          <div class="field" style="margin:0;">
+            <label>Téléphone (facultatif)</label>
+            <input type="text" id="new-phone-number" placeholder="Ex: 555394399" />
+          </div>
         </div>
         <div id="new-account-msg" style="font-size:13px; margin-top:4px; display:none;"></div>
       </div>
@@ -104,6 +108,10 @@ export async function renderAdminStaff(app, profile) {
               <input type="text" id="edit-discord-id" value="${escapeHtml(selected.discord_id || '')}" placeholder="Ex: 123456789012345678" />
             </div>
             <div class="field">
+              <label>Téléphone</label>
+              <input type="text" id="edit-phone-number" value="${escapeHtml(selected.phone_number || '')}" placeholder="Ex: 555394399" />
+            </div>
+            <div class="field">
               <label>Statut du profil</label>
               <select id="edit-status">
                 ${STATUSES.map((s) => `<option value="${s}" ${s === selected.status ? 'selected' : ''}>${s}</option>`).join('')}
@@ -143,9 +151,10 @@ export async function renderAdminStaff(app, profile) {
       const role = document.getElementById('edit-role').value;
       const title = document.getElementById('edit-title').value.trim();
       const discordId = document.getElementById('edit-discord-id').value.trim();
+      const phoneNumber = document.getElementById('edit-phone-number').value.trim();
       const status = document.getElementById('edit-status').value;
       try {
-        await updateProfileRole(selected.id, { role, employeeTitle: title || null, discordId: discordId || null });
+        await updateProfileRole(selected.id, { role, employeeTitle: title || null, discordId: discordId || null, phoneNumber: phoneNumber || null });
         if (status !== selected.status) await adminSetProfileStatus(selected.id, status);
         msg.textContent = 'Profil mis à jour.';
         msg.className = 'text-success';
@@ -168,6 +177,7 @@ export async function renderAdminStaff(app, profile) {
       const role = document.getElementById('new-role').value;
       const title = document.getElementById('new-title').value.trim();
       const discordId = document.getElementById('new-discord-id').value.trim();
+      const phoneNumber = document.getElementById('new-phone-number').value.trim();
       if (!username || !password || !displayName) {
         msg.textContent = 'Identifiant, mot de passe et nom affiché sont requis.';
         msg.className = 'text-danger';
@@ -175,7 +185,7 @@ export async function renderAdminStaff(app, profile) {
         return;
       }
       try {
-        await createAccount({ username, password, displayName, role, employeeTitle: title || null, discordId: discordId || null });
+        await createAccount({ username, password, displayName, role, employeeTitle: title || null, discordId: discordId || null, phoneNumber: phoneNumber || null });
         msg.textContent = `Compte "${username}" créé avec succès (rôle : ${role}).`;
         msg.className = 'text-success';
         msg.style.display = 'block';
@@ -184,6 +194,7 @@ export async function renderAdminStaff(app, profile) {
         document.getElementById('new-display-name').value = '';
         document.getElementById('new-title').value = '';
         document.getElementById('new-discord-id').value = '';
+        document.getElementById('new-phone-number').value = '';
       } catch (err) {
         msg.textContent = err.message || 'Erreur lors de la création du compte.';
         msg.className = 'text-danger';

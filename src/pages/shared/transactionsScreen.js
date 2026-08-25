@@ -6,7 +6,9 @@
 // ============================================================================
 
 import { listStaffTransactions, listDistinctTxTypes, getClientCategories } from '../../lib/employeeApi.js';
+import { adminUpdateTransactionDescription } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { showPrompt, showAlert } from '../../lib/uiDialogs.js';
 
 const TX_TYPE_LABELS = {
   transfer: 'Virement',
@@ -25,7 +27,7 @@ function txTypeLabel(t) {
   return TX_TYPE_LABELS[t] || t;
 }
 
-export async function renderTransactionsScreen(content) {
+export async function renderTransactionsScreen(content, { canEdit = false } = {}) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   let search = '';
@@ -41,7 +43,10 @@ export async function renderTransactionsScreen(content) {
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Historique des transactions</h1>
-      <p class="muted" style="margin-bottom:20px;">Vue 360 de tous les mouvements d'argent de la banque — virements, frais, prêts, lingots, coffres...</p>
+      <p class="muted" style="margin-bottom:20px;">
+        Vue 360 de tous les mouvements d'argent de la banque — virements, frais, prêts, lingots, coffres...
+        ${canEdit ? " Le montant, les comptes et le statut d'une transaction validée ne sont jamais modifiables (intégrité comptable) — seule sa description peut être corrigée." : ''}
+      </p>
 
       <div class="card" style="margin-bottom:20px;">
         <div class="grid" style="grid-template-columns: 2fr 1fr 1fr; gap:10px;">
@@ -61,7 +66,7 @@ export async function renderTransactionsScreen(content) {
         ${
           txs.length
             ? `<table>
-                <thead><tr><th>Date</th><th>Type</th><th>De</th><th>Vers</th><th style="text-align:right;">Montant</th><th style="text-align:right;">Frais</th><th>Statut</th><th>Description</th></tr></thead>
+                <thead><tr><th>Date</th><th>Type</th><th>De</th><th>Vers</th><th style="text-align:right;">Montant</th><th style="text-align:right;">Frais</th><th>Statut</th><th>Description</th>${canEdit ? '<th></th>' : ''}</tr></thead>
                 <tbody>
                   ${txs
                     .map(
@@ -75,6 +80,7 @@ export async function renderTransactionsScreen(content) {
                       <td style="text-align:right;" class="muted">${formatMoney(t.fee_amount)}</td>
                       <td>${statusBadge(t.status)}</td>
                       <td class="muted">${escapeHtml(t.description || '—')}</td>
+                      ${canEdit ? `<td><button class="btn btn-ghost tx-edit-desc" data-id="${t.id}" data-desc="${escapeHtml(t.description || '')}" style="padding:4px 8px; font-size:12px;">Modifier</button></td>` : ''}
                     </tr>
                   `
                     )
@@ -94,6 +100,21 @@ export async function renderTransactionsScreen(content) {
     });
     document.getElementById('tx-type-filter').addEventListener('change', (e) => { txType = e.target.value; draw(); });
     document.getElementById('tx-category-filter').addEventListener('change', (e) => { categoryId = e.target.value; draw(); });
+
+    content.querySelectorAll('.tx-edit-desc').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const current = btn.getAttribute('data-desc');
+        const next = await showPrompt('Nouvelle description de la transaction :', current);
+        if (next === null) return;
+        try {
+          await adminUpdateTransactionDescription(id, next.trim());
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Erreur.');
+        }
+      });
+    });
   }
 
   await draw();

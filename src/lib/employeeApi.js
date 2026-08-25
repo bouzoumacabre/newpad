@@ -147,9 +147,9 @@ export async function finalizeManualAccountOpening(openingId, clientProfileId) {
 // utilisateur Supabase Auth). Réservé au personnel : un employé peut créer un
 // compte "client" (cas guichet), seul un admin peut créer "employee"/"admin"/
 // "irs" — l'Edge Function applique elle-même cette règle côté serveur.
-export async function createAccount({ username, password, displayName, role, employeeTitle, discordId }) {
+export async function createAccount({ username, password, displayName, role, employeeTitle, discordId, phoneNumber }) {
   const { data, error } = await supabase.functions.invoke('create-account', {
-    body: { username, password, displayName, role, employeeTitle: employeeTitle || null, discordId: discordId || null },
+    body: { username, password, displayName, role, employeeTitle: employeeTitle || null, discordId: discordId || null, phoneNumber: phoneNumber || null },
   });
   if (error) {
     // Le corps JSON {error: "..."} renvoyé par la fonction est dans error.context
@@ -285,6 +285,20 @@ export async function rejectSafeRequest(id, note) {
   if (error) throw error;
 }
 
+// Décision simple en une étape (autoriser/refuser) — remplace le flux
+// programmer-un-rendez-vous/confirmer pour le cas courant où l'on veut juste
+// dire oui ou non tout de suite. boxId facultatif : un coffre disponible est
+// choisi automatiquement si omis.
+export async function decideSafeRequestSimple(id, approve, boxId, note) {
+  const { error } = await supabase.rpc('staff_decide_safe_request', {
+    p_request_id: id,
+    p_approve: approve,
+    p_safe_box_id: boxId || null,
+    p_note: note || null,
+  });
+  if (error) throw error;
+}
+
 // ----------------------------------------------------------------------------
 // PRÊTS PROFESSIONNELS (réception employé — décision finale réservée à l'admin)
 // ----------------------------------------------------------------------------
@@ -413,6 +427,24 @@ export async function listDistinctTxTypes() {
 export async function updateDisplayName(displayName) {
   const user = await requireUser();
   const { error } = await supabase.from('profiles').update({ display_name: displayName }).eq('id', user.id);
+  if (error) throw error;
+}
+
+export async function updatePhoneNumber(phoneNumber) {
+  const user = await requireUser();
+  const { error } = await supabase.from('profiles').update({ phone_number: phoneNumber || null }).eq('id', user.id);
+  if (error) throw error;
+}
+
+// Onglet "Infos" client — lecture seule côté client, éditable ici (employé/admin).
+export async function getClientInfo(clientId) {
+  const { data, error } = await supabase.rpc('get_client_info', { p_client_id: clientId }).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertClientInfo(clientId, content) {
+  const { error } = await supabase.rpc('upsert_client_info', { p_client_id: clientId, p_content: content || null });
   if (error) throw error;
 }
 

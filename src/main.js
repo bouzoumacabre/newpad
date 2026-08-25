@@ -16,6 +16,7 @@ import { renderClientSafes } from './pages/client/safes.js';
 import { renderClientLoans } from './pages/client/loans.js';
 import { renderClientConsulting } from './pages/client/consulting.js';
 import { renderClientDocuments } from './pages/client/documents.js';
+import { renderClientInfo } from './pages/client/info.js';
 import { renderClientSupport } from './pages/client/support.js';
 import { renderClientMessages } from './pages/client/messages.js';
 import { renderClientSettings } from './pages/client/settings.js';
@@ -101,6 +102,7 @@ route('/client/safes', async () => guardedRoleRender('client', (p) => renderClie
 route('/client/loans', async () => guardedRoleRender('client', (p) => renderClientLoans(app, p)));
 route('/client/consulting', async () => guardedRoleRender('client', (p) => renderClientConsulting(app, p)));
 route('/client/documents', async () => guardedRoleRender('client', (p) => renderClientDocuments(app, p)));
+route('/client/info', async () => guardedRoleRender('client', (p) => renderClientInfo(app, p)));
 route('/client/support', async () => guardedRoleRender('client', (p) => renderClientSupport(app, p)));
 route('/client/support/:id', async (params) => guardedRoleRender('client', (p) => renderClientSupport(app, p, params)));
 route('/client/messages', async () => guardedRoleRender('client', (p) => renderClientMessages(app, p)));

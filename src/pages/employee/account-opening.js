@@ -72,6 +72,7 @@ export async function renderEmployeeAccountOpening(app, profile) {
                   ? `
                 <div class="flex gap-sm" style="margin-bottom:8px;">
                   <button class="btn btn-primary create-toggle-btn" data-id="${o.id}" style="flex:1;">Créer le compte maintenant</button>
+                  <button class="btn btn-secondary link-toggle-btn" data-id="${o.id}" style="flex:1;">Ajouter à un profil existant</button>
                 </div>
                 <div class="create-account-form" data-id="${o.id}" style="display:none; margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
                   <div class="field" style="margin-bottom:8px;">
@@ -86,12 +87,22 @@ export async function renderEmployeeAccountOpening(app, profile) {
                     <label style="font-size:11px;">ID Discord (facultatif)</label>
                     <input type="text" class="create-discord-id" data-id="${o.id}" placeholder="Ex: 123456789012345678" />
                   </div>
+                  <div class="field" style="margin-bottom:8px;">
+                    <label style="font-size:11px;">Téléphone (facultatif)</label>
+                    <input type="text" class="create-phone-number" data-id="${o.id}" placeholder="Ex: 555394399" />
+                  </div>
                   <div class="create-account-error text-danger" data-id="${o.id}" style="font-size:12px; margin-bottom:8px; display:none;"></div>
                   <button class="btn btn-primary create-submit-btn" data-id="${o.id}" style="width:100%;">Créer et finaliser</button>
                 </div>
-                <div class="flex gap-sm">
-                  <input type="text" class="finalize-username" data-id="${o.id}" placeholder="...ou identifiant d'un profil déjà existant" style="flex:1;" />
-                  <button class="btn btn-secondary finalize-btn" data-id="${o.id}">Finaliser</button>
+                <div class="link-account-form" data-id="${o.id}" style="display:none; margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
+                  <p class="muted" style="font-size:11px; margin-bottom:8px;">
+                    Recherchez un profil déjà existant (prospect auto-inscrit, ou client ayant déjà un compte —
+                    ceci lui ajoutera un compte supplémentaire) pour lui rattacher cette ouverture.
+                  </p>
+                  <div class="field" style="margin-bottom:6px;">
+                    <input type="text" class="link-search" data-id="${o.id}" placeholder="Nom ou identifiant..." style="width:100%;" />
+                  </div>
+                  <div class="link-results" data-id="${o.id}" style="max-height:180px; overflow-y:auto;"></div>
                 </div>
               `
                   : ''
@@ -126,29 +137,65 @@ export async function renderEmployeeAccountOpening(app, profile) {
       }
     });
 
-    content.querySelectorAll('.finalize-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const input = content.querySelector(`.finalize-username[data-id="${id}"]`);
-        const username = input.value.trim();
-        if (!username) { await showAlert('Veuillez saisir l\'identifiant du profil déjà créé par le client.'); return; }
-        try {
-          const matches = await searchProfilesAnyRole(username);
-          const exact = matches.find((m) => m.username.toLowerCase() === username.toLowerCase());
-          if (!exact) { await showAlert('Aucun profil trouvé avec cet identifiant exact. Le client doit d\'abord créer son accès prospect.'); return; }
-          await finalizeManualAccountOpening(id, exact.id);
-          await draw();
-        } catch (err) {
-          await showAlert(err.message || 'Erreur lors de la finalisation.');
-        }
-      });
-    });
-
     content.querySelectorAll('.create-toggle-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const form = content.querySelector(`.create-account-form[data-id="${id}"]`);
         form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+
+    content.querySelectorAll('.link-toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const form = content.querySelector(`.link-account-form[data-id="${id}"]`);
+        form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+
+    // Sélecteur de profil : recherche en direct (nom ou identifiant) au lieu
+    // d'exiger de taper l'identifiant exact — fonctionne pour un prospect
+    // auto-inscrit comme pour un client déjà titulaire d'un compte (dans ce
+    // cas, ceci lui ajoute simplement un compte supplémentaire).
+    content.querySelectorAll('.link-search').forEach((input) => {
+      const id = input.getAttribute('data-id');
+      const resultsEl = content.querySelector(`.link-results[data-id="${id}"]`);
+      let debounce;
+      input.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+          const q = input.value.trim();
+          if (q.length < 2) { resultsEl.innerHTML = '<p class="muted" style="font-size:12px; padding:4px;">Saisissez au moins 2 caractères.</p>'; return; }
+          const matches = await searchProfilesAnyRole(q).catch(() => []);
+          resultsEl.innerHTML = matches.length
+            ? matches
+                .map(
+                  (m) => `
+              <div class="link-result-row" data-id="${id}" data-profile-id="${m.id}" style="padding:8px; border-radius:var(--radius-sm); cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-weight:600; font-size:13px;">${escapeHtml(m.display_name)}</div>
+                  <div class="muted" style="font-size:11px;">@${escapeHtml(m.username)}</div>
+                </div>
+                <span class="badge badge-neutral" style="font-size:10px;">${escapeHtml(m.role)}</span>
+              </div>
+            `
+                )
+                .join('')
+            : '<p class="muted" style="font-size:12px; padding:4px;">Aucun résultat.</p>';
+          resultsEl.querySelectorAll('.link-result-row').forEach((row) => {
+            row.addEventListener('click', async () => {
+              const profileId = row.getAttribute('data-profile-id');
+              const label = row.querySelector('div > div').textContent;
+              if (!(await showConfirm(`Rattacher cette ouverture de compte à « ${label} » ? ${row.querySelector('.badge').textContent === 'client' ? 'Un compte supplémentaire lui sera ajouté.' : ''}`))) return;
+              try {
+                await finalizeManualAccountOpening(id, profileId);
+                await draw();
+              } catch (err) {
+                await showAlert(err.message || 'Erreur lors de la finalisation.');
+              }
+            });
+          });
+        }, 300);
       });
     });
 
@@ -161,13 +208,14 @@ export async function renderEmployeeAccountOpening(app, profile) {
         const username = content.querySelector(`.create-username[data-id="${id}"]`).value.trim();
         const password = content.querySelector(`.create-password[data-id="${id}"]`).value;
         const discordId = content.querySelector(`.create-discord-id[data-id="${id}"]`).value.trim();
+        const phoneNumber = content.querySelector(`.create-phone-number[data-id="${id}"]`).value.trim();
         if (!username || !password) {
           errorEl.textContent = 'Identifiant et mot de passe requis.';
           errorEl.style.display = 'block';
           return;
         }
         try {
-          const created = await createAccount({ username, password, displayName: opening.display_name, role: 'client', discordId: discordId || null });
+          const created = await createAccount({ username, password, displayName: opening.display_name, role: 'client', discordId: discordId || null, phoneNumber: phoneNumber || null });
           await finalizeManualAccountOpening(id, created.id);
           await draw();
         } catch (err) {

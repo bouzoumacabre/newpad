@@ -2,6 +2,8 @@ import logoUrl from '../../assets/logo.svg';
 import { signUpProspect } from '../../lib/supabaseClient.js';
 import { submitMembershipRequest } from '../../lib/clientApi.js';
 import { navigate } from '../../lib/router.js';
+import { getSystemFlags } from '../../lib/systemSettings.js';
+import { escapeHtml } from '../../lib/format.js';
 
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
@@ -10,6 +12,39 @@ const ACCOUNT_TYPES = [
 ];
 
 export async function renderSignup(app) {
+  const flags = await getSystemFlags().catch(() => null);
+  if (flags?.maintenanceEnabled) {
+    app.innerHTML = `
+      <div class="auth-screen">
+        <div class="auth-card card">
+          <div class="auth-brand">
+            <img src="${logoUrl}" alt="Newman Bank" width="44" height="44" />
+            <div>
+              <div class="font-display auth-brand-title">Newman Bank</div>
+              <div class="muted auth-brand-sub">BNW-VLT-1924</div>
+            </div>
+          </div>
+          <h2>Ouvertures de compte suspendues</h2>
+          <p class="muted" style="margin-bottom:20px;">
+            🛠 Newman Bank effectue actuellement une opération de maintenance. L'ouverture de nouveaux comptes est temporairement indisponible — réessayez un peu plus tard.
+          </p>
+          ${flags.bannerMessage ? `<p class="muted" style="margin-bottom:20px;">${escapeHtml(flags.bannerMessage)}</p>` : ''}
+          <p class="muted" style="text-align:center;font-size:13px;">
+            Déjà client ou membre du personnel ? <a href="#/login">Se connecter</a>
+          </p>
+        </div>
+      </div>
+      <style>
+        .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+        .auth-card { width:100%; max-width:420px; }
+        .auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+        .auth-brand-title { font-size:20px; margin:0; }
+        .auth-brand-sub { font-size:12px; letter-spacing:0.05em; }
+      </style>
+    `;
+    return;
+  }
+
   app.innerHTML = `
     <div class="auth-screen">
       <div class="auth-card card">
@@ -42,6 +77,13 @@ export async function renderSignup(app) {
             <input id="discord_id" name="discord_id" placeholder="Ex: 123456789012345678" required pattern="[0-9]{15,25}" title="Identifiant numérique Discord (clic droit sur votre profil → Copier l'identifiant, en mode développeur)" />
             <div class="muted" style="font-size:12px; margin-top:4px;">
               Obligatoire : c'est le seul moyen de réinitialiser votre mot de passe en cas d'oubli (via un message privé Discord). Sans ID Discord valide et à jour, un mot de passe perdu ne pourra pas être récupéré.
+            </div>
+          </div>
+          <div class="field">
+            <label for="phone_number">Numéro de téléphone (obligatoire)</label>
+            <input id="phone_number" name="phone_number" placeholder="Ex: 555394399" required />
+            <div class="muted" style="font-size:12px; margin-top:4px;">
+              Obligatoire : c'est le moyen que la banque utilise pour vous joindre directement.
             </div>
           </div>
           <hr style="border-color: var(--border-color, rgba(255,255,255,0.1)); margin: 20px 0;" />
@@ -95,6 +137,7 @@ export async function renderSignup(app) {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const discordId = document.getElementById('discord_id').value.trim();
+    const phoneNumber = document.getElementById('phone_number').value.trim();
     const requestedAccountType = document.getElementById('account_type').value;
     const initialDeposit = parseFloat(document.getElementById('initial_deposit').value);
     const motivation = document.getElementById('motivation').value.trim();
@@ -102,7 +145,7 @@ export async function renderSignup(app) {
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     try {
-      await signUpProspect({ username, password, displayName, discordId, honeypot });
+      await signUpProspect({ username, password, displayName, discordId, phoneNumber, honeypot });
       // Le compte est créé et la session ouverte immédiatement (email de
       // confirmation désactivé côté Supabase) : on peut donc enchaîner
       // directement sur la demande d'adhésion, en une seule étape pour

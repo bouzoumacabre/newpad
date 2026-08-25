@@ -30,9 +30,11 @@ export async function renderAdminSystem(app, profile) {
           <input type="checkbox" id="maintenance-toggle" ${maintenance.value?.enabled ? 'checked' : ''} /> Activer le mode maintenance
         </label>
         <p class="muted" style="font-size:12px; margin-bottom:12px;">
-          Cette bascule enregistre l'état dans la base de données mais n'est actuellement lue par aucun écran de
-          l'application (aucune page ne vérifie ce drapeau pour bloquer l'accès public) — elle existe pour une
-          application future de ce contrôle, sans effet immédiat pour l'instant.
+          Effet réel : suspend l'ouverture de nouveaux comptes depuis l'accueil public et affiche une notice de
+          maintenance sur l'accueil public ainsi que sur les interfaces Client, Employé et IRS. Les connexions déjà
+          existantes (clients, employés, admin, IRS) restent fonctionnelles — l'accès admin n'est jamais bloqué, pour
+          toujours pouvoir désactiver ce mode depuis cet écran. Pour bloquer une fonctionnalité précise sur une
+          interface précise, utilisez plutôt « Permissions ».
         </p>
         <button id="maintenance-save" class="btn btn-primary">Enregistrer</button>
       </div>
@@ -52,7 +54,7 @@ export async function renderAdminSystem(app, profile) {
           <label>Message</label>
           <input type="text" id="banner-message" value="${escapeHtml(banner.value?.message || '')}" placeholder="Message affiché aux utilisateurs..." />
         </div>
-        <p class="muted" style="font-size:12px; margin-bottom:12px;">Comme pour le mode maintenance, ce contenu est enregistré mais n'est actuellement affiché par aucun écran.</p>
+        <p class="muted" style="font-size:12px; margin-bottom:12px;">Effet réel : affichée en haut de l'accueil public et de toutes les interfaces internes (Client, Employé, Admin, IRS) tant qu'elle est active.</p>
         <button id="banner-save" class="btn btn-primary">Enregistrer</button>
       </div>
       `
@@ -88,9 +90,19 @@ export async function renderAdminSystem(app, profile) {
       ${!systemSettings.length ? `<p class="muted">Aucun paramètre système enregistré.</p>` : ''}
     `;
 
+    // Comme sur /admin/economic-settings : un upsert qui n'envoie pas les
+    // colonnes NOT NULL existantes (label, value_type, category) échoue
+    // toujours avec "null value in column label", même sur une ligne
+    // existante — il faut les renvoyer à chaque sauvegarde.
     document.getElementById('maintenance-save')?.addEventListener('click', async () => {
       try {
-        await upsertEconomicSetting({ key: 'maintenance_mode', value: { enabled: document.getElementById('maintenance-toggle').checked } });
+        await upsertEconomicSetting({
+          key: 'maintenance_mode',
+          value: { enabled: document.getElementById('maintenance-toggle').checked },
+          label: maintenance?.label,
+          valueType: maintenance?.value_type,
+          category: maintenance?.category,
+        });
         await draw();
       } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
@@ -100,6 +112,9 @@ export async function renderAdminSystem(app, profile) {
         await upsertEconomicSetting({
           key: 'announcement_banner',
           value: { enabled: document.getElementById('banner-enabled').checked, message: document.getElementById('banner-message').value.trim() },
+          label: banner?.label,
+          valueType: banner?.value_type,
+          category: banner?.category,
         });
         await draw();
       } catch (err) { await showAlert(err.message || 'Erreur.'); }
@@ -108,10 +123,11 @@ export async function renderAdminSystem(app, profile) {
     content.querySelectorAll('.other-save').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const key = btn.getAttribute('data-key');
+        const existing = others.find((s) => s.key === key);
         const textarea = content.querySelector(`.other-value[data-key="${key}"]`);
         try {
           const value = JSON.parse(textarea.value);
-          await upsertEconomicSetting({ key, value });
+          await upsertEconomicSetting({ key, value, label: existing?.label, valueType: existing?.value_type, category: existing?.category });
           await draw();
         } catch (err) { await showAlert(err.message || 'JSON invalide.'); }
       });

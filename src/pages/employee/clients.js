@@ -10,6 +10,8 @@ import {
   addClientCategoryLink,
   removeClientCategoryLink,
   getClientLoans,
+  getClientInfo,
+  upsertClientInfo,
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
@@ -37,11 +39,12 @@ export async function renderEmployeeClients(app, profile, params = {}) {
 
     let detailHtml = '<div class="card"><p class="muted">Sélectionnez un client dans la liste pour voir sa fiche.</p></div>';
     if (selectedId) {
-      const [detail, accounts, links, loans] = await Promise.all([
+      const [detail, accounts, links, loans, info] = await Promise.all([
         getClientProfile(selectedId).catch(() => null),
         getClientAccounts(selectedId).catch(() => []),
         getClientCategoryLinks(selectedId).catch(() => []),
         getClientLoans(selectedId).catch(() => []),
+        getClientInfo(selectedId).catch(() => null),
       ]);
       if (detail) {
         const total = accounts.reduce((s, a) => s + Number(a.balance), 0);
@@ -52,6 +55,7 @@ export async function renderEmployeeClients(app, profile, params = {}) {
               <div>
                 <h3 style="margin:0;">${escapeHtml(detail.display_name)}</h3>
                 <div class="muted" style="font-size:13px;">@${escapeHtml(detail.username)} — client depuis le ${detail.client_since ? formatDate(detail.client_since) : '—'}</div>
+                <div class="muted" style="font-size:13px; margin-top:2px;">☏ ${detail.phone_number ? escapeHtml(detail.phone_number) : 'Aucun numéro renseigné'}</div>
               </div>
               <div class="font-display gold" style="font-size:22px;">${formatMoney(total)}</div>
             </div>
@@ -83,7 +87,7 @@ export async function renderEmployeeClients(app, profile, params = {}) {
               }
             </div>
 
-            <div>
+            <div style="margin-bottom:16px;">
               <div class="muted" style="font-size:12px; margin-bottom:8px;">Prêts (${loans.length})</div>
               ${
                 loans.length
@@ -92,6 +96,15 @@ export async function renderEmployeeClients(app, profile, params = {}) {
                       .join('')}</tbody></table>`
                   : `<p class="muted">Aucun prêt.</p>`
               }
+            </div>
+
+            <div style="padding-top:12px; border-top:1px solid var(--card-border);">
+              <div class="muted" style="font-size:12px; margin-bottom:8px;">Infos (visible par le client dans son onglet « Infos », lecture seule pour lui)</div>
+              <textarea id="client-info-content" rows="3" style="width:100%;" placeholder="Notes ou informations à communiquer à ce client...">${escapeHtml(info?.content || '')}</textarea>
+              <div class="flex justify-between items-center" style="margin-top:8px;">
+                <div class="muted" style="font-size:11px;">${info?.updated_at ? `Dernière mise à jour le ${formatDate(info.updated_at)}${info.updated_by_name ? ' par ' + escapeHtml(info.updated_by_name) : ''}` : 'Jamais renseigné'}</div>
+                <button id="client-info-save" class="btn btn-secondary">Enregistrer</button>
+              </div>
             </div>
           </div>
         `;
@@ -194,6 +207,14 @@ export async function renderEmployeeClients(app, profile, params = {}) {
 
     content.querySelectorAll('.client-row').forEach((el) => {
       el.addEventListener('click', () => { selectedId = el.getAttribute('data-id'); draw(); });
+    });
+
+    document.getElementById('client-info-save')?.addEventListener('click', async () => {
+      const contentValue = document.getElementById('client-info-content').value;
+      try {
+        await upsertClientInfo(selectedId, contentValue);
+        await draw();
+      } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.cat-toggle').forEach((btn) => {

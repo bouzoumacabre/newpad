@@ -6,6 +6,8 @@ import {
   getClientOverrides,
   upsertClientOverride,
   deleteClientOverride,
+  getAllSafeBoxes,
+  adminUpdateSafeBox,
 } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
@@ -51,7 +53,10 @@ export async function renderAdminEconomicSettings(app, profile) {
   }
 
   async function draw() {
-    const allSettings = await getEconomicSettings().catch(() => []);
+    const [allSettings, safeBoxes] = await Promise.all([
+      getEconomicSettings().catch(() => []),
+      getAllSafeBoxes().catch(() => []),
+    ]);
     const settings = allSettings.filter((s) => s.category !== SYSTEM_CATEGORY);
     const grouped = groupByCategory(settings);
     const overrides = selectedClient ? await getClientOverrides(selectedClient.id).catch(() => []) : [];
@@ -93,6 +98,30 @@ export async function renderAdminEconomicSettings(app, profile) {
       `
         )
         .join('')}
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">Coffres-forts — tarif hebdomadaire</div>
+        <p class="muted" style="font-size:12px; margin-bottom:10px;">
+          Raccourci pratique — gestion complète (création, statut) sur « Coffres-forts ».
+        </p>
+        <table>
+          <thead><tr><th>Coffre</th><th>Agence</th><th>Loyer/semaine</th><th></th></tr></thead>
+          <tbody>
+            ${safeBoxes
+              .map(
+                (b) => `
+              <tr>
+                <td>${escapeHtml(b.code)}</td>
+                <td class="muted">${escapeHtml(b.branch)}</td>
+                <td><input type="number" class="safebox-fee" data-id="${b.id}" value="${b.weekly_fee}" min="0" step="0.01" style="width:120px;" /></td>
+                <td><button class="btn btn-secondary safebox-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
+              </tr>
+            `
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
 
       <h3 style="margin:28px 0 12px;">Exceptions par client</h3>
       <div class="grid" style="grid-template-columns: 1fr 1.3fr; align-items:start;">
@@ -173,13 +202,29 @@ export async function renderAdminEconomicSettings(app, profile) {
       btn.addEventListener('click', async () => {
         const key = btn.getAttribute('data-key');
         const type = btn.getAttribute('data-type');
+        // Postgres valide les contraintes NOT NULL (comme economic_settings.label)
+        // sur la ligne candidate d'un INSERT ... ON CONFLICT AVANT même de
+        // vérifier s'il y a conflit — un upsert qui n'envoie que { key, value }
+        // échoue donc TOUJOURS avec "null value in column label", même quand la
+        // ligne existe déjà. Il faut renvoyer les colonnes NOT NULL existantes.
+        const existing = allSettings.find((s) => s.key === key);
         try {
           const value = readValueInput(content, 'setting-value', key, type);
-          await upsertEconomicSetting({ key, value });
+          await upsertEconomicSetting({ key, value, label: existing?.label, valueType: existing?.value_type, category: existing?.category });
           await draw();
         } catch (err) {
           await showAlert(err.message || 'Valeur JSON invalide.');
         }
+      });
+    });
+
+    content.querySelectorAll('.safebox-save').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const fee = parseFloat(content.querySelector(`.safebox-fee[data-id="${id}"]`).value);
+        if (isNaN(fee) || fee < 0) { await showAlert('Loyer hebdomadaire invalide.'); return; }
+        try { await adminUpdateSafeBox(id, { weeklyFee: fee }); await draw(); }
+        catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
 

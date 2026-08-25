@@ -100,6 +100,15 @@ export async function adminCancelMarketListing(listingId) {
 // CAISSE — correction manuelle
 // ----------------------------------------------------------------------------
 
+// Édition volontairement limitée à la description : le montant, les comptes
+// et le statut d'une transaction déjà validée ne sont jamais modifiables
+// directement (intégrité comptable — toute correction de montant doit passer
+// par une contre-écriture, pas une réécriture silencieuse de l'historique).
+export async function adminUpdateTransactionDescription(transactionId, description) {
+  const { error } = await supabase.rpc('admin_update_transaction_description', { p_transaction_id: transactionId, p_description: description || null });
+  if (error) throw error;
+}
+
 export async function adjustCashierReport(reportId, amount, note) {
   const { error } = await supabase.rpc('admin_adjust_cashier_report', { p_report_id: reportId, p_amount: amount, p_note: note || null });
   if (error) throw error;
@@ -114,16 +123,33 @@ export async function adminSetAccountStatus(accountId, status) {
   if (error) throw error;
 }
 
+// Ajustement manuel direct du solde d'un compte client — contrepartie
+// systématique sur les fonds propres de la banque (jamais d'argent créé ou
+// détruit) + ligne dans l'historique des transactions (tx_type
+// 'admin_adjustment', déjà prévu dans le schéma mais jamais implémenté).
+export async function adminAdjustAccountBalance(accountId, amount, note) {
+  return unwrap(await supabase.rpc('admin_adjust_account_balance', { p_account_id: accountId, p_amount: amount, p_note: note || null }));
+}
+
+// Suppression définitive — refusée côté serveur si le compte a un solde non
+// nul ou un historique de transactions (intégrité comptable). Dans ce cas,
+// utiliser admin_set_account_status(id, 'closed') à la place.
+export async function adminDeleteAccount(accountId) {
+  const { error } = await supabase.rpc('admin_delete_account', { p_account_id: accountId });
+  if (error) throw error;
+}
+
 export async function adminSetProfileStatus(profileId, status) {
   const { error } = await supabase.rpc('admin_set_profile_status', { p_profile_id: profileId, p_status: status });
   if (error) throw error;
 }
 
-export async function updateProfileRole(profileId, { role, employeeTitle, discordId } = {}) {
+export async function updateProfileRole(profileId, { role, employeeTitle, discordId, phoneNumber } = {}) {
   const patch = {};
   if (role !== undefined) patch.role = role;
   if (employeeTitle !== undefined) patch.employee_title = employeeTitle || null;
   if (discordId !== undefined) patch.discord_id = discordId || null;
+  if (phoneNumber !== undefined) patch.phone_number = phoneNumber || null;
   const { error } = await supabase.from('profiles').update(patch).eq('id', profileId);
   if (error) throw error;
 }

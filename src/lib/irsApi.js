@@ -48,6 +48,26 @@ export async function updateDisplayName(displayName) {
   if (error) throw error;
 }
 
+export async function updatePhoneNumber(phoneNumber) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non authentifié');
+  const { error } = await supabase.from('profiles').update({ phone_number: phoneNumber || null }).eq('id', user.id);
+  if (error) throw error;
+}
+
+// Onglet "Infos" client — exception d'écriture ciblée accordée à l'IRS (seul
+// endroit de toute l'interface IRS où une écriture est possible).
+export async function getClientInfo(clientId) {
+  const { data, error } = await supabase.rpc('get_client_info', { p_client_id: clientId }).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function upsertClientInfo(clientId, content) {
+  const { error } = await supabase.rpc('upsert_client_info', { p_client_id: clientId, p_content: content || null });
+  if (error) throw error;
+}
+
 export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;

@@ -10,6 +10,8 @@ import { supabase } from './supabaseClient.js';
 import { navigate } from './router.js';
 import { getMyNotifications, markNotificationsRead, markAllNotificationsRead, subscribeToMyNotifications } from './notifications.js';
 import { attachExternalLinkCopy } from './externalLink.js';
+import { getSystemFlags } from './systemSettings.js';
+import { escapeHtml } from './format.js';
 
 function initials(name) {
   return (name || '?')
@@ -128,6 +130,7 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
           </div>
         </header>
         ${opts.banner ? `<div class="readonly-banner">${opts.banner}</div>` : ''}
+        <div id="system-banners"></div>
         <main class="content" id="content"></main>
       </div>
     </div>
@@ -145,9 +148,34 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
   }
 
   setupNotifications(profile);
+  setupSystemBanners(profile);
   attachExternalLinkCopy(app);
 
   return { content: document.getElementById('content') };
+}
+
+// Bannière d'annonce (visible par tout le monde quand activée depuis
+// /admin/system) + notice de mode maintenance. Le rôle admin ne voit qu'une
+// notice discrète (jamais bloquante) pour ne jamais se retrouver enfermé hors
+// de l'écran qui permet justement de désactiver la maintenance.
+async function setupSystemBanners(profile) {
+  const host = document.getElementById('system-banners');
+  if (!host) return;
+  try {
+    const flags = await getSystemFlags();
+    const parts = [];
+    if (flags.bannerEnabled && flags.bannerMessage) {
+      parts.push(`<div class="readonly-banner" style="background: rgba(201,162,39,0.12); border-color: var(--gold);">📣 ${escapeHtml(flags.bannerMessage)}</div>`);
+    }
+    if (flags.maintenanceEnabled) {
+      parts.push(
+        profile.role === 'admin'
+          ? `<div class="readonly-banner">🛠 Mode maintenance activé (visible par les autres rôles) — désactivable depuis Configuration système.</div>`
+          : `<div class="readonly-banner">🛠 La banque effectue actuellement une opération de maintenance. Certaines fonctionnalités peuvent être temporairement indisponibles ou ralenties.</div>`
+      );
+    }
+    host.innerHTML = parts.join('');
+  } catch (_) { /* silencieux — l'app reste utilisable sans ces bannières */ }
 }
 
 // notify_all_staff() envoie le même lien (généralement '/employee/...') à la

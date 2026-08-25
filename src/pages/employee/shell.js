@@ -33,7 +33,7 @@ export async function renderEmployeeShell(app, profile, activeKey) {
         ...(has('employee.safes.process') ? [{ key: 'safes', label: 'Coffres-forts', path: '/employee/safes', icon: '▣' }] : []),
         ...(has('employee.loans.review') ? [{ key: 'loans', label: 'Prêts', path: '/employee/loans', icon: '§' }] : []),
         { key: 'consulting', label: 'Consulting Premium', path: '/employee/consulting', icon: '★' },
-        { key: 'transactions', label: 'Historique transactions', path: '/employee/transactions', icon: '≡' },
+        ...(has('employee.transactions.view') ? [{ key: 'transactions', label: 'Historique transactions', path: '/employee/transactions', icon: '≡' }] : []),
       ],
     },
     {

@@ -255,6 +255,21 @@ export async function updateDisplayName(displayName) {
   if (error) throw error;
 }
 
+// Numéro de téléphone RP — pour que le client soit joignable par la banque.
+export async function updatePhoneNumber(phoneNumber) {
+  const user = await requireUser();
+  const { error } = await supabase.from('profiles').update({ phone_number: phoneNumber || null }).eq('id', user.id);
+  if (error) throw error;
+}
+
+// Onglet "Infos" — lecture seule côté client, éditable par l'admin/l'employé/l'IRS.
+export async function getMyInfo() {
+  const user = await requireUser();
+  const { data, error } = await supabase.rpc('get_client_info', { p_client_id: user.id }).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;

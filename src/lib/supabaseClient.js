@@ -45,7 +45,7 @@ export async function signInWithUsername(username, password) {
 // rejette la création du compte côté serveur (voir migration
 // `honeypot_signup_guard`) — remplace le CAPTCHA Cloudflare Turnstile, devenu
 // incompatible avec le navigateur intégré de FiveM (CEF).
-export async function signUpProspect({ username, password, displayName, discordId, honeypot }) {
+export async function signUpProspect({ username, password, displayName, discordId, phoneNumber, honeypot }) {
   // L'ID Discord est obligatoire depuis 5sexies bis : c'est le seul moyen de
   // récupération de mot de passe (voir /forgot-password), donc un compte créé
   // sans lui serait irrécupérable en cas d'oubli. Vérifié ici en plus du
@@ -53,6 +53,11 @@ export async function signUpProspect({ username, password, displayName, discordI
   // autrement.
   if (!discordId || !discordId.trim()) {
     throw new Error("L'ID Discord est obligatoire à l'inscription (nécessaire pour la réinitialisation de mot de passe).");
+  }
+  // Numéro de téléphone obligatoire depuis le 3ème lot de correctifs : pour
+  // que la banque puisse joindre directement ses clients.
+  if (!phoneNumber || !phoneNumber.trim()) {
+    throw new Error("Le numéro de téléphone est obligatoire à l'inscription (pour être joignable par la banque).");
   }
   const email = usernameToSyntheticEmail(username);
   const { data, error } = await supabase.auth.signUp({
@@ -64,6 +69,7 @@ export async function signUpProspect({ username, password, displayName, discordI
         display_name: displayName,
         role: 'prospect',
         discord_id: discordId ? discordId.trim() : null,
+        phone_number: phoneNumber ? phoneNumber.trim() : null,
         honeypot: honeypot || '',
       },
     },
