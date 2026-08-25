@@ -7,8 +7,25 @@
 
 import { listStaffTransactions, listDistinctTxTypes, getClientCategories } from '../../lib/employeeApi.js';
 import { adminUpdateTransactionDescription } from '../../lib/adminApi.js';
-import { formatMoney, formatDateTime, statusBadge, escapeHtml, txTypeLabel } from '../../lib/format.js';
+import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showPrompt, showAlert } from '../../lib/uiDialogs.js';
+
+const TX_TYPE_LABELS = {
+  transfer: 'Virement',
+  cash_deposit: 'Dépôt initial',
+  fee_management: 'Frais de gestion',
+  savings_interest: 'Intérêts épargne',
+  gold_purchase_bank: 'Achat lingot (banque)',
+  gold_purchase_market: 'Achat lingot (marché)',
+  safe_rental: 'Location coffre',
+  loan_disbursement: 'Décaissement prêt',
+  loan_repayment: 'Remboursement prêt',
+  loan_processing_fee: 'Frais de dossier (prêt)',
+};
+
+function txTypeLabel(t) {
+  return TX_TYPE_LABELS[t] || t;
+}
 
 export async function renderTransactionsScreen(content, { canEdit = false } = {}) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;

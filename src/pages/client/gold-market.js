@@ -108,7 +108,7 @@ export async function renderClientGoldMarket(app, profile) {
               <tr>
                 <td>
                   <div>${formatMoney(p.gold_market_listings?.listed_price)}</div>
-                  <div class="muted" style="font-size:12px;">${formatDateTime(p.requested_at)}</div>
+                  <div class="muted" style="font-size:12px;">${formatDateTime(p.created_at)}</div>
                 </td>
                 <td style="text-align:right;">${statusBadge(p.status)}</td>
               </tr>

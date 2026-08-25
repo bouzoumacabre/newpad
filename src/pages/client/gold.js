@@ -82,7 +82,7 @@ export async function renderClientGold(app, profile) {
                 <tr>
                   <td>
                     <div>${formatMoney(r.price)}</div>
-                    <div class="muted" style="font-size:12px;">${formatDateTime(r.requested_at)}</div>
+                    <div class="muted" style="font-size:12px;">${formatDateTime(r.created_at)}</div>
                   </td>
                   <td style="text-align:right;">${statusBadge(r.status)}</td>
                 </tr>

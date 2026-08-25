@@ -71,36 +71,6 @@ export function escapeHtml(str) {
 }
 
 // ----------------------------------------------------------------------------
-// TYPES D'OPÉRATION DU LEDGER
-// ----------------------------------------------------------------------------
-// Centralisé ici (la table vivait auparavant dans transactionsScreen.js, donc
-// n'était disponible que pour le personnel) : les écrans client en ont besoin
-// aussi, et deux tables parallèles finiraient forcément par diverger.
-// Liste de référence : commentaire de la colonne transactions.tx_type
-// (migration 0001) + types ajoutés depuis (frais de dossier, pénalité,
-// ajustement admin).
-const TX_TYPE_LABELS = {
-  transfer: 'Virement',
-  cash_deposit: 'Dépôt initial',
-  fee_management: 'Frais de gestion',
-  fee_transfer_commission: 'Commission de virement',
-  fee_marketplace_commission: 'Commission marché',
-  savings_interest: 'Intérêts épargne',
-  gold_purchase_bank: 'Achat lingot (banque)',
-  gold_purchase_market: 'Achat lingot (marché)',
-  safe_rental: 'Location coffre',
-  loan_disbursement: 'Décaissement prêt',
-  loan_repayment: 'Remboursement prêt',
-  loan_processing_fee: 'Frais de dossier (prêt)',
-  loan_penalty: 'Pénalité de retard',
-  admin_adjustment: 'Ajustement bancaire',
-};
-
-export function txTypeLabel(type) {
-  return TX_TYPE_LABELS[type] || type;
-}
-
-// ----------------------------------------------------------------------------
 // JOURNAL D'ACTIVITÉ — libellés lisibles pour l'action et le détail (jsonb)
 // ----------------------------------------------------------------------------
 
