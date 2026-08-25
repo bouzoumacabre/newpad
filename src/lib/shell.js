@@ -210,8 +210,8 @@ async function setupNotifications(profile) {
           .map(
             (n) => `
         <div class="notif-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}" data-link="${n.link || ''}">
-          <div class="notif-item-title">${n.title}</div>
-          ${n.body ? `<div class="notif-item-body">${n.body}</div>` : ''}
+          <div class="notif-item-title">${escapeHtml(n.title)}</div>
+          ${n.body ? `<div class="notif-item-body">${escapeHtml(n.body)}</div>` : ''}
           <div class="notif-item-time">${timeAgo(n.created_at)}</div>
         </div>
       `

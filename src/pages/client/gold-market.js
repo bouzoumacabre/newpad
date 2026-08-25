@@ -4,6 +4,7 @@ import {
   getMyMarketListings,
   getMyGoldBars,
   listGoldForSale,
+  cancelMarketListing,
   buyFromMarket,
   getMyMarketPurchaseRequests,
   getEconomicSetting,
@@ -84,7 +85,10 @@ export async function renderClientGoldMarket(app, profile) {
                     (l) => `
                 <tr>
                   <td>N° ${escapeHtml(l.gold_bars?.serial_number || '')} — ${formatMoney(l.listed_price)}</td>
-                  <td style="text-align:right;">${statusBadge(l.status)}</td>
+                  <td style="text-align:right;">
+                    ${statusBadge(l.status)}
+                    ${l.status === 'active' ? `<button class="btn btn-secondary cancel-listing" data-id="${l.id}" style="margin-left:8px; font-size:12px; padding:4px 10px;">Retirer</button>` : ''}
+                  </td>
                 </tr>
               `
                   )
@@ -126,6 +130,20 @@ export async function renderClientGoldMarket(app, profile) {
           await draw();
         } catch (err) {
           await showAlert(err.message || 'Erreur lors de la demande.');
+          btn.disabled = false;
+        }
+      });
+    });
+
+    content.querySelectorAll('.cancel-listing').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!await showConfirm('Retirer cette annonce de la vente ?')) return;
+        btn.disabled = true;
+        try {
+          await cancelMarketListing(btn.getAttribute('data-id'));
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Erreur lors du retrait de l\'annonce.');
           btn.disabled = false;
         }
       });

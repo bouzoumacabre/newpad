@@ -17,7 +17,7 @@ export async function renderClientAccounts(app, profile, params = {}) {
   let activeId = params.id || accounts[0].id;
 
   async function renderAll() {
-    const transactions = await getAccountTransactions(activeId, 30).catch(() => []);
+    const transactions = await getAccountTransactions(activeId, 200).catch(() => []);
     const active = accounts.find((a) => a.id === activeId) || accounts[0];
 
     content.innerHTML = `
@@ -39,7 +39,10 @@ export async function renderClientAccounts(app, profile, params = {}) {
       <div class="card">
         <div class="flex justify-between items-center" style="margin-bottom:12px;">
           <h3 style="margin:0;">Historique — ${ACCOUNT_TYPE_LABELS[active.account_type] || active.account_type}</h3>
-          <span class="muted" style="font-size:13px;">${escapeHtml(active.iban)}</span>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="muted" style="font-size:13px;">${escapeHtml(active.iban)}</span>
+            ${transactions.length ? `<button id="export-csv" class="btn btn-secondary" style="font-size:12px; padding:4px 10px;">Exporter en CSV</button>` : ''}
+          </div>
         </div>
         ${
           transactions.length
@@ -73,7 +76,36 @@ export async function renderClientAccounts(app, profile, params = {}) {
         renderAll();
       });
     });
+
+    document.getElementById('export-csv')?.addEventListener('click', () => {
+      exportTransactionsCsv(active, transactions, activeId);
+    });
   }
 
   await renderAll();
+}
+
+function csvField(value) {
+  const s = String(value ?? '');
+  return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportTransactionsCsv(account, transactions, activeId) {
+  const rows = [
+    ['Date', 'Description', 'Montant', 'Sens'],
+    ...transactions.map((t) => {
+      const isCredit = t.to_account_id === activeId;
+      return [formatDateTime(t.created_at), t.description || t.tx_type, t.amount, isCredit ? 'crédit' : 'débit'];
+    }),
+  ];
+  const csv = '﻿' + rows.map((r) => r.map(csvField).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `releve-${account.iban}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }

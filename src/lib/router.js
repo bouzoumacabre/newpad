@@ -21,18 +21,37 @@ function currentPath() {
   return hash.slice(1) || '/';
 }
 
+function showRouteError(err) {
+  console.error('[router] erreur non interceptée sur une route :', err);
+  const app = document.getElementById('app');
+  if (!app) return;
+  app.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px;">
+      <div class="card" style="max-width:420px; text-align:center;">
+        <h2 style="margin-bottom:12px;">Une erreur est survenue</h2>
+        <p class="muted" style="margin-bottom:20px;">L'écran n'a pas pu s'afficher correctement. Réessayez, ou revenez à l'accueil.</p>
+        <button class="btn btn-primary" onclick="window.location.hash = '#/'; window.location.reload();">Retour à l'accueil</button>
+      </div>
+    </div>
+  `;
+}
+
 export async function resolve() {
   const path = currentPath().split('?')[0];
-  for (const r of routes) {
-    const match = path.match(r.regex);
-    if (match) {
-      const params = {};
-      r.paramNames.forEach((name, i) => { params[name] = decodeURIComponent(match[i + 1]); });
-      await r.handler(params);
-      return;
+  try {
+    for (const r of routes) {
+      const match = path.match(r.regex);
+      if (match) {
+        const params = {};
+        r.paramNames.forEach((name, i) => { params[name] = decodeURIComponent(match[i + 1]); });
+        await r.handler(params);
+        return;
+      }
     }
+    await notFoundHandler();
+  } catch (err) {
+    showRouteError(err);
   }
-  await notFoundHandler();
 }
 
 export function navigate(path) {
@@ -42,5 +61,8 @@ export function navigate(path) {
 export function initRouter() {
   window.addEventListener('hashchange', resolve);
   window.addEventListener('DOMContentLoaded', resolve);
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[router] promesse rejetée non interceptée :', event.reason);
+  });
   if (document.readyState !== 'loading') resolve();
 }

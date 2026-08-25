@@ -140,6 +140,10 @@ export async function listGoldForSale(goldBarId, price) {
   return unwrap(await supabase.rpc('create_market_listing', { p_gold_bar_id: goldBarId, p_price: price }));
 }
 
+export async function cancelMarketListing(listingId) {
+  return unwrap(await supabase.rpc('cancel_market_listing', { p_listing_id: listingId }));
+}
+
 export async function buyFromMarket(listingId) {
   return unwrap(await supabase.rpc('submit_market_purchase', { p_listing_id: listingId }));
 }
