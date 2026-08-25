@@ -1,6 +1,49 @@
 # Newpad — Inventaire, phases, état d'avancement
 
-Dernière mise à jour : 25 août 2026 (audit sécurité complet mené de ma propre initiative + correctifs — voir §5nonies ; lot précédent du 24 août — voir §5octies).
+Dernière mise à jour : 25 août 2026 (2ème passe d'audit : trois bugs silencieux côté client trouvés et corrigés, échecs de chargement rendus visibles, recherche/export sur les comptes — voir §5decies ; audit sécurité du même jour — voir §5nonies).
+
+## 5decies. Trois bugs silencieux côté client, visibilité des échecs, recherche & export (25/08/2026)
+
+Deuxième passe d'audit, menée après l'audit sécurité (§5nonies), sur demande de l'utilisateur de continuer à chercher ce qu'on peut améliorer. Cette fois la revue a porté sur la cohérence entre le code frontend et le schéma réel de la base, vérifiée requête par requête contre la base de production.
+
+### Trois bugs réels trouvés — des écrans client vides en permanence
+
+Vérification systématique de **chaque** couple (table, colonne de tri) utilisé par le frontend contre le schéma réel : 36 couples testés, 3 pointent vers une colonne qui n'existe pas.
+
+- **L'historique des virements du client ne s'affichait jamais.** `getMyTransfers()` triait sur `transfers.created_at` — cette colonne n'existe pas, la date de dépôt s'appelle `requested_at`. PostgREST renvoyait une erreur explicite, avalée par le `.catch(() => [])` de l'écran, qui affichait alors « Aucun virement pour l'instant ». Il y a **1 virement réel en base** que son auteur n'a jamais pu voir.
+- **Les demandes d'achat de lingot à la banque ne s'affichaient jamais** (`gold_bank_purchase_requests`, même cause exacte). **2 demandes réelles en base**, invisibles pour leurs auteurs.
+- **Les demandes d'achat sur le marché de revente ne s'affichaient jamais** (`gold_market_purchase_requests`, même cause). Aucune donnée en base pour l'instant, donc jamais remarqué.
+
+C'est exactement la même famille de bug que `listed_at` (trouvé et corrigé en 0012) et que les jointures ambiguës (§5sexies) : une erreur serveur parfaitement explicite, rendue invisible par le motif de capture d'erreur. Les trois écrans affichaient aussi une date vide (`t.created_at` inexistant côté rendu) — corrigé également.
+
+### Cause profonde traitée : les échecs de chargement deviennent visibles
+
+Le motif `.catch(() => [])` (130 occurrences) fait qu'un écran affiche **exactement le même état vide** qu'une requête réussie sans résultat et qu'une requête qui a échoué. Ni l'utilisateur ni le développeur ne peuvent faire la différence — c'est ce qui a permis aux trois bugs ci-dessus de survivre des semaines en production.
+
+Nouveau module `src/lib/loadState.js` : `loadAll()` charge un ensemble de requêtes nommées sans jamais faire tomber l'écran (le comportement pratique est conservé), mais **journalise chaque échec en console avec le nom de la requête** et signale à l'écran qu'il doit prévenir l'utilisateur — bandeau discret et non bloquant « Certaines données n'ont pas pu être chargées », avec bouton Réessayer. Appliqué aux écrans client `/client/accounts` et `/client/transfers` ; à étendre progressivement aux autres écrans (le motif reste en place ailleurs, sans régression).
+
+### Évolutions
+
+- **Recherche et filtre par type d'opération sur `/client/accounts`** : le personnel disposait de ces filtres sur son historique de transactions depuis le lot du 20/08, mais le client n'avait rien sur ses propres opérations. Filtrage instantané côté navigateur sur les opérations déjà chargées, sans aller-retour réseau — ce qui compte dans le navigateur intégré du jeu.
+- **Export CSV du relevé** sur `/client/accounts` (avec BOM UTF-8, sinon Excel affiche les accents en mojibake) ; l'export respecte le filtre actif. Limite de chargement relevée de 30 à 200 opérations.
+- **Taux d'épargne affiché sur la carte du compte épargne** : le taux et son activation étaient pilotables depuis `/admin/economic-settings` depuis l'origine, mais le titulaire d'un compte épargne n'avait aucun moyen de connaître sa rémunération. Affiche le taux, et précise explicitement quand les versements sont suspendus (`savings_interest_enabled` à faux, ce qui est le cas par défaut).
+- **Table des libellés de type d'opération centralisée** dans `src/lib/format.js` (`txTypeLabel`) : elle vivait dans `transactionsScreen.js`, donc n'était disponible que pour le personnel. Complétée au passage des types manquants (commissions de virement et de marché, pénalité de retard, ajustement bancaire).
+
+### Écrit mais NON appliqué — en attente de ton feu vert
+
+La migration `0016_transfer_caps_scheduled_transfers_documents.sql` est **écrite et versionnée dans le dépôt, mais n'a pas été appliquée à la base** : le garde-fou de sécurité de mon environnement a bloqué l'écriture (création de table + modification de policies sur une base de production). Elle contient trois évolutions issues des recommandations de §5nonies :
+
+1. **Plafonds de virement** (`max_transfer_amount` par opération, `max_daily_transfer_total` sur 24 h glissantes) — jusqu'ici seul un *minimum* existait, et `fraud_unusual_transfer_amount` ne fait que signaler a posteriori sans rien bloquer : un compte compromis peut vider tous les comptes en une opération. Pilotables globalement et par client via le mécanisme d'exception existant ; 0 = illimité, donc sans effet tant qu'aucune valeur n'est posée. Le frontend est déjà prêt (affiche le plafond sous le champ montant s'il est configuré, ne montre rien sinon) — il fonctionne donc correctement avec ou sans la migration.
+2. **Virements permanents** (`scheduled_transfers` + tâche `pg_cron` quotidienne). Choix d'architecture délibéré et documenté dans la migration : l'échéance ne débite **jamais** directement, elle dépose une demande de virement ordinaire que le personnel valide comme les autres. Un virement permanent auto-exécuté créerait un contournement permanent du principe central du projet (aucun mouvement de fonds sans validation) — un client pourrait le programmer pour qu'il s'exécute quand aucun employé n'est connecté.
+3. **Documents / relevés** : la table `documents` et ses policies existent depuis la migration 0001b et l'écran `/client/documents` sait les afficher depuis la phase 3, mais **aucun bucket Storage n'a jamais été créé et aucune interface ne permet d'en émettre** — le message « Vos relevés apparaîtront ici » ne peut donc jamais se réaliser. La migration crée le bucket, ses policies (personnel écrit, client lit uniquement ses propres fichiers via le préfixe de chemin) et les fonctions d'émission/suppression. L'interface d'upload côté personnel reste à construire une fois la migration passée.
+
+Pour appliquer : coller le contenu du fichier dans l'éditeur SQL du tableau de bord Supabase, ou me redemander de le faire en validant l'action. **Le reste du lot ne dépend pas de cette migration** et peut être mis en ligne immédiatement.
+
+### Recommandation non traitée, à ne pas perdre de vue
+
+`create_scheduled_transfer` et le nom du conseiller consulting côté client ont un point commun révélateur : la policy `profiles_select` (`id = auth.uid() or is_staff()`) empêche un client de lire le moindre profil autre que le sien. Toute information sur un tiers (nom du conseiller assigné, titulaire d'un compte destinataire) doit donc passer par une fonction `SECURITY DEFINER` dédiée, comme le fait déjà `resolve_account_by_iban`. C'est la bonne architecture, mais elle impose de créer une fonction par besoin — à garder en tête avant de promettre un affichage côté client.
+
+## 5nonies. Audit sécurité complet du projet + correctifs (25/08/2026)
 
 ## 5nonies. Audit sécurité complet du projet + correctifs (25/08/2026)
 
