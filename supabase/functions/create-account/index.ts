@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     if (!body) return json({ error: 'Corps de requête invalide' }, 400);
 
-    const { username, password, displayName, role, employeeTitle, discordId } = body;
+    const { username, password, displayName, role, employeeTitle, discordId, phoneNumber } = body;
 
     if (!username || !password || !displayName || !role) {
       return json({ error: 'Champs manquants (identifiant, mot de passe, nom affiché, rôle)' }, 400);
@@ -112,7 +112,13 @@ Deno.serve(async (req: Request) => {
       email,
       password,
       email_confirm: true,
-      user_metadata: { username: cleanUsername, display_name: displayName, role, discord_id: discordId ? String(discordId).trim() : null },
+      user_metadata: {
+        username: cleanUsername,
+        display_name: displayName,
+        role,
+        discord_id: discordId ? String(discordId).trim() : null,
+        phone_number: phoneNumber ? String(phoneNumber).trim() : null,
+      },
     });
     if (createErr || !created?.user) {
       return json({ error: createErr?.message || 'Échec de la création du compte' }, 500);
