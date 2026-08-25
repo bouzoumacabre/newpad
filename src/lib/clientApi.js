@@ -101,7 +101,12 @@ export async function submitTransfer({ senderAccountId, recipientAccountId, amou
 }
 
 export async function getMyTransfers() {
-  return unwrap(await supabase.from('transfers').select('*').order('created_at', { ascending: false }));
+  // NB : la table `transfers` n'a pas de colonne `created_at` — la date de
+  // dépôt s'appelle `requested_at`. Trier sur une colonne inexistante faisait
+  // échouer la requête côté PostgREST, erreur avalée par le `.catch(() => [])`
+  // de l'écran appelant : l'historique des virements du client restait donc
+  // désespérément vide. Même famille de bug que `listed_at` (corrigé en 0012).
+  return unwrap(await supabase.from('transfers').select('*').order('requested_at', { ascending: false }));
 }
 
 // ----------------------------------------------------------------------------
@@ -124,7 +129,8 @@ export async function buyGoldFromBank(goldBarId) {
 }
 
 export async function getMyGoldPurchaseRequests() {
-  return unwrap(await supabase.from('gold_bank_purchase_requests').select('*').order('created_at', { ascending: false }));
+  // Idem : la colonne de date est `requested_at`, pas `created_at`.
+  return unwrap(await supabase.from('gold_bank_purchase_requests').select('*').order('requested_at', { ascending: false }));
 }
 
 export async function getMarketListings() {
@@ -150,7 +156,8 @@ export async function buyFromMarket(listingId) {
 
 export async function getMyMarketPurchaseRequests() {
   const user = await requireUser();
-  return unwrap(await supabase.from('gold_market_purchase_requests').select('*, gold_market_listings(*, gold_bars(*))').eq('buyer_client_id', user.id).order('created_at', { ascending: false }));
+  // Idem : la colonne de date est `requested_at`, pas `created_at`.
+  return unwrap(await supabase.from('gold_market_purchase_requests').select('*, gold_market_listings(*, gold_bars(*))').eq('buyer_client_id', user.id).order('requested_at', { ascending: false }));
 }
 
 // ----------------------------------------------------------------------------

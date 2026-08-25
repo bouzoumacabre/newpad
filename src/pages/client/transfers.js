@@ -8,6 +8,7 @@ import {
   getEconomicSetting,
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
+import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
 
 // Libellés spécifiques au suivi de virement (distincts du statut générique
 // partagé par les autres écrans) : le client doit voir la progression réelle
@@ -36,14 +37,17 @@ export async function renderClientTransfers(app, profile) {
   const { content } = await renderClientShell(app, profile, 'transfers');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [accounts, beneficiaries, transfers, minSetting] = await Promise.all([
-    getMyAccounts().catch(() => []),
-    getBeneficiaries().catch(() => []),
-    getMyTransfers().catch(() => []),
-    getEconomicSetting('min_transfer_amount').catch(() => null),
-  ]);
+  const { data, errors } = await loadAll({
+    accounts: getMyAccounts(),
+    beneficiaries: getBeneficiaries(),
+    transfers: getMyTransfers(),
+    minSetting: { promise: getEconomicSetting('min_transfer_amount'), fallback: null },
+    maxSetting: { promise: getEconomicSetting('max_transfer_amount'), fallback: null },
+  });
+  const { accounts, beneficiaries, transfers, minSetting, maxSetting } = data;
 
   const minAmount = minSetting?.amount ?? 100000;
+  const maxAmount = maxSetting?.amount ?? 0; // 0 = pas de plafond configuré
   let resolvedRecipient = null; // { account_id, owner_display_name, account_type }
 
   function accountLabel(id) {
@@ -53,6 +57,7 @@ export async function renderClientTransfers(app, profile) {
 
   content.innerHTML = `
     <h1 style="margin-bottom:20px;">Virements</h1>
+    ${loadErrorBanner(errors)}
     <div class="grid" style="grid-template-columns: 1fr 1.2fr; align-items:start;">
       <div class="card">
         <h3 style="margin-bottom:16px;">Nouveau virement</h3>
@@ -92,7 +97,9 @@ export async function renderClientTransfers(app, profile) {
         <div class="field">
           <label>Montant ($)</label>
           <input type="number" id="amount" min="1" step="0.01" placeholder="0.00" />
-          <div class="muted" style="font-size:12px; margin-top:4px;">Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).</div>
+          <div class="muted" style="font-size:12px; margin-top:4px;">
+            Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).${maxAmount > 0 ? ` Plafond par virement : ${formatMoney(maxAmount)}.` : ''}
+          </div>
         </div>
 
         <div class="field">
@@ -117,7 +124,7 @@ export async function renderClientTransfers(app, profile) {
                     .map(
                       (t) => `
                     <tr>
-                      <td class="muted">${formatDateTime(t.created_at)}</td>
+                      <td class="muted">${formatDateTime(t.requested_at)}</td>
                       <td style="font-weight:600;">${formatMoney(t.amount)}</td>
                       <td class="muted">${t.is_internal ? 'Interne' : 'Externe'}</td>
                       <td>${transferStatusBadge(t.status)}</td>
