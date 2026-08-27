@@ -38,6 +38,13 @@ declare
   v_today_total numeric;
   v_id uuid;
 begin
+  -- Reprise du correctif 0018 (virement d'un compte vers lui-même) : cette
+  -- migration réécrit submit_transfer et l'effacerait sans cette ligne, quel
+  -- que soit l'ordre d'application des deux migrations.
+  if p_sender_account_id = p_recipient_account_id then
+    raise exception 'Le compte émetteur et le compte destinataire doivent être différents';
+  end if;
+
   select client_id into v_client_id from accounts where id = p_sender_account_id;
   if v_client_id is null or v_client_id != auth.uid() then
     raise exception 'Compte émetteur invalide';
