@@ -21,6 +21,7 @@ import {
 } from '../../lib/adminApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { getFeatureFlags } from '../../lib/features.js';
 
 const PROFILE_STATUSES = ['active', 'suspended', 'frozen'];
 const ACCOUNT_STATUSES = ['active', 'frozen', 'closed'];
@@ -28,6 +29,15 @@ const ACCOUNT_STATUSES = ['active', 'frozen', 'closed'];
 export async function renderAdminClients(app, profile, params = {}) {
   const { content } = await renderAdminShell(app, profile, 'clients');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
+
+  // `admin.overrides.min_balance` figurait au registre depuis l'origine sans
+  // être lue nulle part : la désactiver n'avait aucun effet. Elle pilote
+  // désormais réellement le champ d'exception de solde minimum.
+  let flags = {};
+  try {
+    flags = await getFeatureFlags('admin', 'admin');
+  } catch (_) { /* échec réseau : on n'ampute rien */ }
+  const canOverrideMinBalance = (('admin.overrides.min_balance' in flags) ? flags['admin.overrides.min_balance'] : true);
 
   let selectedId = params.id || null;
   let query = '';
@@ -156,11 +166,15 @@ export async function renderAdminClients(app, profile, params = {}) {
 
             <div style="padding-top:12px; border-top:1px solid var(--card-border);">
               <div class="muted" style="font-size:12px; margin-bottom:8px;">Exceptions individuelles</div>
-              <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; align-items:end;">
-                <div class="field" style="margin:0;">
+              <div class="grid" style="grid-template-columns: ${canOverrideMinBalance ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:10px; align-items:end;">
+                ${
+                  canOverrideMinBalance
+                    ? `<div class="field" style="margin:0;">
                   <label>Solde minimum (override)</label>
                   <input type="number" id="override-min-balance" step="0.01" value="${detail.min_balance_override ?? ''}" placeholder="—" />
-                </div>
+                </div>`
+                    : ''
+                }
                 <div class="field" style="margin:0;">
                   <label>Virement minimum (override)</label>
                   <input type="number" id="override-min-transfer" step="0.01" value="${detail.min_transfer_override ?? ''}" placeholder="—" />
@@ -341,12 +355,17 @@ export async function renderAdminClients(app, profile, params = {}) {
     });
 
     document.getElementById('overrides-save')?.addEventListener('click', async () => {
-      const minBalanceRaw = document.getElementById('override-min-balance').value;
+      // Le champ solde minimum peut ne pas être rendu (fonctionnalité
+      // `admin.overrides.min_balance` désactivée) : on ne touche alors pas à
+      // la valeur existante plutôt que de l'effacer silencieusement.
+      const minBalanceEl = document.getElementById('override-min-balance');
       const minTransferRaw = document.getElementById('override-min-transfer').value;
       const trustScoreRaw = document.getElementById('override-trust-score').value;
       try {
         await updateProfileOverrides(selectedId, {
-          minBalanceOverride: minBalanceRaw === '' ? null : parseFloat(minBalanceRaw),
+          ...(minBalanceEl
+            ? { minBalanceOverride: minBalanceEl.value === '' ? null : parseFloat(minBalanceEl.value) }
+            : {}),
           minTransferOverride: minTransferRaw === '' ? null : parseFloat(minTransferRaw),
           trustScore: trustScoreRaw === '' ? undefined : parseFloat(trustScoreRaw),
         });

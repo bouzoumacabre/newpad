@@ -7,6 +7,7 @@ import {
   getPermissionGrants,
   upsertPermissionGrant,
   deletePermissionGrant,
+  deleteFeatureFlag,
 } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
@@ -48,7 +49,7 @@ export async function renderAdminPermissions(app, profile) {
         <div class="card" style="margin-bottom:16px;">
           <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">${area}</div>
           <table>
-            <thead><tr><th>Clé</th><th>Libellé</th><th>Catégorie</th><th>Rôles par défaut</th><th>Actif</th></tr></thead>
+            <thead><tr><th>Clé</th><th>Libellé</th><th>Catégorie</th><th>Rôles par défaut</th><th>Actif</th><th></th></tr></thead>
             <tbody>
               ${grouped[area]
                 .map(
@@ -60,6 +61,13 @@ export async function renderAdminPermissions(app, profile) {
                   <td class="muted" style="font-size:12px;">${(f.default_roles || []).join(', ')}</td>
                   <td>
                     <input type="checkbox" class="feat-enabled" data-key="${f.key}" ${f.enabled ? 'checked' : ''} ${f.is_core ? 'disabled title="Fonctionnalité essentielle — ne peut pas être désactivée"' : ''} />
+                  </td>
+                  <td>
+                    ${
+                      f.is_core
+                        ? ''
+                        : `<button class="btn btn-ghost feat-delete" data-key="${f.key}" data-label="${escapeHtml(f.label)}" style="padding:4px 8px; font-size:12px; color:var(--danger, #c0392b);">Supprimer</button>`
+                    }
                   </td>
                 </tr>
               `
@@ -197,6 +205,31 @@ export async function renderAdminPermissions(app, profile) {
             isCore: f.is_core,
           });
         } catch (err) { await showAlert(err.message || 'Erreur.'); }
+      });
+    });
+
+    // Suppression d'une entrée du registre. Volontairement interdite sur les
+    // fonctionnalités essentielles (is_core), et assortie d'un avertissement
+    // clair : `has()` renvoie `true` par défaut quand une clé est absente des
+    // drapeaux résolus, donc supprimer une clé que le code interroge encore
+    // REND l'écran correspondant définitivement visible — l'inverse de ce
+    // qu'un admin attend en cliquant « Supprimer ».
+    content.querySelectorAll('.feat-delete').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const key = btn.getAttribute('data-key');
+        const ok = await showConfirm(
+          `Supprimer « ${btn.getAttribute('data-label')} » du registre ?\n\n` +
+          `Attention : si le code interroge encore cette clé, l'écran concerné redeviendra ` +
+          `visible en permanence et ne sera plus pilotable. Pour masquer une fonctionnalité, ` +
+          `décochez « Actif » plutôt que de la supprimer.`
+        );
+        if (!ok) return;
+        try {
+          await deleteFeatureFlag(key);
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Suppression impossible.');
+        }
       });
     });
 

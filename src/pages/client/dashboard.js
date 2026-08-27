@@ -1,5 +1,5 @@
 import { renderClientShell } from './shell.js';
-import { getMyAccounts, getMyTransactions, getCityNews, getMyLoans } from '../../lib/clientApi.js';
+import { getMyAccounts, getMyTotalBalance, getMyTransactions, getCityNews, getMyLoans } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 
@@ -7,14 +7,26 @@ export async function renderClientDashboard(app, profile) {
   const { content } = await renderClientShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [accounts, transactions, news, loans] = await Promise.all([
+  const [accounts, totalFromBank, transactions, news, loans] = await Promise.all([
     getMyAccounts().catch(() => []),
+    getMyTotalBalance().catch(() => null),
     getMyTransactions(6).catch(() => []),
     getCityNews().catch(() => []),
     getMyLoans().catch(() => []),
   ]);
 
-  const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+  // Le « solde total » affiché doit être CELUI QUE LA BANQUE UTILISE, pas une
+  // somme recalculée côté navigateur. La règle de solde minimum (qui autorise
+  // ou bloque virements et achats) s'appuie sur client_total_balance(), qui
+  // exclut les comptes clôturés. Additionner tous les comptes ici — comptes
+  // clôturés compris — affichait donc au client un total supérieur à celui de
+  // la banque : il pouvait se croire au-dessus du minimum requis et voir son
+  // virement refusé sans comprendre pourquoi. Repli sur le calcul local
+  // uniquement si l'appel échoue, en appliquant le même filtre.
+  const openAccounts = accounts.filter((a) => a.status !== 'closed');
+  const total = totalFromBank !== null
+    ? Number(totalFromBank)
+    : openAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
   const activeLoan = loans.find((l) => l.status === 'active');
 
   content.innerHTML = `
@@ -30,7 +42,7 @@ export async function renderClientDashboard(app, profile) {
       <div class="card">
         <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Solde total</div>
         <div class="font-display gold" style="font-size:28px; margin-top:6px;">${formatMoney(total)}</div>
-        <div class="muted" style="font-size:12px; margin-top:4px;">${accounts.length} compte${accounts.length > 1 ? 's' : ''}</div>
+        <div class="muted" style="font-size:12px; margin-top:4px;">${openAccounts.length} compte${openAccounts.length > 1 ? 's' : ''}${accounts.length > openAccounts.length ? ` (+${accounts.length - openAccounts.length} clôturé${accounts.length - openAccounts.length > 1 ? 's' : ''})` : ''}</div>
       </div>
       <div class="card">
         <div class="muted" style="font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Prêt en cours</div>

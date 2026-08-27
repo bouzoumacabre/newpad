@@ -12,7 +12,7 @@ import {
   getCashierReports,
   getConsultingQueue,
 } from '../../lib/employeeApi.js';
-import { getTreasuryStats } from '../../lib/adminApi.js';
+import { getTreasuryStats, checkLedgerIntegrity } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 
@@ -38,6 +38,13 @@ export async function renderAdminDashboard(app, profile) {
     getTreasuryStats().catch(() => null),
     getConsultingQueue().catch(() => []),
   ]);
+
+  // Contrôle de conservation du grand livre. Volontairement placé sur le
+  // tableau de bord admin et non dans un écran séparé : une anomalie monétaire
+  // doit sauter aux yeux dès la connexion, pas attendre qu'on pense à aller
+  // la chercher. `null` = le contrôle lui-même n'a pas pu tourner (on ne
+  // prétend alors pas que tout va bien).
+  const ledgerAnomalies = await checkLedgerIntegrity().catch(() => null);
 
   const loansAwaitingDecision = loans.filter((l) => l.status === 'processing').length;
   const lastReport = cashierReports[0];
@@ -110,6 +117,39 @@ export async function renderAdminDashboard(app, profile) {
           : `<p class="muted">Rien en attente pour le moment — tout est à jour.</p>`
       }
     </div>
+
+    ${
+      ledgerAnomalies === null
+        ? `<div class="card card-tight" style="margin-bottom:20px;">
+             <span class="muted">⚠ Le contrôle d'intégrité du grand livre n'a pas pu être exécuté.</span>
+           </div>`
+        : ledgerAnomalies.length
+          ? `<div class="card" style="border-color: var(--danger, #c0392b); margin-bottom:20px;">
+               <h3 style="margin:0 0 10px;">⚠ Anomalies monétaires détectées (${ledgerAnomalies.length})</h3>
+               <p class="muted" style="font-size:13px; margin-bottom:12px;">
+                 Le total des soldes ne correspond pas à l'historique des mouvements. Chaque ligne
+                 ci-dessous est de l'argent apparu ou disparu sans contrepartie.
+               </p>
+               <table>
+                 <thead><tr><th>Anomalie</th><th>Détail</th><th style="text-align:right;">Montant</th></tr></thead>
+                 <tbody>
+                   ${ledgerAnomalies
+                     .map(
+                       (a) => `<tr>
+                         <td>${escapeHtml(a.anomalie)}</td>
+                         <td class="muted">${escapeHtml(a.detail)}</td>
+                         <td style="text-align:right; font-weight:600;">${formatMoney(a.montant)}</td>
+                       </tr>`
+                     )
+                     .join('')}
+                 </tbody>
+               </table>
+             </div>`
+          : `<div class="card card-tight" style="margin-bottom:20px;">
+               <span class="text-success">✓</span>
+               <span class="muted" style="margin-left:6px;">Grand livre cohérent — aucune anomalie monétaire.</span>
+             </div>`
+    }
 
     <h3 style="margin:28px 0 12px;">Trésorerie de la banque</h3>
     <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom:28px;">

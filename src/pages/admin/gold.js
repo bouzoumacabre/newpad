@@ -13,12 +13,25 @@ import {
 } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { getFeatureFlags } from '../../lib/features.js';
 
 const GOLD_BAR_STATUSES = ['in_vault', 'listed', 'reserved', 'sold'];
 
 export async function renderAdminGold(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
+
+  // Les clés `admin.gold.mint` et `admin.gold.edit_registry` existaient au
+  // registre depuis l'origine mais n'étaient lues nulle part : les désactiver
+  // depuis /admin/permissions n'avait strictement aucun effet, ce qui est pire
+  // qu'une absence de bascule (l'admin croyait avoir restreint quelque chose).
+  let flags = {};
+  try {
+    flags = await getFeatureFlags('admin', 'admin');
+  } catch (_) { /* en cas d'échec réseau, on n'ampute rien : tout reste affiché */ }
+  const has = (key) => (key in flags ? flags[key] : true);
+  const canMint = has('admin.gold.mint');
+  const canEditRegistry = has('admin.gold.edit_registry');
 
   async function draw() {
     const [bankQueue, marketQueue, allBars, marketListings] = await Promise.all([
@@ -138,7 +151,9 @@ export async function renderAdminGold(app, profile) {
         }
       </div>
 
-      <h3 style="margin-bottom:12px;">Frapper un nouveau lingot</h3>
+      ${
+        canMint
+          ? `<h3 style="margin-bottom:12px;">Frapper un nouveau lingot</h3>
       <div class="card" style="margin-bottom:24px;">
         <div class="grid" style="grid-template-columns: 1fr 1fr 2fr auto; gap:10px; align-items:end;">
           <div class="field" style="margin:0;">
@@ -156,14 +171,16 @@ export async function renderAdminGold(app, profile) {
           <button id="mint-submit" class="btn btn-primary">Frapper</button>
         </div>
         <div id="mint-error" class="text-danger" style="font-size:13px; margin-top:8px; display:none;"></div>
-      </div>
+      </div>`
+          : ''
+      }
 
       <h3 style="margin-bottom:12px;">Registre complet des lingots (${allBars.length})</h3>
       <div class="card">
         ${
           allBars.length
             ? `<table>
-                <thead><tr><th>N° de série</th><th>Poids</th><th>Statut</th><th>Emplacement</th><th>Propriétaire (UUID)</th><th>Notes</th><th></th></tr></thead>
+                <thead><tr><th>N° de série</th><th>Poids</th><th>Statut</th><th>Emplacement</th><th>${canEditRegistry ? 'Propriétaire (UUID)' : 'Propriétaire'}</th><th>Notes</th><th></th></tr></thead>
                 <tbody>
                   ${allBars
                     .map(
@@ -172,16 +189,32 @@ export async function renderAdminGold(app, profile) {
                       <td>${escapeHtml(b.serial_number)}</td>
                       <td>${b.weight_grams} g</td>
                       <td>
-                        <select class="bar-status" data-id="${b.id}" style="width:auto; padding:4px 8px; font-size:12px;">
+                        ${
+                          canEditRegistry
+                            ? `<select class="bar-status" data-id="${b.id}" style="width:auto; padding:4px 8px; font-size:12px;">
                           ${GOLD_BAR_STATUSES.map((s) => `<option value="${s}" ${s === b.status ? 'selected' : ''}>${s}</option>`).join('')}
-                        </select>
+                        </select>`
+                            : statusBadge(b.status)
+                        }
                       </td>
-                      <td><input type="text" class="bar-location" data-id="${b.id}" value="${escapeHtml(b.location || '')}" style="width:160px; padding:4px 8px; font-size:12px;" /></td>
+                      <td>${
+                        canEditRegistry
+                          ? `<input type="text" class="bar-location" data-id="${b.id}" value="${escapeHtml(b.location || '')}" style="width:160px; padding:4px 8px; font-size:12px;" />`
+                          : `<span class="muted">${escapeHtml(b.location || '—')}</span>`
+                      }</td>
                       <td>
-                        <input type="text" class="bar-owner" data-id="${b.id}" value="${escapeHtml(b.owner_client_id || '')}" placeholder="Banque si vide" title="${escapeHtml(b.profiles?.display_name || 'Banque')}" style="width:130px; padding:4px 8px; font-size:12px;" />
+                        ${
+                          canEditRegistry
+                            ? `<input type="text" class="bar-owner" data-id="${b.id}" value="${escapeHtml(b.owner_client_id || '')}" placeholder="Banque si vide" title="${escapeHtml(b.profiles?.display_name || 'Banque')}" style="width:130px; padding:4px 8px; font-size:12px;" />`
+                            : `<span class="muted">${escapeHtml(b.profiles?.display_name || 'Banque')}</span>`
+                        }
                       </td>
-                      <td><input type="text" class="bar-notes" data-id="${b.id}" value="${escapeHtml(b.notes || '')}" style="width:140px; padding:4px 8px; font-size:12px;" /></td>
-                      <td><button class="btn btn-secondary bar-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
+                      <td>${
+                        canEditRegistry
+                          ? `<input type="text" class="bar-notes" data-id="${b.id}" value="${escapeHtml(b.notes || '')}" style="width:140px; padding:4px 8px; font-size:12px;" />`
+                          : `<span class="muted">${escapeHtml(b.notes || '—')}</span>`
+                      }</td>
+                      <td>${canEditRegistry ? `<button class="btn btn-secondary bar-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button>` : ''}</td>
                     </tr>
                   `
                     )
@@ -250,7 +283,10 @@ export async function renderAdminGold(app, profile) {
       });
     });
 
-    document.getElementById('mint-submit').addEventListener('click', async () => {
+    // `?.` indispensable : le bloc de frappe n'est plus rendu du tout quand la
+    // fonctionnalité `admin.gold.mint` est désactivée — sans lui, l'écran
+    // entier planterait sur un TypeError.
+    document.getElementById('mint-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('mint-error');
       errorEl.style.display = 'none';
       const serial = document.getElementById('mint-serial').value.trim();

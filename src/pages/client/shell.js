@@ -49,7 +49,7 @@ export async function renderClientShell(app, profile, activeKey) {
         ...(has('client.info.view') ? [{ key: 'info', label: 'Infos', path: '/client/info', icon: 'ⓘ' }] : []),
         { key: 'documents', label: 'Documents', path: '/client/documents', icon: '▦' },
         { key: 'messages', label: 'Messagerie', path: '/client/messages', icon: '✉' },
-        { key: 'support', label: 'Support', path: '/client/support', icon: '☏' },
+        ...(has('client.support') ? [{ key: 'support', label: 'Support', path: '/client/support', icon: '☏' }] : []),
         { key: 'discord', label: 'Discord Newman Bank', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],
     },

@@ -34,6 +34,14 @@ export async function getTreasuryStats() {
   return unwrap(await supabase.rpc('admin_treasury_stats'));
 }
 
+// Contrôle de conservation du grand livre : toute ligne renvoyée est une
+// anomalie monétaire (transaction sans contrepartie, virement d'un compte vers
+// lui-même, ou solde qui ne correspond pas à l'historique des mouvements).
+// Réservé à l'admin, vérifié côté serveur.
+export async function checkLedgerIntegrity() {
+  return unwrap(await supabase.rpc('admin_check_ledger_integrity'));
+}
+
 // ----------------------------------------------------------------------------
 // PRÊTS — décision finale (admin uniquement)
 // ----------------------------------------------------------------------------

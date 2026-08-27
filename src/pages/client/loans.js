@@ -3,6 +3,18 @@ import { getMyLoans, getLoanSchedule, requestLoan, repayLoanEarly, getEconomicSe
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
+// L'énumération `installment_status` ne connaît que pending|paid|late : une
+// échéance prélevée AVEC pénalité de retard est enregistrée en 'late', ce qui
+// affichait « En retard » sur une échéance pourtant bel et bien réglée. La
+// donnée distingue déjà les deux cas via `paid_at` — on s'appuie dessus plutôt
+// que de modifier l'énumération (opération autrement plus risquée en base).
+function installmentBadge(s) {
+  if (s.status === 'late' && s.paid_at) {
+    return '<span class="badge badge-neutral">Payée en retard</span>';
+  }
+  return statusBadge(s.status);
+}
+
 export async function renderClientLoans(app, profile) {
   const { content } = await renderClientShell(app, profile, 'loans');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
@@ -32,8 +44,8 @@ export async function renderClientLoans(app, profile) {
                 <tr>
                   <td>${s.installment_number}</td>
                   <td class="muted">${formatDate(s.due_date)}</td>
-                  <td style="text-align:right;">${formatMoney(s.amount_due)}</td>
-                  <td>${statusBadge(s.status)}</td>
+                  <td style="text-align:right;">${formatMoney(s.amount_due)}${s.penalty_applied > 0 ? `<div class="muted" style="font-size:11px;">dont ${formatMoney(s.penalty_applied)} de pénalité</div>` : ''}</td>
+                  <td>${installmentBadge(s)}</td>
                 </tr>
               `
                 )

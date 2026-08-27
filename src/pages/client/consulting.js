@@ -1,17 +1,31 @@
 import { renderClientShell } from './shell.js';
-import { getMyConsultingRequests, requestConsulting } from '../../lib/clientApi.js';
+import { getMyConsultingRequests, requestConsulting, lookupProfile } from '../../lib/clientApi.js';
 import { formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
 
 export async function renderClientConsulting(app, profile) {
   const { content } = await renderClientShell(app, profile, 'consulting');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const requests = await getMyConsultingRequests().catch(() => []);
+    const { data, errors } = await loadAll({ requests: getMyConsultingRequests() });
+    const requests = data.requests;
+
+    // Résolution du nom des conseillers assignés : le client ne peut pas lire
+    // ces profils directement (RLS), d'où le passage par profile_public_lookup.
+    const advisorIds = [...new Set(requests.map((r) => r.assigned_advisor_id).filter(Boolean))];
+    const advisors = new Map();
+    await Promise.all(
+      advisorIds.map(async (id) => {
+        const p = await lookupProfile(id).catch(() => null);
+        if (p) advisors.set(id, p);
+      })
+    );
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Consulting Premium</h1>
       <p class="muted" style="margin-bottom:20px;">Un accompagnement personnalisé pour la gestion de votre patrimoine, assuré par nos conseillers dédiés.</p>
+      ${loadErrorBanner(errors)}
 
       <div class="grid" style="grid-template-columns: 1fr 1.3fr; align-items:start;">
         <div class="card">
@@ -37,6 +51,14 @@ export async function renderClientConsulting(app, profile) {
                   ${statusBadge(r.status)}
                 </div>
                 <div style="font-size:14px;">${escapeHtml(r.message)}</div>
+                ${
+                  advisors.has(r.assigned_advisor_id)
+                    ? `<div style="font-size:12px; margin-top:6px;">
+                         Conseiller assigné : <strong>${escapeHtml(advisors.get(r.assigned_advisor_id).display_name)}</strong>
+                         — <a href="#/client/messages" style="color:var(--gold-light);">le contacter par messagerie</a>
+                       </div>`
+                    : ''
+                }
                 ${r.status === 'rejected' && r.decision_note ? `<div class="muted" style="font-size:12px; margin-top:6px;">Motif : ${escapeHtml(r.decision_note)}</div>` : ''}
               </div>
             `

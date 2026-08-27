@@ -8,6 +8,7 @@ import {
   getEconomicSetting,
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
+import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
 
 // Libellés spécifiques au suivi de virement (distincts du statut générique
 // partagé par les autres écrans) : le client doit voir la progression réelle
@@ -36,14 +37,23 @@ export async function renderClientTransfers(app, profile) {
   const { content } = await renderClientShell(app, profile, 'transfers');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [accounts, beneficiaries, transfers, minSetting] = await Promise.all([
-    getMyAccounts().catch(() => []),
-    getBeneficiaries().catch(() => []),
-    getMyTransfers().catch(() => []),
-    getEconomicSetting('min_transfer_amount').catch(() => null),
-  ]);
+  const { data, errors } = await loadAll({
+    accounts: getMyAccounts(),
+    beneficiaries: getBeneficiaries(),
+    transfers: getMyTransfers(),
+    minSetting: { promise: getEconomicSetting('min_transfer_amount'), fallback: null },
+    maxSetting: { promise: getEconomicSetting('max_transfer_amount'), fallback: null },
+  });
+  const { accounts, beneficiaries, transfers, minSetting, maxSetting } = data;
 
   const minAmount = minSetting?.amount ?? 100000;
+  const maxAmount = maxSetting?.amount ?? 0; // 0 = pas de plafond configuré
+
+  // Un compte gelé ou clôturé ne peut ni émettre ni recevoir : la base le
+  // refuse (`accounts ... status = 'active'` dans les fonctions serveur). Les
+  // proposer dans les listes déroulantes ne menait qu'à un échec incompréhensible
+  // au moment de valider.
+  const usableAccounts = accounts.filter((a) => a.status === 'active');
   let resolvedRecipient = null; // { account_id, owner_display_name, account_type }
 
   function accountLabel(id) {
@@ -53,14 +63,16 @@ export async function renderClientTransfers(app, profile) {
 
   content.innerHTML = `
     <h1 style="margin-bottom:20px;">Virements</h1>
+    ${loadErrorBanner(errors)}
     <div class="grid" style="grid-template-columns: 1fr 1.2fr; align-items:start;">
       <div class="card">
         <h3 style="margin-bottom:16px;">Nouveau virement</h3>
         <div class="field">
           <label>Compte débiteur</label>
           <select id="sender-account">
-            ${accounts.map((a) => `<option value="${a.id}">${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)} (${formatMoney(a.balance)})</option>`).join('')}
+            ${usableAccounts.map((a) => `<option value="${a.id}">${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)} (${formatMoney(a.balance)})</option>`).join('')}
           </select>
+          ${accounts.length > usableAccounts.length ? `<div class="muted" style="font-size:12px; margin-top:4px;">${accounts.length - usableAccounts.length} compte(s) gelé(s) ou clôturé(s) non utilisable(s) pour un virement.</div>` : ''}
         </div>
 
         <div class="field">
@@ -74,7 +86,7 @@ export async function renderClientTransfers(app, profile) {
 
         <div id="recipient-own" class="field">
           <select id="recipient-own-select">
-            ${accounts.map((a) => `<option value="${a.id}">${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)}</option>`).join('')}
+            ${usableAccounts.map((a) => `<option value="${a.id}">${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)}</option>`).join('')}
           </select>
         </div>
 
@@ -92,7 +104,9 @@ export async function renderClientTransfers(app, profile) {
         <div class="field">
           <label>Montant ($)</label>
           <input type="number" id="amount" min="1" step="0.01" placeholder="0.00" />
-          <div class="muted" style="font-size:12px; margin-top:4px;">Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).</div>
+          <div class="muted" style="font-size:12px; margin-top:4px;">
+            Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).${maxAmount > 0 ? ` Plafond par virement : ${formatMoney(maxAmount)}.` : ''}
+          </div>
         </div>
 
         <div class="field">
@@ -117,7 +131,7 @@ export async function renderClientTransfers(app, profile) {
                     .map(
                       (t) => `
                     <tr>
-                      <td class="muted">${formatDateTime(t.created_at)}</td>
+                      <td class="muted">${formatDateTime(t.requested_at)}</td>
                       <td style="font-weight:600;">${formatMoney(t.amount)}</td>
                       <td class="muted">${t.is_internal ? 'Interne' : 'Externe'}</td>
                       <td>${transferStatusBadge(t.status)}</td>
@@ -205,6 +219,18 @@ export async function renderClientTransfers(app, profile) {
       recipientAccountId = resolvedRecipient.account_id;
     }
 
+    if (!senderAccountId) {
+      errorEl.textContent = "Vous n'avez aucun compte actif pouvant émettre un virement.";
+      errorEl.style.display = 'block';
+      return;
+    }
+    // Doublon volontaire du garde-fou serveur (correctif 0018) : autant le dire
+    // tout de suite plutôt que de laisser partir une requête vouée à l'échec.
+    if (senderAccountId === recipientAccountId) {
+      errorEl.textContent = 'Le compte débiteur et le compte destinataire doivent être différents.';
+      errorEl.style.display = 'block';
+      return;
+    }
     if (!amount || amount <= 0) {
       errorEl.textContent = 'Montant invalide.';
       errorEl.style.display = 'block';
