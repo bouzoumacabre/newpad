@@ -1,6 +1,149 @@
 # Newpad — Inventaire, phases, état d'avancement
 
-Dernière mise à jour : 25 août 2026 (audit sécurité complet mené de ma propre initiative + correctifs — voir §5nonies ; lot précédent du 24 août — voir §5octies).
+Dernière mise à jour : 25 août 2026 (4ème passe d'audit : **fuite monétaire réelle** trouvée par vérification de l'invariant de conservation sur les données de production — voir §5duodecies ; passes précédentes du même jour — voir §5undecies, §5decies, §5nonies).
+
+## 5duodecies. Conservation de la monnaie : fuite trouvée sur les données réelles (25/08/2026)
+
+Quatrième passe. Après avoir validé la structure (§5undecies), j'ai vérifié les **invariants économiques** : chaque fonction qui déplace de l'argent conserve-t-elle la masse monétaire, et les soldes réels correspondent-ils au grand livre ? Migrations `0018_internal_transfer_fee_leak.sql` et le contrôle d'intégrité appliqués en live.
+
+### Ce qui a été validé
+
+- **14 fonctions déplacent de l'argent** (`_adjust_balance`). Somme des mouvements vérifiée à zéro pour chacune, branches conditionnelles comprises : `decide_market_purchase` a deux branches mutuellement exclusives (lingot vendu par la banque ou par un client), toutes deux équilibrées ; `decide_membership_request` et `finalize_manual_account_opening` posent le dépôt initial comme solde d'ouverture à la création du compte et débitent la trésorerie en regard.
+- **Liens de notification** : les 24 chemins émis par les fonctions SQL pointent tous vers une route réelle, y compris le lien de messagerie construit dynamiquement (`'/' || rôle || '/messages/' || id`) — `create_message_thread` refusant explicitement un destinataire `prospect`, le rôle produit toujours une route qui existe.
+- **Couverture RLS** : les 15 tables écrites directement par le frontend disposent toutes des policies correspondant aux opérations effectuées (un `upsert` PostgREST exigeant à la fois INSERT et UPDATE, vérifié). Une seule table a RLS actif sans aucune policy — `password_reset_codes`, refus par défaut voulu et documenté (migration 0009). Aucune table n'a RLS désactivé.
+
+### FUITE MONÉTAIRE : la commission d'un virement interne était détruite
+
+La somme de tous les soldes ne correspondait pas à la masse monétaire attendue. La réconciliation compte par compte contre le grand livre a isolé **-0,50 $** sur un compte client. Cause, dans `decide_transfer` :
+
+```sql
+v_fee := round(t.amount * v_fee_rate / 100, 2);            -- calculée TOUJOURS
+perform _adjust_balance(t.recipient_account_id, t.amount - v_fee);  -- retirée MÊME en interne
+if v_fee > 0 and not t.is_internal then
+  perform _adjust_balance(v_bank_account, v_fee);          -- mais encaissée SEULEMENT si externe
+end if;
+```
+
+Sur un virement interne, la commission était bel et bien retirée au destinataire mais **créditée à personne** : elle sortait du système. Trois conséquences simultanées — de la monnaie détruite à chaque virement interne ; le client payait une commission sur un virement entre ses propres comptes alors que tout le reste du code traite l'interne comme gratuit ; et la ligne de transaction affichait `fee_amount = 0` alors qu'une commission avait bien été prélevée, rendant les livres faux. Corrigé : la commission vaut zéro en interne, calculée une seule fois et utilisée partout, ce qui rend les trois mouvements cohérents par construction.
+
+### Bug connexe : un virement d'un compte VERS LUI-MÊME était accepté
+
+`submit_transfer` vérifiait l'appartenance du compte émetteur et l'existence du destinataire, mais jamais qu'ils sont différents. Le seul virement présent en production est exactement ce cas (50 $ envoyés d'un compte vers ce même compte) : opération sans aucun sens économique qui, combinée au bug ci-dessus, ne servait qu'à détruire la commission. Refusé désormais côté serveur, et signalé côté client avant l'envoi.
+
+### Nouvel outil permanent : contrôle d'intégrité du grand livre
+
+L'invariant qui a permis de trouver cette fuite n'existait nulle part — il a fallu le reconstruire à la main. Il est désormais installé comme fonction (`admin_check_ledger_integrity`, réservée à l'admin) et **affiché en haut du tableau de bord admin** : bandeau vert « Grand livre cohérent » ou tableau rouge détaillant chaque anomalie. Placé là volontairement plutôt que dans un écran dédié — une anomalie monétaire doit sauter aux yeux à la connexion, pas attendre qu'on pense à aller la chercher. Il détecte trois familles : transaction sans contrepartie, virement sur le même compte, solde qui ne correspond pas à l'historique des mouvements.
+
+### Deux anomalies de DONNÉES à trancher (script écrit, volontairement NON appliqué)
+
+Le contrôle révèle deux écarts hérités, dont les causes sont déjà corrigées dans le code mais dont les données n'ont jamais été rattrapées :
+
+1. **3 004 531,00 $ créés depuis rien** — 9 dépôts d'ouverture des 17-18/08, antérieurs au correctif de la migration 0010 (§5bis-ter) qui a fait débiter la trésorerie. Le code a été corrigé le jour même, mais ces 9 dépôts n'ont jamais été payés par la banque. Les clients ont légitimement leur argent ; ce sont les livres de la banque qui sont faux.
+2. **0,50 $ détruits** par la fuite décrite ci-dessus.
+
+Le script `supabase/repairs/0001_repair_phantom_money.sql` corrige les deux, avec vérifications préalables et journalisation. **Il n'est pas appliqué, et il est rangé hors du dossier `migrations/`** pour ne jamais partir dans une application automatique : déplacer 3 M$ dans une économie de jeu de rôle en cours est une décision de game design, pas une décision technique. Trois options légitimes y sont documentées (tout réparer / ne rien faire / réparer la trésorerie seule).
+
+### Incohérence : le « solde total » du client n'était pas celui de la banque
+
+Le tableau de bord client additionnait **tous** les comptes, comptes clôturés compris, alors que la règle de solde minimum — celle qui autorise ou bloque virements et achats — s'appuie sur `client_total_balance()`, qui exclut les comptes clôturés. Le client pouvait donc se croire au-dessus du minimum requis et voir son virement refusé sans comprendre pourquoi. Le tableau de bord utilise désormais la valeur de la banque elle-même (repli sur un calcul local filtré à l'identique si l'appel échoue), et précise le nombre de comptes clôturés. Dans la foulée : les comptes gelés ou clôturés ne sont plus proposés comme compte débiteur ni destinataire dans l'écran de virement (la base les refuse de toute façon — les proposer ne menait qu'à un échec incompréhensible), et leur statut est affiché sur la fiche compte.
+
+### Code mort traité
+
+Deux exports n'étaient utilisés nulle part. Aucun n'a été supprimé — les deux méritaient d'être branchés :
+
+- `getMyTotalBalance` : c'est précisément la valeur faisant autorité décrite ci-dessus. Désormais utilisée par le tableau de bord client.
+- `deleteFeatureFlag` : `/admin/permissions` permettait de créer une fonctionnalité au registre mais jamais d'en retirer une. Bouton ajouté, interdit sur les fonctionnalités essentielles (`is_core`), avec un avertissement explicite : `has()` renvoyant `true` par défaut quand une clé est absente, supprimer une clé encore interrogée par le code rend l'écran concerné **définitivement visible** — l'inverse de ce qu'un admin attend. Le message oriente vers la case « Actif » pour un simple masquage.
+
+### Piège d'ordre des migrations traité
+
+La migration `0016` (écrite hier, toujours non appliquée) réécrit `submit_transfer` et aurait **effacé le correctif 0018** si elle était appliquée après. Le garde-fou anti-virement-sur-soi-même y a été reporté : les deux migrations peuvent désormais être appliquées dans n'importe quel ordre sans régression.
+
+## 5undecies. Vérification automatisée code ↔ schéma, clôture des prêts, registre de fonctionnalités (25/08/2026)
+
+## 5undecies. Vérification automatisée code ↔ schéma, clôture des prêts, registre de fonctionnalités (25/08/2026)
+
+Troisième passe. Plutôt que de relire le code à l'œil, j'ai **extrait automatiquement tous les appels du frontend** (62 appels RPC, 34 tables, 15 jointures explicites, 14 implicites, 26 clés de fonctionnalités) et **confronté chacun au schéma réel de la base de production**. Migration `0017_loan_closure_and_irs_features.sql` appliquée en live.
+
+### Ce que la vérification automatisée a validé (aucune action nécessaire)
+
+- **62 appels RPC** : toutes les fonctions existent, et **aucun nom de paramètre ne diverge** de la signature réelle.
+- **15 jointures PostgREST explicites** (`profiles!contrainte(...)`) : les 15 noms de contrainte existent bel et bien.
+- **14 jointures implicites** : aucune n'est ambiguë (chacune a exactement une clé étrangère vers sa cible) — la famille de bug de §5sexies est bien refermée.
+- **Toutes les colonnes** référencées en `select`/`eq`/`order`/`insert` existent, les trois exceptions ayant été corrigées à la passe précédente (§5decies).
+
+Cette vérification est reproductible : c'est le filet qui manquait pour attraper les bugs de §5decies avant qu'ils n'atteignent la production.
+
+### Bug trouvé : un prêt remboursé normalement n'était JAMAIS clôturé
+
+`repay_loan_early` (remboursement anticipé) fait bien passer le prêt en `closed`. Mais le chemin **normal** — le client paie ses échéances une par une via la tâche planifiée quotidienne — ne le faisait nulle part : `repay_loan_installment_now` se contentait de décrémenter `outstanding_balance`.
+
+Un client qui remboursait intégralement son prêt, dans les temps, se retrouvait donc avec un solde restant à 0, toutes ses échéances réglées… et un prêt éternellement `active`, `closed_at` à null. Il apparaissait indéfiniment endetté sur son propre écran (`/client/loans` continuait d'afficher le bouton « Solder ») comme au registre du personnel. Corrigé : la dernière échéance réglée clôture désormais le prêt, crédite la note de confiance, notifie le client et le personnel, et journalise l'opération. Requête de rattrapage incluse pour d'éventuels prêts déjà bloqués dans cet état.
+
+Aucun prêt n'avait encore atteint ce stade en production (le seul prêt en base est toujours en attente d'approbation) : **la correction est préventive, mais le bug était certain dès le premier prêt mené à son terme.**
+
+### Incohérences du registre de fonctionnalités — dans les deux sens
+
+- **4 clés lues par le code mais jamais enregistrées** : `irs.clients.view`, `irs.accounts.view`, `irs.transactions.view`, `irs.gold.view`. Comme `has()` renvoie `true` par défaut quand la clé est absente, les 4 entrées du menu IRS s'affichaient toujours — et surtout **l'admin n'avait aucun moyen de les désactiver** depuis `/admin/permissions`, contrairement aux 3 autres interfaces. Le registre se voulait générique pour les 4 rôles ; l'IRS en était sorti par simple oubli d'insertion. Les 4 clés sont désormais au registre (activées par défaut : aucun changement de comportement, mais elles deviennent pilotables).
+- **4 clés enregistrées mais lues nulle part** : `client.support`, `admin.gold.mint`, `admin.gold.edit_registry`, `admin.overrides.min_balance`. Un admin qui les désactivait voyait le réglage enregistré… sans le moindre effet. C'est pire qu'une bascule absente : l'interface affirmait une restriction qui n'existait pas. Les 4 pilotent désormais réellement leur écran (entrée Support du menu client ; bloc de frappe de lingot et édition du registre sur `/admin/gold` — qui bascule en lecture seule plutôt que de disparaître ; champ d'exception de solde minimum sur `/admin/clients`).
+
+Piège évité au passage : rendre le bloc de frappe conditionnel exposait un `getElementById('mint-submit').addEventListener` sans `?.` — l'écran entier serait tombé sur un TypeError dès la fonctionnalité désactivée. Il reste **45 occurrences de ce motif** ailleurs dans le code ; toutes portent aujourd'hui sur des éléments rendus inconditionnellement (vérifié), mais c'est une fragilité latente : rendre un bloc conditionnel sans ajouter `?.` casse tout l'écran. À garder en tête avant chaque nouvelle bascule.
+
+### Capacité backend enfin branchée
+
+`profile_public_lookup(p_id)` existait en base depuis l'origine et n'était **appelée nulle part**. Elle résout précisément le problème identifié à la passe précédente : la policy `profiles_select` interdisant à un client de lire tout profil autre que le sien, une jointure vers le conseiller assigné renvoyait null sans erreur. Cette fonction `SECURITY DEFINER` ne divulgue que l'identité publique (jamais de donnée financière). **Le nom du conseiller Consulting Premium s'affiche donc enfin côté client**, avec un lien direct vers la messagerie pour le contacter.
+
+### Autre correction d'affichage
+
+Une échéance de prêt prélevée **avec** pénalité de retard est enregistrée en statut `late` (l'énumération `installment_status` ne connaît que `pending|paid|late`), ce qui affichait « En retard » sur une échéance pourtant bel et bien réglée, et pour toujours. La donnée distingue déjà les deux cas via `paid_at` : l'écran affiche désormais « Payée en retard », et détaille le montant de la pénalité. Choix délibéré de ne pas toucher à l'énumération — un `ALTER TYPE` est autrement plus risqué qu'un correctif d'affichage, pour un gain nul.
+
+### Point de nommage trompeur (vérifié, aucun bug)
+
+`permission_grants.account_id` porte une clé étrangère vers **`profiles(id)`**, pas vers `accounts(id)` — malgré son nom, et malgré la variable `selectedAccount` côté frontend qui contient en réalité un profil. J'ai vérifié les trois chemins (lecture dans `features.js`, lecture et écriture dans `/admin/permissions`) : ils sont **cohérents entre eux**, le système d'exceptions par client fonctionne. Aucun changement fait — renommer la colonne casserait les trois. Signalé ici pour qu'une future modification ne parte pas du mauvais présupposé.
+
+## 5decies. Trois bugs silencieux côté client, visibilité des échecs, recherche & export (25/08/2026)
+
+## 5decies. Trois bugs silencieux côté client, visibilité des échecs, recherche & export (25/08/2026)
+
+Deuxième passe d'audit, menée après l'audit sécurité (§5nonies), sur demande de l'utilisateur de continuer à chercher ce qu'on peut améliorer. Cette fois la revue a porté sur la cohérence entre le code frontend et le schéma réel de la base, vérifiée requête par requête contre la base de production.
+
+### Trois bugs réels trouvés — des écrans client vides en permanence
+
+Vérification systématique de **chaque** couple (table, colonne de tri) utilisé par le frontend contre le schéma réel : 36 couples testés, 3 pointent vers une colonne qui n'existe pas.
+
+- **L'historique des virements du client ne s'affichait jamais.** `getMyTransfers()` triait sur `transfers.created_at` — cette colonne n'existe pas, la date de dépôt s'appelle `requested_at`. PostgREST renvoyait une erreur explicite, avalée par le `.catch(() => [])` de l'écran, qui affichait alors « Aucun virement pour l'instant ». Il y a **1 virement réel en base** que son auteur n'a jamais pu voir.
+- **Les demandes d'achat de lingot à la banque ne s'affichaient jamais** (`gold_bank_purchase_requests`, même cause exacte). **2 demandes réelles en base**, invisibles pour leurs auteurs.
+- **Les demandes d'achat sur le marché de revente ne s'affichaient jamais** (`gold_market_purchase_requests`, même cause). Aucune donnée en base pour l'instant, donc jamais remarqué.
+
+C'est exactement la même famille de bug que `listed_at` (trouvé et corrigé en 0012) et que les jointures ambiguës (§5sexies) : une erreur serveur parfaitement explicite, rendue invisible par le motif de capture d'erreur. Les trois écrans affichaient aussi une date vide (`t.created_at` inexistant côté rendu) — corrigé également.
+
+### Cause profonde traitée : les échecs de chargement deviennent visibles
+
+Le motif `.catch(() => [])` (130 occurrences) fait qu'un écran affiche **exactement le même état vide** qu'une requête réussie sans résultat et qu'une requête qui a échoué. Ni l'utilisateur ni le développeur ne peuvent faire la différence — c'est ce qui a permis aux trois bugs ci-dessus de survivre des semaines en production.
+
+Nouveau module `src/lib/loadState.js` : `loadAll()` charge un ensemble de requêtes nommées sans jamais faire tomber l'écran (le comportement pratique est conservé), mais **journalise chaque échec en console avec le nom de la requête** et signale à l'écran qu'il doit prévenir l'utilisateur — bandeau discret et non bloquant « Certaines données n'ont pas pu être chargées », avec bouton Réessayer. Appliqué aux écrans client `/client/accounts` et `/client/transfers` ; à étendre progressivement aux autres écrans (le motif reste en place ailleurs, sans régression).
+
+### Évolutions
+
+- **Recherche et filtre par type d'opération sur `/client/accounts`** : le personnel disposait de ces filtres sur son historique de transactions depuis le lot du 20/08, mais le client n'avait rien sur ses propres opérations. Filtrage instantané côté navigateur sur les opérations déjà chargées, sans aller-retour réseau — ce qui compte dans le navigateur intégré du jeu.
+- **Export CSV du relevé** sur `/client/accounts` (avec BOM UTF-8, sinon Excel affiche les accents en mojibake) ; l'export respecte le filtre actif. Limite de chargement relevée de 30 à 200 opérations.
+- **Taux d'épargne affiché sur la carte du compte épargne** : le taux et son activation étaient pilotables depuis `/admin/economic-settings` depuis l'origine, mais le titulaire d'un compte épargne n'avait aucun moyen de connaître sa rémunération. Affiche le taux, et précise explicitement quand les versements sont suspendus (`savings_interest_enabled` à faux, ce qui est le cas par défaut).
+- **Table des libellés de type d'opération centralisée** dans `src/lib/format.js` (`txTypeLabel`) : elle vivait dans `transactionsScreen.js`, donc n'était disponible que pour le personnel. Complétée au passage des types manquants (commissions de virement et de marché, pénalité de retard, ajustement bancaire).
+
+### Écrit mais NON appliqué — en attente de ton feu vert
+
+La migration `0016_transfer_caps_scheduled_transfers_documents.sql` est **écrite et versionnée dans le dépôt, mais n'a pas été appliquée à la base** : le garde-fou de sécurité de mon environnement a bloqué l'écriture (création de table + modification de policies sur une base de production). Elle contient trois évolutions issues des recommandations de §5nonies :
+
+1. **Plafonds de virement** (`max_transfer_amount` par opération, `max_daily_transfer_total` sur 24 h glissantes) — jusqu'ici seul un *minimum* existait, et `fraud_unusual_transfer_amount` ne fait que signaler a posteriori sans rien bloquer : un compte compromis peut vider tous les comptes en une opération. Pilotables globalement et par client via le mécanisme d'exception existant ; 0 = illimité, donc sans effet tant qu'aucune valeur n'est posée. Le frontend est déjà prêt (affiche le plafond sous le champ montant s'il est configuré, ne montre rien sinon) — il fonctionne donc correctement avec ou sans la migration.
+2. **Virements permanents** (`scheduled_transfers` + tâche `pg_cron` quotidienne). Choix d'architecture délibéré et documenté dans la migration : l'échéance ne débite **jamais** directement, elle dépose une demande de virement ordinaire que le personnel valide comme les autres. Un virement permanent auto-exécuté créerait un contournement permanent du principe central du projet (aucun mouvement de fonds sans validation) — un client pourrait le programmer pour qu'il s'exécute quand aucun employé n'est connecté.
+3. **Documents / relevés** : la table `documents` et ses policies existent depuis la migration 0001b et l'écran `/client/documents` sait les afficher depuis la phase 3, mais **aucun bucket Storage n'a jamais été créé et aucune interface ne permet d'en émettre** — le message « Vos relevés apparaîtront ici » ne peut donc jamais se réaliser. La migration crée le bucket, ses policies (personnel écrit, client lit uniquement ses propres fichiers via le préfixe de chemin) et les fonctions d'émission/suppression. L'interface d'upload côté personnel reste à construire une fois la migration passée.
+
+Pour appliquer : coller le contenu du fichier dans l'éditeur SQL du tableau de bord Supabase, ou me redemander de le faire en validant l'action. **Le reste du lot ne dépend pas de cette migration** et peut être mis en ligne immédiatement.
+
+### Recommandation non traitée, à ne pas perdre de vue
+
+`create_scheduled_transfer` et le nom du conseiller consulting côté client ont un point commun révélateur : la policy `profiles_select` (`id = auth.uid() or is_staff()`) empêche un client de lire le moindre profil autre que le sien. Toute information sur un tiers (nom du conseiller assigné, titulaire d'un compte destinataire) doit donc passer par une fonction `SECURITY DEFINER` dédiée, comme le fait déjà `resolve_account_by_iban`. C'est la bonne architecture, mais elle impose de créer une fonction par besoin — à garder en tête avant de promettre un affichage côté client.
+
+## 5nonies. Audit sécurité complet du projet + correctifs (25/08/2026)
 
 ## 5nonies. Audit sécurité complet du projet + correctifs (25/08/2026)
 
