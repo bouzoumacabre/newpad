@@ -2,6 +2,7 @@ import logoUrl from '../../assets/logo.svg';
 import { supabase } from '../../lib/supabaseClient.js';
 import { getMyMembershipRequest, submitMembershipRequest } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusLabel, escapeHtml } from '../../lib/format.js';
+import { humanError } from '../../lib/errorMessages.js';
 
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
@@ -79,7 +80,15 @@ export async function renderMembershipRequest(app, profile) {
       const fresh = await getMyMembershipRequest();
       renderStatus(app, profile, fresh);
     } catch (err) {
-      errorEl.textContent = err.message || "Impossible d'envoyer la demande pour le moment.";
+      // Cas fréquent depuis la migration 0020 : une demande est déjà ouverte.
+      // L'écran est alors rafraîchi vers l'état réel plutôt que de laisser un
+      // formulaire qui ne pourra jamais aboutir.
+      const message = humanError(err, "Impossible d'envoyer la demande pour le moment.");
+      if (/déjà une demande/i.test(message)) {
+        const fresh = await getMyMembershipRequest().catch(() => null);
+        if (fresh) { renderStatus(app, profile, fresh); return; }
+      }
+      errorEl.textContent = message;
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
     }

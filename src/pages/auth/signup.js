@@ -4,6 +4,7 @@ import { submitMembershipRequest } from '../../lib/clientApi.js';
 import { navigate } from '../../lib/router.js';
 import { getSystemFlags } from '../../lib/systemSettings.js';
 import { escapeHtml } from '../../lib/format.js';
+import { humanError } from '../../lib/errorMessages.js';
 
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
@@ -158,15 +159,14 @@ export async function renderSignup(app) {
       } catch (reqErr) {
         // Le compte existe déjà à ce stade — on ne le perd pas : on renvoie
         // simplement vers l'espace prospect pour que la demande soit
-        // (re)soumise manuellement depuis là.
-        successEl.textContent = 'Accès créé, mais l\'envoi de la demande a échoué. Redirection vers votre espace pour réessayer...';
+        // (re)soumise manuellement depuis là. La raison exacte de l'échec est
+        // affichée, sans quoi l'utilisateur réessaierait à l'aveugle.
+        successEl.textContent = `Accès créé. En revanche, l'envoi de la demande a échoué : ${humanError(reqErr)} Redirection vers votre espace pour réessayer…`;
         successEl.style.display = 'block';
-        setTimeout(() => navigate('/prospect'), 1800);
+        setTimeout(() => navigate('/prospect'), 2600);
       }
     } catch (err) {
-      errorEl.textContent = err.message?.includes('already') || err.message?.includes('exist')
-        ? 'Cet identifiant est déjà utilisé.'
-        : "Impossible de créer l'accès pour le moment.";
+      errorEl.textContent = humanError(err, "Impossible de créer l'accès pour le moment. Réessayez dans un instant.");
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
     }

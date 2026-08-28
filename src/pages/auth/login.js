@@ -3,6 +3,7 @@ import { signInWithUsername } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 import { attachExternalLinkCopy } from '../../lib/externalLink.js';
+import { humanError } from '../../lib/errorMessages.js';
 
 export async function renderLogin(app) {
   app.innerHTML = `
@@ -67,7 +68,11 @@ export async function renderLogin(app) {
       await signInWithUsername(username, password);
       // La redirection par rôle est gérée par onAuthStateChange dans main.js
     } catch (err) {
-      errorEl.textContent = "Identifiant ou mot de passe incorrect.";
+      // Le message par défaut reste volontairement indistinct (il ne révèle pas
+      // si l'identifiant existe), mais une panne réseau ou une limite de
+      // tentatives ne doit pas être annoncée comme un mot de passe erroné :
+      // l'utilisateur ressaisirait indéfiniment un mot de passe correct.
+      errorEl.textContent = humanError(err, 'Identifiant ou mot de passe incorrect.');
       errorEl.style.display = 'block';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Se connecter';
