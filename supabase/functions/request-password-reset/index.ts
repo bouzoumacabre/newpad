@@ -44,6 +44,31 @@ async function sha256Hex(text: string) {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Code à 6 chiffres tiré d'une source cryptographique.
+//
+// La version précédente utilisait Math.random(), qui n'est PAS cryptographique :
+// le générateur de V8 (xorshift128+) a un état interne reconstituable à partir
+// de quelques sorties consécutives. Un attaquant possédant son propre compte
+// pouvait donc demander des codes pour lui-même, observer les valeurs reçues
+// par Discord, retrouver l'état du générateur, et prédire le code émis juste
+// après pour le compte d'une victime — court-circuitant entièrement la limite
+// de 5 tentatives, qui ne protège que contre la force brute.
+//
+// Le rejet des valeurs au-delà du plus grand multiple de 900000 évite le biais
+// de modulo : sans lui, les premiers codes de la plage sortiraient légèrement
+// plus souvent que les autres.
+function generateSecureCode(): string {
+  const RANGE = 900_000; // 100000..999999
+  const MAX = Math.floor(0xffffffff / RANGE) * RANGE;
+  const buf = new Uint32Array(1);
+  let value: number;
+  do {
+    crypto.getRandomValues(buf);
+    value = buf[0];
+  } while (value >= MAX);
+  return String(100_000 + (value % RANGE));
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
@@ -82,9 +107,19 @@ Deno.serve(async (req: Request) => {
       return json({ message: GENERIC_MESSAGE });
     }
 
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = generateSecureCode();
     const codeHash = await sha256Hex(code);
     const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
+
+    // Tout code précédent encore ouvert est invalidé : sans cela, plusieurs
+    // codes valides coexistaient pour un même compte (jusqu'à une quinzaine sur
+    // la fenêtre de 15 minutes), multipliant d'autant les chances d'un tirage
+    // au hasard réussi. Un seul code vivant à la fois.
+    await admin
+      .from('password_reset_codes')
+      .update({ used_at: new Date().toISOString() })
+      .eq('profile_id', profile.id)
+      .is('used_at', null);
 
     await admin.from('password_reset_codes').insert({
       profile_id: profile.id,
