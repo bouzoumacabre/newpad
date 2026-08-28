@@ -112,9 +112,23 @@ Deno.serve(async (req: Request) => {
       email,
       password,
       email_confirm: true,
+      // Le rôle passe par app_metadata, PAS par user_metadata.
+      // Raison de sécurité (correctif 0019) : `user_metadata` est intégralement
+      // contrôlé par l'appelant de /auth/v1/signup, qui est un endpoint PUBLIC.
+      // Tant que le trigger handle_new_auth_user y lisait le rôle, n'importe
+      // qui pouvait s'inscrire en demandant `role: "admin"` et obtenir les
+      // pleins pouvoirs sur la banque. `app_metadata` n'est écrivable que par
+      // l'API admin avec la clé service_role — c'est-à-dire uniquement ici.
+      app_metadata: {
+        role,
+      },
       user_metadata: {
         username: cleanUsername,
         display_name: displayName,
+        // Conservé pendant la transition pour que cette fonction reste
+        // compatible avec l'ancien trigger tant que la migration 0019 n'est pas
+        // appliquée. Ignoré par le nouveau trigger, qui ne lit plus que
+        // app_metadata.
         role,
         discord_id: discordId ? String(discordId).trim() : null,
         phone_number: phoneNumber ? String(phoneNumber).trim() : null,
