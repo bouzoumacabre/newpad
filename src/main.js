@@ -71,9 +71,45 @@ import { renderIrsSettings } from './pages/irs/settings.js';
 
 const app = document.getElementById('app');
 
+// Écran opposé à un profil suspendu ou gelé.
+// Jusqu'ici, le garde ne testait que le rôle : un compte suspendu par l'admin
+// se connectait et naviguait normalement dans toute son interface. Le blocage
+// réel est posé en base (déclencheur, migration 0022) ; cet écran évite que
+// l'utilisateur découvre son état par un message d'erreur au moment de valider
+// une opération, et lui indique quoi faire.
+function renderBlockedProfile(profile) {
+  const gelé = profile.status === 'frozen';
+  app.innerHTML = `
+    <div class="auth-screen">
+      <div class="auth-card card" style="max-width:460px; text-align:center;">
+        <h2 style="margin-bottom:12px;">${gelé ? 'Compte gelé' : 'Compte suspendu'}</h2>
+        <p class="muted" style="margin-bottom:20px;">
+          Votre accès à Newman Bank est temporairement ${gelé ? 'gelé' : 'suspendu'}.
+          Aucune opération ne peut être effectuée pour le moment.
+          Vos avoirs restent intacts.
+        </p>
+        <p class="muted" style="margin-bottom:24px; font-size:13px;">
+          Pour comprendre la raison de cette mesure et la faire lever,
+          contactez la banque sur le Discord Newman Bank.
+        </p>
+        <button id="blocked-logout" class="btn btn-secondary" style="width:100%;">Se déconnecter</button>
+      </div>
+    </div>
+    <style>
+      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-card { width:100%; }
+    </style>
+  `;
+  document.getElementById('blocked-logout')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  });
+}
+
 async function guardedRoleRender(expectedRole, renderFn) {
   const profile = await getCurrentProfile().catch(() => null);
   if (!profile) { navigate('/login'); return; }
+  if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   if (profile.role !== expectedRole) { navigate('/' + profile.role); return; }
   await renderFn(profile);
 }

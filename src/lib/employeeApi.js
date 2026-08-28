@@ -451,4 +451,12 @@ export async function upsertClientInfo(clientId, content) {
 export async function updatePassword(newPassword) {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
+  // Déconnexion des AUTRES sessions (scope 'others' : l'appareil courant reste
+  // connecté). Sans cela, changer son mot de passe ne délogeait personne : une
+  // session ouverte ailleurs — appareil perdu, poste partagé, intrus — gardait
+  // un accès parfaitement valide. Non bloquant : le mot de passe est déjà
+  // changé, l'échec du nettoyage ne doit pas faire croire à un échec global.
+  try {
+    await supabase.auth.signOut({ scope: 'others' });
+  } catch (_) { /* voir commentaire ci-dessus */ }
 }
