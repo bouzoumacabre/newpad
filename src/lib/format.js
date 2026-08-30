@@ -31,6 +31,11 @@ const STATUS_LABELS = {
   listed: 'En vente',
   sold: 'Vendu',
   open: 'Ouvert',
+  // Statut de ticket réellement posé depuis la migration 0030 (il existait
+  // dans l'énumération `ticket_status` depuis l'origine, mais aucune fonction
+  // ne l'écrivait jamais). Sans cette entrée, le client aurait lu la valeur
+  // brute « in_progress » sur son ticket.
+  in_progress: 'Pris en charge',
   resolved: 'Résolu',
   late: 'En retard',
   paid: 'Payée',
@@ -54,6 +59,7 @@ const STATUS_BADGE = {
   listed: 'badge-pending',
   sold: 'badge-neutral',
   open: 'badge-pending',
+  in_progress: 'badge-pending',
   assigned: 'badge-pending',
 };
 

@@ -11,6 +11,11 @@ export async function renderClientConsulting(app, profile) {
     const { data, errors } = await loadAll({ requests: getMyConsultingRequests() });
     const requests = data.requests;
 
+    // La banque n'accepte qu'un dossier ouvert à la fois (migration 0030) —
+    // le formulaire dit désormais la même chose que le serveur, avant l'envoi
+    // plutôt qu'après le refus.
+    const openRequest = requests.find((r) => r.status === 'pending' || r.status === 'assigned');
+
     // Résolution du nom des conseillers assignés : le client ne peut pas lire
     // ces profils directement (RLS), d'où le passage par profile_public_lookup.
     const advisorIds = [...new Set(requests.map((r) => r.assigned_advisor_id).filter(Boolean))];
@@ -30,12 +35,22 @@ export async function renderClientConsulting(app, profile) {
       <div class="grid" style="grid-template-columns: 1fr 1.3fr; align-items:start;">
         <div class="card">
           <h3 style="margin-bottom:16px;">Demander un accompagnement</h3>
+          ${
+            openRequest
+              ? `<p class="muted">${
+                  openRequest.status === 'assigned'
+                    ? 'Un conseiller vous accompagne déjà. Échangez avec lui par la messagerie ; une nouvelle demande sera possible à la fin de cet accompagnement.'
+                    : 'Votre demande est en cours d’examen. Vous serez notifié dès qu’un conseiller vous sera attribué.'
+                }</p>`
+              : `
           <div class="field">
-            <label>Votre demande</label>
-            <textarea id="consulting-message" rows="5" placeholder="Décrivez votre besoin (gestion de patrimoine, stratégie d'investissement, succession...)"></textarea>
+            <label for="consulting-message">Votre demande</label>
+            <textarea id="consulting-message" rows="5" maxlength="4000" placeholder="Décrivez votre besoin (gestion de patrimoine, stratégie d'investissement, succession...)"></textarea>
           </div>
           <div id="consulting-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
           <button id="consulting-submit" class="btn btn-primary" style="width:100%;">Envoyer la demande</button>
+          `
+          }
         </div>
 
         <div class="card">
@@ -50,7 +65,7 @@ export async function renderClientConsulting(app, profile) {
                   <span class="muted" style="font-size:12px;">${formatDateTime(r.created_at)}</span>
                   ${statusBadge(r.status)}
                 </div>
-                <div style="font-size:14px;">${escapeHtml(r.message)}</div>
+                <div style="font-size:14px; white-space:pre-wrap;">${escapeHtml(r.message)}</div>
                 ${
                   advisors.has(r.assigned_advisor_id)
                     ? `<div style="font-size:12px; margin-top:6px;">
@@ -60,6 +75,7 @@ export async function renderClientConsulting(app, profile) {
                     : ''
                 }
                 ${r.status === 'rejected' && r.decision_note ? `<div class="muted" style="font-size:12px; margin-top:6px;">Motif : ${escapeHtml(r.decision_note)}</div>` : ''}
+                ${r.status === 'closed' ? `<div class="muted" style="font-size:12px; margin-top:6px;">Accompagnement terminé${r.decision_note ? ' — ' + escapeHtml(r.decision_note) : ''}.</div>` : ''}
               </div>
             `
                   )
@@ -70,7 +86,7 @@ export async function renderClientConsulting(app, profile) {
       </div>
     `;
 
-    document.getElementById('consulting-submit').addEventListener('click', async () => {
+    document.getElementById('consulting-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('consulting-error');
       errorEl.style.display = 'none';
       const message = document.getElementById('consulting-message').value.trim();

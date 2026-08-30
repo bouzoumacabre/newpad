@@ -30,18 +30,18 @@ async function drawList(content) {
       <div id="new-ticket-form" class="card" style="margin-bottom:20px; display:none;">
         <h3 style="margin-bottom:16px;">Nouveau ticket</h3>
         <div class="field">
-          <label>Sujet</label>
-          <input type="text" id="ticket-subject" placeholder="Résumez votre demande" />
+          <label for="ticket-subject">Sujet</label>
+          <input type="text" id="ticket-subject" maxlength="200" placeholder="Résumez votre demande" />
         </div>
         <div class="field">
-          <label>Catégorie</label>
+          <label for="ticket-category">Catégorie</label>
           <select id="ticket-category">
             ${CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('')}
           </select>
         </div>
         <div class="field">
-          <label>Message</label>
-          <textarea id="ticket-message" rows="4" placeholder="Décrivez votre demande en détail..."></textarea>
+          <label for="ticket-message">Message</label>
+          <textarea id="ticket-message" rows="4" maxlength="4000" placeholder="Décrivez votre demande en détail..."></textarea>
         </div>
         <div id="ticket-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
         <button id="ticket-submit" class="btn btn-primary">Envoyer</button>
@@ -128,7 +128,7 @@ async function drawThread(content, ticketId) {
                     (m) => `
               <div style="padding:10px 14px; margin-bottom:8px; border-radius: var(--radius-sm); background: ${m.author_role === 'client' ? 'rgba(201,162,39,0.08)' : 'rgba(255,255,255,0.03)'}; ${m.author_role === 'client' ? 'margin-left:15%;' : 'margin-right:15%;'}">
                 <div class="muted" style="font-size:11px; margin-bottom:4px;">${m.author_role === 'client' ? 'Vous' : 'Newman Bank'} — ${formatDateTime(m.created_at)}</div>
-                <div style="font-size:14px;">${escapeHtml(m.body)}</div>
+                <div style="font-size:14px; white-space:pre-wrap;">${escapeHtml(m.body)}</div>
               </div>
             `
                   )

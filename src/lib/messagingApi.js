@@ -41,6 +41,14 @@ export async function closeMessageThread(threadId) {
   if (error) throw error;
 }
 
+// Réouverture (migration 0030). Sans elle, une conversation clôturée par erreur
+// était définitivement close : plus aucun message ne pouvait y être écrit, par
+// aucun des deux participants ni par l'admin.
+export async function reopenMessageThread(threadId) {
+  const { error } = await supabase.rpc('reopen_message_thread', { p_thread_id: threadId });
+  if (error) throw error;
+}
+
 export function subscribeToThreadMessages(threadId, onInsert) {
   const channel = supabase
     .channel(`thread-messages-${threadId}`)

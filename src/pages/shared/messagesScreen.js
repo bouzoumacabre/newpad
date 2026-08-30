@@ -15,11 +15,12 @@ import {
   sendThreadMessage,
   markThreadRead,
   closeMessageThread,
+  reopenMessageThread,
   subscribeToThreadMessages,
 } from '../../lib/messagingApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
-import { showAlert } from '../../lib/uiDialogs.js';
+import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 
 const ROLE_LABELS = { client: 'Client', employee: 'Employé', admin: 'Admin', irs: 'IRS' };
 
@@ -192,7 +193,11 @@ async function drawThread(content, profile, basePath, threadId) {
           </div>
           <div class="flex gap-sm items-center">
             <span class="badge ${thread.status === 'closed' ? 'badge-neutral' : 'badge-pending'}">${thread.status === 'closed' ? 'Clôturé' : 'Ouvert'}</span>
-            ${thread.status !== 'closed' ? `<button id="close-thread-btn" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;">Clôturer</button>` : ''}
+            ${
+              thread.status !== 'closed'
+                ? `<button id="close-thread-btn" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;">Clôturer</button>`
+                : `<button id="reopen-thread-btn" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;">Rouvrir</button>`
+            }
           </div>
         </div>
         <div id="thread-messages" style="max-height:420px; overflow-y:auto; margin-bottom:20px;">
@@ -238,8 +243,17 @@ async function drawThread(content, profile, basePath, threadId) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('reply-submit').click(); }
     });
 
+    // Une clôture se faisait jusqu'ici sans aucune confirmation, et elle était
+    // définitive : plus aucun message ne pouvait être écrit dans la
+    // conversation, par personne. Confirmation + réouverture (migration 0030).
     document.getElementById('close-thread-btn')?.addEventListener('click', async () => {
+      if (!(await showConfirm('Clôturer cette conversation ? Plus aucun message ne pourra y être écrit tant qu’elle n’est pas rouverte. Votre interlocuteur en sera informé.'))) return;
       try { await closeMessageThread(threadId); await draw(); }
+      catch (err) { await showAlert(err.message || 'Erreur.'); }
+    });
+
+    document.getElementById('reopen-thread-btn')?.addEventListener('click', async () => {
+      try { await reopenMessageThread(threadId); await draw(); }
       catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
   }

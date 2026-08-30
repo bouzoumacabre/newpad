@@ -341,6 +341,14 @@ export async function rejectConsultingRequest(id, note) {
   if (error) throw error;
 }
 
+// Clôture d'un accompagnement mené à son terme (migration 0030). Sans elle, le
+// conseiller devait REFUSER la demande pour la sortir de sa file — le client
+// lisait alors « Demande refusée » à la fin d'un accompagnement réussi.
+export async function closeConsultingRequest(id, note) {
+  const { error } = await supabase.rpc('close_consulting_request', { p_id: id, p_note: note || null });
+  if (error) throw error;
+}
+
 // ----------------------------------------------------------------------------
 // CAISSE
 // ----------------------------------------------------------------------------
@@ -384,9 +392,27 @@ export async function updateFraudAlertStatus(id, status) {
 // ----------------------------------------------------------------------------
 
 export async function getAllSupportTickets(statusFilter) {
-  let q = supabase.from('support_tickets').select('*, profiles!support_tickets_client_id_fkey(display_name, username)').order('updated_at', { ascending: false });
+  // Note : pas de jointure vers le profil du membre du personnel assigné. Une
+  // table avec deux clés étrangères vers `profiles` rend l'embed PostgREST
+  // ambigu si on ne nomme pas la contrainte exacte, et une contrainte mal
+  // nommée fait échouer la requête EN SILENCE (l'écran se vide, sans erreur —
+  // c'est exactement le bug corrigé le 19/08 sur dix requêtes). Le nom du
+  // membre du personnel est résolu séparément côté écran, où un échec reste
+  // sans conséquence sur la liste des tickets.
+  let q = supabase
+    .from('support_tickets')
+    .select('*, profiles!support_tickets_client_id_fkey(display_name, username)')
+    .order('updated_at', { ascending: false });
   if (statusFilter) q = q.eq('status', statusFilter);
   return unwrap(await q);
+}
+
+// Prise en charge explicite (migration 0030). `assigned_to` n'était renseigné
+// qu'en répondant au ticket : deux employés pouvaient travailler dessus en
+// parallèle sans le savoir.
+export async function claimSupportTicket(ticketId) {
+  const { error } = await supabase.rpc('claim_support_ticket', { p_ticket_id: ticketId });
+  if (error) throw error;
 }
 
 export async function getSupportMessages(ticketId) {

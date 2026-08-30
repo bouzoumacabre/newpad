@@ -229,9 +229,12 @@ export async function lookupProfile(profileId) {
   return Array.isArray(rows) ? rows[0] || null : rows || null;
 }
 
+// Passe désormais par une fonction serveur (migration 0030). L'insertion
+// directe qui existait ici était le seul chemin de demande client à ne pas
+// notifier le personnel : la demande n'apparaissait que si un employé pensait
+// à ouvrir l'écran.
 export async function requestConsulting(message) {
-  const user = await requireUser();
-  return unwrap(await supabase.from('consulting_requests').insert({ client_id: user.id, message }).select().single());
+  return unwrap(await supabase.rpc('submit_consulting_request', { p_message: message }));
 }
 
 // ----------------------------------------------------------------------------
