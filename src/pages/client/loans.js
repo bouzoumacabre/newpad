@@ -1,5 +1,5 @@
 import { renderClientShell } from './shell.js';
-import { getMyLoans, getLoanSchedule, requestLoan, repayLoanEarly, getEconomicSetting } from '../../lib/clientApi.js';
+import { getMyLoans, getLoanSchedule, requestLoan, repayLoanEarly, getEconomicSetting, getMyAccounts } from '../../lib/clientApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
@@ -22,12 +22,29 @@ export async function renderClientLoans(app, profile) {
   let expandedLoanId = null;
 
   async function draw() {
-    const [loans, capSetting] = await Promise.all([
+    const [loans, capSetting, accounts] = await Promise.all([
       getMyLoans().catch(() => []),
       getEconomicSetting('loan_cap').catch(() => null),
+      getMyAccounts().catch(() => []),
     ]);
     const cap = capSetting?.amount ?? 50000000;
     const hasPending = loans.some((l) => l.status === 'pending' || l.status === 'processing');
+    const hasActive = loans.some((l) => l.status === 'active');
+
+    // Compte réellement crédité puis prélevé par la banque : le premier compte
+    // actif, dans le même ordre que côté serveur.
+    const payingAccount = accounts
+      .filter((a) => a.status === 'active')
+      .sort((a, b) => new Date(a.opened_at) - new Date(b.opened_at))[0] || null;
+
+    // Depuis la migration 0027, la banque refuse une seconde demande tant qu'un
+    // dossier est ouvert (le plafond s'appliquait par prêt, pas par client :
+    // rien n'empêchait d'en empiler dix au plafond). Le formulaire dit
+    // désormais la même chose que le serveur, avant l'envoi.
+    let formBlock = '';
+    if (hasActive) formBlock = 'Vous avez un prêt en cours. Soldez-le avant d’en demander un autre.';
+    else if (hasPending) formBlock = 'Une demande est déjà en cours de traitement.';
+    else if (!payingAccount) formBlock = 'Vous n’avez aucun compte actif pour recevoir le décaissement.';
 
     let scheduleHtml = '';
     if (expandedLoanId) {
@@ -63,8 +80,8 @@ export async function renderClientLoans(app, profile) {
         <div class="card">
           <h3 style="margin-bottom:16px;">Nouvelle demande</h3>
           ${
-            hasPending
-              ? `<p class="muted">Une demande est déjà en cours de traitement.</p>`
+            formBlock
+              ? `<p class="muted">${escapeHtml(formBlock)}</p>`
               : `
             <div class="field">
               <label>Montant demandé ($)</label>
@@ -77,7 +94,8 @@ export async function renderClientLoans(app, profile) {
             </div>
             <div class="field">
               <label>Durée (mois)</label>
-              <input type="number" id="loan-term" min="1" max="60" value="12" />
+              <input type="number" id="loan-term" min="1" max="120" value="12" />
+              <div class="muted" style="font-size:12px; margin-top:4px;">De 1 à 120 mois.</div>
             </div>
             <div id="loan-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
             <button id="loan-submit" class="btn btn-primary" style="width:100%;">Soumettre la demande</button>
@@ -129,6 +147,16 @@ export async function renderClientLoans(app, profile) {
         errorEl.style.display = 'block';
         return;
       }
+      if (termMonths < 1 || termMonths > 120) {
+        errorEl.textContent = 'La durée doit être comprise entre 1 et 120 mois.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (amount > cap) {
+        errorEl.textContent = `Le montant dépasse le plafond autorisé (${formatMoney(cap)}).`;
+        errorEl.style.display = 'block';
+        return;
+      }
       try {
         await requestLoan({ amount, purpose, termMonths });
         await draw();
@@ -147,12 +175,43 @@ export async function renderClientLoans(app, profile) {
 
     content.querySelectorAll('.repay-early').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!await showConfirm('Confirmer le remboursement anticipé du solde restant ?')) return;
+        const loanId = btn.getAttribute('data-id');
+        // Le montant réellement prélevé est la somme des échéances RESTANTES
+        // (capital + intérêts), pas le seul capital restant dû affiché dans le
+        // tableau. Le client confirmait jusqu'ici un montant qu'il ne voyait
+        // nulle part — et depuis la migration 0027 la banque refuse le
+        // prélèvement s'il dépasse le solde du compte.
+        const schedule = await getLoanSchedule(loanId).catch(() => null);
+        if (schedule === null) {
+          await showAlert('Impossible de charger l’échéancier — réessayez dans un instant.');
+          return;
+        }
+        const payoff = schedule
+          .filter((s) => s.status === 'pending')
+          .reduce((sum, s) => sum + Number(s.amount_due), 0);
+        if (payoff <= 0) {
+          await showAlert('Aucune échéance restante sur ce prêt.');
+          return;
+        }
+        if (payingAccount && payoff > Number(payingAccount.balance)) {
+          await showAlert(
+            `Solde insuffisant : solder ce prêt coûte ${formatMoney(payoff)} et votre compte ${payingAccount.iban} ` +
+            `dispose de ${formatMoney(payingAccount.balance)}.`
+          );
+          return;
+        }
+        const ok = await showConfirm(
+          `Solder ce prêt maintenant ?\n\n` +
+          `Montant prélevé : ${formatMoney(payoff)} (${schedule.filter((s) => s.status === 'pending').length} échéance(s) restante(s), intérêts compris).`
+        );
+        if (!ok) return;
+        btn.disabled = true;
         try {
-          await repayLoanEarly(btn.getAttribute('data-id'));
+          await repayLoanEarly(loanId);
           await draw();
         } catch (err) {
           await showAlert(err.message || 'Erreur lors du remboursement.');
+          btn.disabled = false;
         }
       });
     });

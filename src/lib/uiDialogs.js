@@ -20,6 +20,21 @@ function buildOverlay() {
   return overlay;
 }
 
+// Les messages passés à ces trois fonctions viennent souvent du serveur, et
+// contiennent parfois des données saisies par un autre joueur (nom affiché,
+// libellé d'une demande, message d'erreur PostgreSQL qui reprend une valeur).
+// Ils étaient insérés tels quels dans du HTML : un nom contenant une balise
+// s'exécutait dans le navigateur de celui qui lisait le message. Aucun appelant
+// ne passe volontairement du HTML — l'échappement est donc systématique.
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildCard(bodyHtml) {
   const card = document.createElement('div');
   card.className = 'card';
@@ -33,7 +48,7 @@ export function showAlert(message) {
     const overlay = buildOverlay();
     overlay.appendChild(
       buildCard(`
-        <p style="margin:0 0 16px; white-space:pre-wrap;">${String(message ?? '')}</p>
+        <p style="margin:0 0 16px; white-space:pre-wrap;">${esc(message)}</p>
         <button class="btn btn-primary ui-dialog-ok" style="width:100%;">OK</button>
       `)
     );
@@ -49,7 +64,7 @@ export function showConfirm(message) {
     const overlay = buildOverlay();
     overlay.appendChild(
       buildCard(`
-        <p style="margin:0 0 16px; white-space:pre-wrap;">${String(message ?? '')}</p>
+        <p style="margin:0 0 16px; white-space:pre-wrap;">${esc(message)}</p>
         <div class="flex gap-sm">
           <button class="btn btn-ghost ui-dialog-cancel" style="flex:1;">Annuler</button>
           <button class="btn btn-primary ui-dialog-ok" style="flex:1;">Confirmer</button>
@@ -69,8 +84,8 @@ export function showPrompt(message, defaultValue = '') {
     const overlay = buildOverlay();
     overlay.appendChild(
       buildCard(`
-        <p style="margin:0 0 12px; white-space:pre-wrap;">${String(message ?? '')}</p>
-        <input type="text" class="ui-dialog-input" value="${String(defaultValue ?? '').replace(/"/g, '&quot;')}" style="width:100%; margin-bottom:16px;" />
+        <p style="margin:0 0 12px; white-space:pre-wrap;">${esc(message)}</p>
+        <input type="text" class="ui-dialog-input" value="${esc(defaultValue)}" style="width:100%; margin-bottom:16px;" />
         <div class="flex gap-sm">
           <button class="btn btn-ghost ui-dialog-cancel" style="flex:1;">Annuler</button>
           <button class="btn btn-primary ui-dialog-ok" style="flex:1;">Valider</button>

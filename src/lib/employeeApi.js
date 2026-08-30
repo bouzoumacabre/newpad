@@ -265,6 +265,17 @@ export async function getAvailableSafeBoxesForAssignment() {
   return unwrap(await supabase.from('safe_deposit_boxes').select('*').eq('status', 'available').order('weekly_fee', { ascending: true }));
 }
 
+// Parc complet, visible du personnel (politique RLS `safe_boxes_select`,
+// migration 0029). Sert à surveiller les locations en cours et à les résilier.
+export async function getSafeBoxesForStaff() {
+  return unwrap(await supabase.from('safe_deposit_boxes').select('*, profiles!safe_deposit_boxes_client_id_fkey(display_name, username)').order('code', { ascending: true }));
+}
+
+export async function endSafeRental(boxId, note) {
+  const { error } = await supabase.rpc('end_safe_rental', { p_box_id: boxId, p_note: note || null });
+  if (error) throw error;
+}
+
 export async function claimSafeRequest(id, safeBoxId, appointmentAt, appointmentLocation) {
   const { error } = await supabase.rpc('claim_safe_request', {
     p_request_id: id,

@@ -1,7 +1,7 @@
 import { renderAdminShell } from './shell.js';
-import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple } from '../../lib/employeeApi.js';
+import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple, endSafeRental } from '../../lib/employeeApi.js';
 import { getAllSafeBoxes, adminCreateSafeBox, adminUpdateSafeBox } from '../../lib/adminApi.js';
-import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderAdminSafes(app, profile) {
@@ -100,30 +100,74 @@ export async function renderAdminSafes(app, profile) {
         ${
           allBoxes.length
             ? `<table>
-                <thead><tr><th>Code</th><th>Agence</th><th>Statut</th><th>Locataire</th><th style="text-align:right;">Loyer/semaine</th><th></th></tr></thead>
+                <thead><tr><th>Code</th><th>Agence</th><th>Statut</th><th>Locataire</th><th>Prochain prélèvement</th><th style="text-align:right;">Loyer/semaine</th><th></th></tr></thead>
                 <tbody>
                   ${allBoxes
-                    .map(
-                      (b) => `
+                    .map((b) => {
+                      const next = b.status === 'rented' && b.last_charged_at
+                        ? new Date(new Date(b.last_charged_at).getTime() + 7 * 86400000)
+                        : null;
+                      return `
                     <tr>
                       <td style="font-weight:600;">${escapeHtml(b.code)}</td>
-                      <td class="muted">${escapeHtml(b.branch)}</td>
+                      <td class="muted">
+                        <input type="text" class="box-branch" data-id="${b.id}" value="${escapeHtml(b.branch || '')}" style="width:180px; padding:4px 8px; font-size:12px;" />
+                      </td>
                       <td>${statusBadge(b.status)}</td>
                       <td class="muted">${escapeHtml(b.profiles?.display_name || '—')}</td>
+                      <td class="muted">${next ? formatDate(next) : '—'}</td>
                       <td style="text-align:right;">
                         <input type="number" class="box-fee" data-id="${b.id}" value="${b.weekly_fee}" min="0" step="0.01" style="width:100px; padding:4px 8px; font-size:12px; text-align:right;" />
                       </td>
-                      <td><button class="btn btn-secondary box-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button></td>
+                      <td style="white-space:nowrap;">
+                        <button class="btn btn-secondary box-save" data-id="${b.id}" style="padding:4px 10px; font-size:12px;">Enregistrer</button>
+                        ${b.status === 'rented' ? `<button class="btn btn-danger end-rental" data-id="${b.id}" data-code="${escapeHtml(b.code)}" style="padding:4px 10px; font-size:12px; margin-left:6px;">Résilier</button>` : ''}
+                        ${b.status === 'reserved' ? `<button class="btn btn-ghost box-free" data-id="${b.id}" style="padding:4px 10px; font-size:12px; margin-left:6px;">Libérer</button>` : ''}
+                      </td>
                     </tr>
-                  `
-                    )
+                  `;
+                    })
                     .join('')}
                 </tbody>
               </table>`
             : `<p class="muted">Aucun coffre enregistré.</p>`
         }
+        <p class="muted" style="font-size:12px; margin:12px 0 0;">
+          « Résilier » met fin à une location en cours : le prélèvement hebdomadaire s’arrête, le client est notifié et le coffre
+          redevient disponible. « Libérer » annule une réservation restée en attente après un rendez-vous non honoré.
+        </p>
       </div>
     `;
+
+    content.querySelectorAll('.end-rental').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const code = btn.getAttribute('data-code');
+        if (!(await showConfirm(`Résilier la location du coffre ${code} ? Le prélèvement hebdomadaire cessera immédiatement et le client sera notifié.`))) return;
+        const note = await showPrompt('Motif communiqué au client (optionnel) :');
+        btn.disabled = true;
+        try {
+          await endSafeRental(btn.getAttribute('data-id'), note || null);
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Erreur lors de la résiliation.');
+          btn.disabled = false;
+        }
+      });
+    });
+
+    content.querySelectorAll('.box-free').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!(await showConfirm('Remettre ce coffre en disponibilité ?'))) return;
+        btn.disabled = true;
+        try {
+          await adminUpdateSafeBox(btn.getAttribute('data-id'), { status: 'available' });
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Erreur.');
+          btn.disabled = false;
+        }
+      });
+    });
 
     content.querySelectorAll('.simple-approve-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -188,8 +232,9 @@ export async function renderAdminSafes(app, profile) {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         const fee = parseFloat(content.querySelector(`.box-fee[data-id="${id}"]`).value);
+        const branch = content.querySelector(`.box-branch[data-id="${id}"]`).value.trim();
         if (isNaN(fee) || fee < 0) { await showAlert('Loyer hebdomadaire invalide.'); return; }
-        try { await adminUpdateSafeBox(id, { weeklyFee: fee }); await draw(); }
+        try { await adminUpdateSafeBox(id, { weeklyFee: fee, branch: branch || null }); await draw(); }
         catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });

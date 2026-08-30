@@ -1,6 +1,6 @@
 import { renderEmployeeShell } from './shell.js';
-import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple } from '../../lib/employeeApi.js';
-import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple, getSafeBoxesForStaff, endSafeRental } from '../../lib/employeeApi.js';
+import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 
 export async function renderEmployeeSafes(app, profile) {
@@ -8,10 +8,12 @@ export async function renderEmployeeSafes(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [requests, availableBoxes] = await Promise.all([
+    const [requests, availableBoxes, allBoxes] = await Promise.all([
       getSafeRequestsQueue().catch(() => []),
       getAvailableSafeBoxesForAssignment().catch(() => []),
+      getSafeBoxesForStaff().catch(() => []),
     ]);
+    const rentedBoxes = allBoxes.filter((b) => b.status === 'rented');
     const relevant = requests.filter((r) => r.status === 'pending' || r.status === 'processing');
 
     content.innerHTML = `
@@ -72,7 +74,53 @@ export async function renderEmployeeSafes(app, profile) {
             : `<p class="muted">Aucune demande en attente.</p>`
         }
       </div>
+
+      <h3 style="margin:24px 0 12px;">Locations en cours (${rentedBoxes.length})</h3>
+      <div class="card">
+        ${
+          rentedBoxes.length
+            ? `<table>
+                <thead><tr><th>Coffre</th><th>Locataire</th><th>Depuis</th><th>Prochain prélèvement</th><th style="text-align:right;">Loyer/semaine</th><th></th></tr></thead>
+                <tbody>
+                  ${rentedBoxes
+                    .map((b) => {
+                      const next = b.last_charged_at
+                        ? new Date(new Date(b.last_charged_at).getTime() + 7 * 86400000)
+                        : null;
+                      return `
+                    <tr>
+                      <td style="font-weight:600;">${escapeHtml(b.code)}<div class="muted" style="font-size:11px; font-weight:400;">${escapeHtml(b.branch || '—')}</div></td>
+                      <td>${escapeHtml(b.profiles?.display_name || '—')}</td>
+                      <td class="muted">${formatDate(b.rented_since)}</td>
+                      <td class="muted">${next ? formatDate(next) : '—'}</td>
+                      <td style="text-align:right;">${formatMoney(b.weekly_fee)}</td>
+                      <td style="text-align:right;"><button class="btn btn-danger end-rental" data-id="${b.id}" data-code="${escapeHtml(b.code)}" style="padding:4px 10px; font-size:12px;">Mettre fin</button></td>
+                    </tr>
+                  `;
+                    })
+                    .join('')}
+                </tbody>
+              </table>`
+            : `<p class="muted">Aucun coffre loué actuellement.</p>`
+        }
+      </div>
     `;
+
+    content.querySelectorAll('.end-rental').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const code = btn.getAttribute('data-code');
+        if (!(await showConfirm(`Mettre fin à la location du coffre ${code} ? Le prélèvement hebdomadaire cessera et le coffre redeviendra disponible.`))) return;
+        const note = await showPrompt('Motif communiqué au client (optionnel) :');
+        btn.disabled = true;
+        try {
+          await endSafeRental(btn.getAttribute('data-id'), note || null);
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Erreur lors de la résiliation.');
+          btn.disabled = false;
+        }
+      });
+    });
 
     content.querySelectorAll('.simple-approve-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {

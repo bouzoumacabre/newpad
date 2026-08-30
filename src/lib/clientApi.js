@@ -181,6 +181,13 @@ export async function requestSafeBox() {
   return unwrap(await supabase.rpc('submit_safe_request'));
 }
 
+// Résiliation d'une location (migration 0027). Le contrôle de propriété est
+// fait côté serveur : un client ne peut résilier que son propre coffre.
+export async function endSafeRental(boxId, note) {
+  const { error } = await supabase.rpc('end_safe_rental', { p_box_id: boxId, p_note: note || null });
+  if (error) throw error;
+}
+
 // ----------------------------------------------------------------------------
 // PRÊTS PROFESSIONNELS
 // ----------------------------------------------------------------------------
