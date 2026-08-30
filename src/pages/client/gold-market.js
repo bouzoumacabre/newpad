@@ -8,6 +8,7 @@ import {
   buyFromMarket,
   getMyMarketPurchaseRequests,
   getEconomicSetting,
+  getMyAccounts,
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
@@ -17,16 +18,22 @@ export async function renderClientGoldMarket(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting] = await Promise.all([
+    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, accounts] = await Promise.all([
       getMarketListings().catch(() => []),
       getMyMarketListings().catch(() => []),
       getMyGoldBars().catch(() => []),
       getMyMarketPurchaseRequests().catch(() => []),
       getEconomicSetting('gold_listing_min_price').catch(() => null),
       getEconomicSetting('gold_listing_max_price').catch(() => null),
+      getMyAccounts().catch(() => []),
     ]);
 
     const sellableBars = myBars.filter((b) => b.status === 'in_vault');
+    // Compte réellement débité par la banque (même ordre que côté serveur).
+    // Depuis le correctif 0025, un achat ne peut plus créer de découvert.
+    const payingAccount = accounts
+      .filter((a) => a.status === 'active')
+      .sort((a, b) => new Date(a.opened_at) - new Date(b.opened_at))[0] || null;
     const minPrice = minSetting?.amount ?? 0;
     const maxPrice = maxSetting?.amount ?? 999999999;
 
@@ -44,7 +51,7 @@ export async function renderClientGoldMarket(app, profile) {
             <div class="muted" style="font-size:11px;">N° ${escapeHtml(l.gold_bars?.serial_number || '')}</div>
             <div class="font-display" style="font-size:18px; margin:6px 0;">${l.gold_bars?.weight_grams} g</div>
             <div class="gold" style="font-weight:600; margin-bottom:10px;">${formatMoney(l.listed_price)}</div>
-            <button class="btn btn-primary buy-listing" data-id="${l.id}" style="width:100%; font-size:13px;">Acheter</button>
+            <button class="btn btn-primary buy-listing" data-id="${l.id}" data-price="${l.listed_price}" style="width:100%; font-size:13px;">Acheter</button>
           </div>
         `
                 )
@@ -122,7 +129,19 @@ export async function renderClientGoldMarket(app, profile) {
 
     content.querySelectorAll('.buy-listing').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!await showConfirm('Confirmer l\'achat de ce lingot ?')) return;
+        const price = Number(btn.getAttribute('data-price') || 0);
+        if (!payingAccount) {
+          await showAlert("Vous n'avez aucun compte actif pour régler cet achat.");
+          return;
+        }
+        if (price > Number(payingAccount.balance)) {
+          await showAlert(
+            `Solde insuffisant : ce lingot coûte ${formatMoney(price)} et votre compte ${payingAccount.iban} ` +
+            `dispose de ${formatMoney(payingAccount.balance)}.`
+          );
+          return;
+        }
+        if (!await showConfirm(`Confirmer l'achat de ce lingot pour ${formatMoney(price)} ?`)) return;
         btn.disabled = true;
         try {
           await buyFromMarket(btn.getAttribute('data-id'));
