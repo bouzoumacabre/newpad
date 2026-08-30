@@ -381,9 +381,17 @@ export async function createManualFraudAlert({ severity, clientId, description }
   );
 }
 
-export async function updateFraudAlertStatus(id, status) {
-  const user = await requireUser();
-  const { error } = await supabase.from('fraud_alerts').update({ status, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', id);
+// Passe par une fonction serveur depuis la migration 0031. L'écriture directe
+// qui existait ici s'appuyait sur une policy autorisant le personnel à modifier
+// N'IMPORTE QUELLE colonne d'une alerte — description et client visé compris.
+// Un employé mis en cause par une alerte automatique pouvait donc la réécrire.
+// Seuls le statut, le relecteur et la note de traitement sont modifiables.
+export async function updateFraudAlertStatus(id, status, note) {
+  const { error } = await supabase.rpc('set_fraud_alert_status', {
+    p_id: id,
+    p_status: status,
+    p_note: note || null,
+  });
   if (error) throw error;
 }
 
@@ -433,8 +441,22 @@ export async function resolveSupportTicket(ticketId) {
 // JOURNAL D'ACTIVITÉ
 // ----------------------------------------------------------------------------
 
-export async function getAuditLog(limit = 100) {
-  return unwrap(await supabase.from('audit_log').select('*, profiles(display_name, username)').order('created_at', { ascending: false }).limit(limit));
+// Recherche et filtres côté serveur (migration 0031). L'écran chargeait
+// jusqu'ici les N dernières lignes sans aucun moyen de retrouver une action
+// précise — « qui a validé ce virement » se cherchait à l'œil.
+export async function getAuditLog({ search, action, role, limit = 200 } = {}) {
+  return unwrap(
+    await supabase.rpc('staff_list_audit_log', {
+      p_search: search || null,
+      p_action: action || null,
+      p_role: role || null,
+      p_limit: limit,
+    })
+  );
+}
+
+export async function getAuditActions() {
+  return unwrap(await supabase.rpc('list_audit_actions'));
 }
 
 // ----------------------------------------------------------------------------

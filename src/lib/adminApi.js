@@ -164,6 +164,25 @@ export async function adjustCashierReport(reportId, amount, note) {
   if (error) throw error;
 }
 
+// Historique des tentatives de connexion (migration 0031). La table est
+// alimentée depuis l'origine et lisible par l'admin, mais aucun écran ne
+// l'affichait : la détection d'échecs répétés produisait une alerte sans que
+// personne ne puisse consulter les tentatives qui l'avaient déclenchée.
+export async function getLoginLog({ search, onlyFailures = false, limit = 200 } = {}) {
+  return unwrap(
+    await supabase.rpc('admin_list_login_log', {
+      p_search: search || null,
+      p_only_failures: onlyFailures,
+      p_limit: limit,
+    })
+  );
+}
+
+// Comptes clôturés à solde non nul et comptes débiteurs (migration 0032).
+export async function getAccountAnomalies() {
+  return unwrap(await supabase.rpc('admin_list_account_anomalies'));
+}
+
 // ----------------------------------------------------------------------------
 // COMPTES & PROFILS — statuts, rôles, exceptions
 // ----------------------------------------------------------------------------
