@@ -6,7 +6,7 @@
 // ============================================================================
 
 import { listStaffTransactions, listDistinctTxTypes, getClientCategories } from '../../lib/employeeApi.js';
-import { adminUpdateTransactionDescription } from '../../lib/adminApi.js';
+import { adminUpdateTransactionDescription, adminCorrectTransactionAmount } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml, txTypeLabel } from '../../lib/format.js';
 import { showPrompt, showAlert } from '../../lib/uiDialogs.js';
 
@@ -63,7 +63,10 @@ export async function renderTransactionsScreen(content, { canEdit = false } = {}
                       <td style="text-align:right;" class="muted">${formatMoney(t.fee_amount)}</td>
                       <td>${statusBadge(t.status)}</td>
                       <td class="muted">${escapeHtml(t.description || '—')}</td>
-                      ${canEdit ? `<td><button class="btn btn-ghost tx-edit-desc" data-id="${t.id}" data-desc="${escapeHtml(t.description || '')}" style="padding:4px 8px; font-size:12px;">Modifier</button></td>` : ''}
+                      ${canEdit ? `<td style="white-space:nowrap;">
+                        <button class="btn btn-ghost tx-edit-desc" data-id="${t.id}" data-desc="${escapeHtml(t.description || '')}" style="padding:4px 8px; font-size:12px;">Libellé</button>
+                        <button class="btn btn-ghost tx-edit-amount" data-id="${t.id}" data-amount="${t.amount}" data-fee="${t.fee_amount ?? 0}" style="padding:4px 8px; font-size:12px; color:var(--gold-light);">Montant</button>
+                      </td>` : ''}
                     </tr>
                   `
                     )
@@ -95,6 +98,51 @@ export async function renderTransactionsScreen(content, { canEdit = false } = {}
           await draw();
         } catch (err) {
           await showAlert(err.message || 'Erreur.');
+        }
+      });
+    });
+
+    // Correction du montant d'une transaction passée. L'écart est répercuté
+    // sur les soldes des deux comptes concernés (migration 0024) : l'historique
+    // et les soldes ne peuvent donc pas diverger.
+    content.querySelectorAll('.tx-edit-amount').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const currentAmount = btn.getAttribute('data-amount');
+        const currentFee = btn.getAttribute('data-fee');
+
+        const rawAmount = await showPrompt(
+          `Nouveau montant de la transaction (actuellement ${formatMoney(currentAmount)}).\n\n` +
+          `Les soldes des comptes concernés seront ajustés automatiquement de la différence.`,
+          currentAmount
+        );
+        if (rawAmount === null) return;
+        const newAmount = parseFloat(String(rawAmount).replace(',', '.'));
+        if (Number.isNaN(newAmount) || newAmount < 0) {
+          await showAlert('Montant invalide.');
+          return;
+        }
+
+        const rawFee = await showPrompt(
+          `Commission prélevée par la banque sur cette transaction (actuellement ${formatMoney(currentFee)}).\n\n` +
+          `Laissez tel quel si elle ne change pas.`,
+          currentFee
+        );
+        if (rawFee === null) return;
+        const newFee = parseFloat(String(rawFee).replace(',', '.'));
+        if (Number.isNaN(newFee) || newFee < 0) {
+          await showAlert('Commission invalide.');
+          return;
+        }
+
+        const note = await showPrompt('Motif de la correction (visible dans le libellé et le journal) :', '');
+        if (note === null) return;
+
+        try {
+          await adminCorrectTransactionAmount(id, newAmount, note.trim(), newFee);
+          await draw();
+        } catch (err) {
+          await showAlert(err.message || 'Correction impossible.');
         }
       });
     });

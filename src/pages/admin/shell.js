@@ -51,6 +51,7 @@ export async function renderAdminShell(app, profile, activeKey) {
         { key: 'irs-accounts', label: 'Comptes IRS', path: '/admin/irs-accounts', icon: '⌘' },
         ...(has('admin.masking.manage') ? [{ key: 'visibility', label: 'Masquage', path: '/admin/visibility', icon: '◐' }] : []),
         { key: 'economic-settings', label: 'Pilotage économique', path: '/admin/economic-settings', icon: '⚖' },
+        ...(has('admin.treasury.manage') ? [{ key: 'treasury', label: 'Trésorerie & émission', path: '/admin/treasury', icon: '⛃' }] : []),
         ...(has('admin.content.manage') ? [{ key: 'cms', label: 'Contenu du site', path: '/admin/cms', icon: '▧' }] : []),
         ...(has('admin.system.config') ? [{ key: 'system', label: 'Configuration système', path: '/admin/system', icon: '⚙' }] : []),
       ],

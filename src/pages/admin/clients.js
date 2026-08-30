@@ -321,9 +321,19 @@ export async function renderAdminClients(app, profile, params = {}) {
         if (isNaN(amount) || amount === 0) { await showAlert('Montant invalide.'); return; }
         const note = await showPrompt('Motif de l\'ajustement (visible dans l\'historique) :');
         if (note === null) return;
-        if (!(await showConfirm(`Confirmer l'ajustement de ${amount > 0 ? '+' : ''}${amount} $ sur ce compte ? La contrepartie sera débitée/créditée sur les fonds propres de la banque.`))) return;
+        // Choix de la contrepartie (migration 0024) : soit l'argent vient des
+        // fonds propres de la banque, soit il est créé/détruit. Le second cas
+        // change la masse monétaire du serveur, il doit être choisi sciemment.
+        const emission = await showConfirm(
+          `Confirmer l'ajustement de ${amount > 0 ? '+' : ''}${amount} $ sur ce compte ?\n\n` +
+          `OK = ÉMISSION MONÉTAIRE : l'argent est créé (ou détruit). La masse monétaire du serveur change.\n` +
+          `Annuler = choisir plutôt la contrepartie normale (fonds propres de la banque).`
+        );
+        if (!emission) {
+          if (!(await showConfirm(`Ajuster de ${amount > 0 ? '+' : ''}${amount} $ avec contrepartie sur les fonds propres de la banque ?`))) return;
+        }
         try {
-          await adminAdjustAccountBalance(id, amount, note || null);
+          await adminAdjustAccountBalance(id, amount, note || null, emission ? 'issuance' : 'treasury');
           await draw();
         } catch (err) { await showAlert(err.message || 'Erreur.'); }
       });

@@ -43,6 +43,48 @@ export async function checkLedgerIntegrity() {
 }
 
 // ----------------------------------------------------------------------------
+// PILOTAGE DIRECT DES MONTANTS (admin)
+// ----------------------------------------------------------------------------
+// `counterpart` détermine d'où vient l'argent :
+//   'treasury' — mouvement depuis/vers la trésorerie de la banque. La masse
+//                monétaire totale du serveur ne change pas.
+//   'issuance' — émission monétaire : création ou destruction de valeur. La
+//                masse totale change délibérément, et l'opération est tracée
+//                comme telle (type `money_issuance`).
+// Dans les deux cas une ligne est écrite au grand livre : le solde affiché
+// reste égal à son historique, donc le contrôle d'intégrité reste vert.
+
+export async function adminSetAccountBalance(accountId, newBalance, note, counterpart = 'treasury') {
+  return unwrap(await supabase.rpc('admin_set_account_balance', {
+    p_account_id: accountId,
+    p_new_balance: newBalance,
+    p_note: note || null,
+    p_counterpart: counterpart,
+  }));
+}
+
+export async function adminCorrectTransactionAmount(transactionId, newAmount, note, newFee = null) {
+  const { error } = await supabase.rpc('admin_correct_transaction_amount', {
+    p_transaction_id: transactionId,
+    p_new_amount: newAmount,
+    p_note: note || null,
+    p_new_fee: newFee,
+  });
+  if (error) throw error;
+}
+
+// Tous les comptes de la banque et des clients, pour l'écran de trésorerie.
+export async function getAllAccountsForAdmin() {
+  return unwrap(
+    await supabase
+      .from('accounts')
+      .select('*, profiles!accounts_client_id_fkey(display_name, username)')
+      .order('is_bank_treasury', { ascending: false })
+      .order('balance', { ascending: false })
+  );
+}
+
+// ----------------------------------------------------------------------------
 // PRÊTS — décision finale (admin uniquement)
 // ----------------------------------------------------------------------------
 
@@ -135,8 +177,13 @@ export async function adminSetAccountStatus(accountId, status) {
 // systématique sur les fonds propres de la banque (jamais d'argent créé ou
 // détruit) + ligne dans l'historique des transactions (tx_type
 // 'admin_adjustment', déjà prévu dans le schéma mais jamais implémenté).
-export async function adminAdjustAccountBalance(accountId, amount, note) {
-  return unwrap(await supabase.rpc('admin_adjust_account_balance', { p_account_id: accountId, p_amount: amount, p_note: note || null }));
+export async function adminAdjustAccountBalance(accountId, amount, note, counterpart = 'treasury') {
+  return unwrap(await supabase.rpc('admin_adjust_account_balance', {
+    p_account_id: accountId,
+    p_amount: amount,
+    p_note: note || null,
+    p_counterpart: counterpart,
+  }));
 }
 
 // Suppression définitive — refusée côté serveur si le compte a un solde non

@@ -59,6 +59,7 @@ import { renderAdminPermissions } from './pages/admin/permissions.js';
 import { renderAdminIrsAccounts } from './pages/admin/irs-accounts.js';
 import { renderAdminVisibility } from './pages/admin/visibility.js';
 import { renderAdminEconomicSettings } from './pages/admin/economic-settings.js';
+import { renderAdminTreasury } from './pages/admin/treasury.js';
 import { renderAdminCms } from './pages/admin/cms.js';
 import { renderAdminSystem } from './pages/admin/system.js';
 import { renderIrsDashboard } from './pages/irs/dashboard.js';
@@ -197,6 +198,7 @@ route('/admin/permissions', async () => guardedRoleRender('admin', (p) => render
 route('/admin/irs-accounts', async () => guardedRoleRender('admin', (p) => renderAdminIrsAccounts(app, p)));
 route('/admin/visibility', async () => guardedRoleRender('admin', (p) => renderAdminVisibility(app, p)));
 route('/admin/economic-settings', async () => guardedRoleRender('admin', (p) => renderAdminEconomicSettings(app, p)));
+route('/admin/treasury', async () => guardedRoleRender('admin', (p) => renderAdminTreasury(app, p)));
 route('/admin/cms', async () => guardedRoleRender('admin', (p) => renderAdminCms(app, p)));
 route('/admin/system', async () => guardedRoleRender('admin', (p) => renderAdminSystem(app, p)));
 

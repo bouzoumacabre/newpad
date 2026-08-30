@@ -236,6 +236,15 @@ export async function renderClientTransfers(app, profile) {
       errorEl.style.display = 'block';
       return;
     }
+    // Doublon du garde-fou serveur (correctif 0023) : un virement ne peut plus
+    // rendre le compte émetteur négatif. Dit ici tout de suite, avec le solde
+    // réellement disponible, plutôt qu'après un aller-retour réseau.
+    const sender = usableAccounts.find((a) => a.id === senderAccountId);
+    if (sender && amount > Number(sender.balance)) {
+      errorEl.textContent = `Solde insuffisant : ${formatMoney(sender.balance)} disponibles sur ce compte.`;
+      errorEl.style.display = 'block';
+      return;
+    }
 
     const btn = document.getElementById('submit-transfer');
     btn.disabled = true;
