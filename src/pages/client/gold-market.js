@@ -12,13 +12,14 @@ import {
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 export async function renderClientGoldMarket(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold-market');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, accounts] = await Promise.all([
+    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, accounts, goldPrice] = await Promise.all([
       getMarketListings().catch(() => []),
       getMyMarketListings().catch(() => []),
       getMyGoldBars().catch(() => []),
@@ -26,6 +27,7 @@ export async function renderClientGoldMarket(app, profile) {
       getEconomicSetting('gold_listing_min_price').catch(() => null),
       getEconomicSetting('gold_listing_max_price').catch(() => null),
       getMyAccounts().catch(() => []),
+      getGoldPrice().catch(() => null),
     ]);
 
     const sellableBars = myBars.filter((b) => b.status === 'in_vault');
@@ -38,7 +40,8 @@ export async function renderClientGoldMarket(app, profile) {
     const maxPrice = maxSetting?.amount ?? 999999999;
 
     content.innerHTML = `
-      <h1 style="margin-bottom:20px;">Marché de revente de lingots</h1>
+      <h1 style="margin-bottom:14px;">Marché de revente de lingots</h1>
+      ${renderGoldTicker(goldPrice)}
 
       <h3 style="margin-bottom:12px;">Annonces actives</h3>
       <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-bottom:28px;">

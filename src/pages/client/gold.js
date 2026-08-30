@@ -2,21 +2,20 @@ import { renderClientShell } from './shell.js';
 import { getBankGoldStock, getMyGoldBars, buyGoldFromBank, getMyGoldPurchaseRequests, getEconomicSetting, getMyAccounts } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
-
-// 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
-const GRAMS_PER_TROY_OUNCE = 31.1034768;
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 export async function renderClientGold(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [stock, myBars, myRequests, priceSetting, accounts] = await Promise.all([
+    const [stock, myBars, myRequests, priceSetting, accounts, goldPrice] = await Promise.all([
       getBankGoldStock().catch(() => []),
       getMyGoldBars().catch(() => []),
       getMyGoldPurchaseRequests().catch(() => []),
       getEconomicSetting('gold_price_per_gram').catch(() => null),
       getMyAccounts().catch(() => []),
+      getGoldPrice().catch(() => null),
     ]);
     // Solde du compte qui paiera réellement : la banque prélève sur le premier
     // compte actif du client (le même ordre que côté serveur). Depuis le
@@ -25,17 +24,13 @@ export async function renderClientGold(app, profile) {
     const payingAccount = accounts
       .filter((a) => a.status === 'active')
       .sort((a, b) => new Date(a.opened_at) - new Date(b.opened_at))[0] || null;
-    const pricePerGram = priceSetting?.amount ?? 60;
-    const pricePerOunce = pricePerGram * GRAMS_PER_TROY_OUNCE;
+    const pricePerGram = Number(goldPrice?.price_per_gram ?? priceSetting?.amount ?? 60);
     const myTotalWeight = myBars.reduce((s, g) => s + Number(g.weight_grams), 0);
     const myTotalValue = myTotalWeight * pricePerGram;
 
     content.innerHTML = `
-      <h1 style="margin-bottom:6px;">Lingots d'or</h1>
-      <p class="muted" style="margin-bottom:20px;">
-        Cours actuel : <span class="gold" style="font-weight:600;">${formatMoney(pricePerGram)}/gramme</span>
-        — <span class="gold" style="font-weight:600;">${formatMoney(pricePerOunce)}/once</span>
-      </p>
+      <h1 style="margin-bottom:14px;">Lingots d'or</h1>
+      ${renderGoldTicker(goldPrice)}
 
       <h3 style="margin-bottom:12px;">Stock disponible à la banque</h3>
       <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom:28px;">

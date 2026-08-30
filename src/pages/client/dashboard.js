@@ -2,17 +2,19 @@ import { renderClientShell } from './shell.js';
 import { getMyAccounts, getMyTotalBalance, getMyTransactions, getCityNews, getMyLoans } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 export async function renderClientDashboard(app, profile) {
   const { content } = await renderClientShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const [accounts, totalFromBank, transactions, news, loans] = await Promise.all([
+  const [accounts, totalFromBank, transactions, news, loans, goldPrice] = await Promise.all([
     getMyAccounts().catch(() => []),
     getMyTotalBalance().catch(() => null),
     getMyTransactions(6).catch(() => []),
     getCityNews().catch(() => []),
     getMyLoans().catch(() => []),
+    getGoldPrice().catch(() => null),
   ]);
 
   // Le « solde total » affiché doit être CELUI QUE LA BANQUE UTILISE, pas une
@@ -33,7 +35,8 @@ export async function renderClientDashboard(app, profile) {
     <div class="flex justify-between items-center" style="margin-bottom:24px; flex-wrap:wrap; gap:12px;">
       <div>
         <h1 style="margin-bottom:4px;">Bienvenue, ${escapeHtml(profile.display_name)}.</h1>
-        <p class="muted" style="margin:0;">Voici un aperçu de votre patrimoine chez Newman Bank.</p>
+        <p class="muted" style="margin:0 0 6px;">Voici un aperçu de votre patrimoine chez Newman Bank.</p>
+        ${goldPrice ? renderGoldTicker(goldPrice, { compact: true }) : ''}
       </div>
       <button class="btn btn-primary" id="quick-transfer">Nouveau virement</button>
     </div>

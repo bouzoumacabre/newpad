@@ -1,16 +1,21 @@
 import { renderIrsShell } from './shell.js';
 import { listIrsGoldBars } from '../../lib/irsApi.js';
 import { formatMoney, statusBadge, escapeHtml } from '../../lib/format.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 export async function renderIrsGold(app, profile) {
   const { content } = await renderIrsShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const bars = await listIrsGoldBars().catch(() => []);
+  const [bars, goldPrice] = await Promise.all([
+    listIrsGoldBars().catch(() => []),
+    getGoldPrice().catch(() => null),
+  ]);
   const totalWeight = bars.reduce((sum, b) => sum + Number(b.weight_grams || 0), 0);
 
   content.innerHTML = `
-    <h1 style="margin-bottom:6px;">Lingots d'or</h1>
+    <h1 style="margin-bottom:14px;">Lingots d'or</h1>
+    ${renderGoldTicker(goldPrice)}
     <p class="muted" style="margin-bottom:20px;">Registre complet en lecture seule — ${bars.length} lingot(s), ${formatMoney(totalWeight).replace(' $', '')} g au total.</p>
 
     <div class="card">

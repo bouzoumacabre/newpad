@@ -2,23 +2,26 @@ import { renderEmployeeShell } from './shell.js';
 import { getGoldBankQueue, decideGoldBankPurchase, getGoldMarketQueue, decideMarketPurchase, getAllMarketListings, cancelMarketListing } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 export async function renderEmployeeGold(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [bankQueue, marketQueue, marketListings] = await Promise.all([
+    const [bankQueue, marketQueue, marketListings, goldPrice] = await Promise.all([
       getGoldBankQueue().catch(() => []),
       getGoldMarketQueue().catch(() => []),
       getAllMarketListings().catch(() => []),
+      getGoldPrice().catch(() => null),
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'bank' }));
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'market' }));
     const allPending = [...bankPending, ...marketPending].sort((a, b) => new Date(b.requested_at) - new Date(a.requested_at));
 
     content.innerHTML = `
-      <h1 style="margin-bottom:20px;">Lingots & marché de revente</h1>
+      <h1 style="margin-bottom:14px;">Lingots & marché de revente</h1>
+      ${renderGoldTicker(goldPrice)}
 
       <h3 style="margin-bottom:12px;">Demandes d'achat en attente (${allPending.length})</h3>
       <div class="card" style="margin-bottom:24px;">

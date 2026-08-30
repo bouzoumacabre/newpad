@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 import { DISCORD_INVITE_URL } from '../../lib/constants.js';
 import { attachExternalLinkCopy } from '../../lib/externalLink.js';
 import { getSystemFlags } from '../../lib/systemSettings.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 import { escapeHtml } from '../../lib/format.js';
 
 // Contenu de secours si la base n'est pas encore joignable (mode démo hors-ligne) —
@@ -67,7 +68,13 @@ async function loadContent() {
 
 export async function renderPublicHome(app) {
   app.innerHTML = `<div class="flex justify-between items-center" style="padding:24px;"><span class="muted">Chargement…</span></div>`;
-  const [c, flags] = await Promise.all([loadContent(), getSystemFlags().catch(() => null)]);
+  const [c, flags, goldPrice] = await Promise.all([
+    loadContent(),
+    getSystemFlags().catch(() => null),
+    // Le cours de l'or est une information de vitrine : une banque l'affiche
+    // publiquement. Lisible sans session depuis la migration 0026.
+    getGoldPrice().catch(() => null),
+  ]);
   const maintenance = flags?.maintenanceEnabled;
 
   app.innerHTML = `
@@ -88,6 +95,7 @@ export async function renderPublicHome(app) {
             <a href="${DISCORD_INVITE_URL}" target="_blank" rel="noopener noreferrer" data-copy="${DISCORD_INVITE_URL}">Discord Newman Bank</a>
             <a href="#/login">Se connecter</a>
           </nav>
+          ${goldPrice ? `<div style="margin-left:auto; margin-right:16px;">${renderGoldTicker(goldPrice, { compact: true })}</div>` : ''}
           <a href="#/signup" class="btn btn-primary">Espace client</a>
         </div>
       </header>

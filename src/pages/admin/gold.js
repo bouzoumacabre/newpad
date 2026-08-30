@@ -14,6 +14,7 @@ import {
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { getFeatureFlags } from '../../lib/features.js';
+import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 
 const GOLD_BAR_STATUSES = ['in_vault', 'listed', 'reserved', 'sold'];
 
@@ -34,11 +35,12 @@ export async function renderAdminGold(app, profile) {
   const canEditRegistry = has('admin.gold.edit_registry');
 
   async function draw() {
-    const [bankQueue, marketQueue, allBars, marketListings] = await Promise.all([
+    const [bankQueue, marketQueue, allBars, marketListings, goldPrice] = await Promise.all([
       getGoldBankQueue().catch(() => []),
       getGoldMarketQueue().catch(() => []),
       getAllGoldBars().catch(() => []),
       getAllMarketListings().catch(() => []),
+      getGoldPrice().catch(() => null),
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'bank' }));
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'market' }));
@@ -51,7 +53,8 @@ export async function renderAdminGold(app, profile) {
     const availableForListing = allBars.filter((b) => b.status === 'in_vault');
 
     content.innerHTML = `
-      <h1 style="margin-bottom:6px;">Lingots & marché de revente</h1>
+      <h1 style="margin-bottom:14px;">Lingots & marché de revente</h1>
+      ${renderGoldTicker(goldPrice)}
       <p class="muted" style="margin-bottom:20px;">
         Lingots en circulation (possédés par des clients) :
         <span class="gold" style="font-weight:600;">${inCirculation.length}</span>
