@@ -84,6 +84,18 @@ Deno.serve(async (req: Request) => {
     }
 
     await admin.from('password_reset_codes').update({ used_at: new Date().toISOString() }).eq('id', reset.id);
+
+    // Déconnexion de toutes les sessions ouvertes sur ce compte.
+    // Sans cela, changer son mot de passe ne chassait personne : les jetons de
+    // rafraîchissement déjà émis restaient valides. Or le cas d'usage principal
+    // d'une réinitialisation est le compte compromis — le propriétaire
+    // reprenait la main pendant que l'intrus conservait son accès intact.
+    // Échec non bloquant : le mot de passe est déjà changé, on ne va pas
+    // annuler l'opération parce que le nettoyage des sessions a raté.
+    try {
+      await admin.rpc('revoke_user_sessions', { p_user_id: profile.id });
+    } catch (_) { /* voir commentaire ci-dessus */ }
+
     await admin.from('audit_log').insert({
       actor_id: profile.id,
       actor_role: profile.role,
