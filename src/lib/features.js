@@ -1,25 +1,57 @@
 // ============================================================================
-// NEWPAD — Résolution générique des fonctionnalités activées pour l'utilisateur
-// courant (registre `feature_registry` + exceptions `permission_grants`),
-// réutilisée par les coquilles Client et Employé.
+// NEWPAD — Résolution des fonctionnalités activées pour l'utilisateur courant.
+// ============================================================================
+// La règle (registre `feature_registry` + rôle par défaut + exception par
+// compte `permission_grants`) était réimplémentée ici, dans le navigateur, en
+// parallèle de `has_feature()` côté base. Deux implémentations de la même règle
+// finissent toujours par diverger — et surtout, jusqu'à la migration 0033,
+// celle-ci était la SEULE à s'exécuter : aucune fonction serveur n'appelait
+// `has_feature`. Décocher une fonctionnalité ne faisait donc que masquer des
+// boutons, la fonction restant appelable via l'API REST.
+//
+// Depuis 0033, le serveur refuse lui-même l'appel (`require_feature`), et cet
+// écran ne fait plus qu'afficher ce que la base a décidé : `my_feature_flags()`
+// renvoie, pour chaque clé du registre, la réponse de `has_feature`.
 // ============================================================================
 
 import { supabase } from './supabaseClient.js';
 
-export async function getFeatureFlags(area, role) {
+let cache = null;
+
+async function loadFlags() {
+  if (cache) return cache;
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return {};
-  const [{ data: features, error: e1 }, { data: grants, error: e2 }] = await Promise.all([
-    supabase.from('feature_registry').select('*').eq('area', area),
-    supabase.from('permission_grants').select('feature_key, granted').eq('account_id', user.id),
-  ]);
-  if (e1) throw e1;
-  if (e2) throw e2;
-  const overrides = new Map((grants || []).map((g) => [g.feature_key, g.granted]));
+  if (!user) return [];
+  const { data, error } = await supabase.rpc('my_feature_flags');
+  if (error) throw error;
+  cache = data || [];
+  return cache;
+}
+
+// Le cache vit le temps d'une session de navigation. Il est vidé après un
+// changement de permissions depuis /admin/permissions, pour que l'écran
+// reflète immédiatement ce qui vient d'être enregistré.
+export function invalidateFeatureCache() {
+  cache = null;
+}
+
+/**
+ * @param {string} area - 'client' | 'employee' | 'admin' | 'irs'
+ * @param {string} _role - conservé pour compatibilité d'appel ; le rôle est
+ *   désormais déterminé côté serveur à partir de la session, jamais transmis
+ *   par le navigateur.
+ */
+export async function getFeatureFlags(area, _role) {
+  const rows = await loadFlags();
   const flags = {};
-  for (const f of features || []) {
-    if (overrides.has(f.key)) { flags[f.key] = f.enabled && overrides.get(f.key); }
-    else { flags[f.key] = f.enabled && (f.default_roles || []).includes(role); }
+  for (const r of rows) {
+    if (!area || r.area === area) flags[r.key] = r.allowed;
   }
   return flags;
+}
+
+// Toutes zones confondues — utile aux écrans qui recoupent plusieurs domaines.
+export async function getAllFeatureFlags() {
+  const rows = await loadFlags();
+  return Object.fromEntries(rows.map((r) => [r.key, r.allowed]));
 }

@@ -11,6 +11,7 @@ import {
 } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { invalidateFeatureCache } from '../../lib/features.js';
 
 const ROLES = ['prospect', 'client', 'employee', 'admin', 'irs'];
 const AREAS = ['client', 'employee', 'admin', 'irs', 'public'];
@@ -40,7 +41,13 @@ export async function renderAdminPermissions(app, profile) {
     const grouped = groupByArea(features);
 
     content.innerHTML = `
-      <h1 style="margin-bottom:20px;">Permissions</h1>
+      <h1 style="margin-bottom:6px;">Permissions</h1>
+      <p class="muted" style="margin-bottom:20px; font-size:13px;">
+        Décocher « Actif » coupe la fonctionnalité pour <strong>tout le monde</strong>, administration comprise, et le serveur
+        refuse alors l'appel — pas seulement le bouton. Deux clés font exception et restent toujours ouvertes à l'admin,
+        <span class="muted">admin.permissions.manage</span> et <span class="muted">admin.system.config</span> : sans elles,
+        décocher la mauvaise case enfermerait l'administration hors de ses propres commandes.
+      </p>
 
       <h3 style="margin-bottom:12px;">Registre de fonctionnalités</h3>
       ${AREAS.filter((a) => grouped[a]?.length)
@@ -182,7 +189,7 @@ export async function renderAdminPermissions(app, profile) {
 
     content.querySelectorAll('.feat-enabled').forEach((el) => {
       el.addEventListener('change', async () => {
-        try { await setFeatureEnabled(el.getAttribute('data-key'), el.checked); }
+        try { await setFeatureEnabled(el.getAttribute('data-key'), el.checked); invalidateFeatureCache(); }
         catch (err) { await showAlert(err.message || 'Erreur.'); el.checked = !el.checked; }
       });
     });
@@ -194,6 +201,7 @@ export async function renderAdminPermissions(app, profile) {
         const label = content.querySelector(`.feat-label[data-key="${key}"]`).value.trim();
         const category = content.querySelector(`.feat-category[data-key="${key}"]`).value.trim();
         try {
+          invalidateFeatureCache();
           await upsertFeatureFlag({
             key,
             label,
@@ -226,6 +234,7 @@ export async function renderAdminPermissions(app, profile) {
         if (!ok) return;
         try {
           await deleteFeatureFlag(key);
+          invalidateFeatureCache();
           await draw();
         } catch (err) {
           await showAlert(err.message || 'Suppression impossible.');
@@ -247,6 +256,7 @@ export async function renderAdminPermissions(app, profile) {
         return;
       }
       try {
+        invalidateFeatureCache();
         await upsertFeatureFlag({ key, label, area, category: category || null, defaultRoles: roles, enabled: true, isCore: false });
         await draw();
       } catch (err) {
@@ -279,13 +289,14 @@ export async function renderAdminPermissions(app, profile) {
       const note = document.getElementById('grant-note').value.trim();
       try {
         await upsertPermissionGrant({ accountId: selectedAccount.id, featureKey, granted, note: note || null });
+        invalidateFeatureCache();
         await draw();
       } catch (err) { await showAlert(err.message || 'Erreur.'); }
     });
 
     content.querySelectorAll('.grant-delete').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        try { await deletePermissionGrant(btn.getAttribute('data-id')); await draw(); }
+        try { await deletePermissionGrant(btn.getAttribute('data-id')); invalidateFeatureCache(); await draw(); }
         catch (err) { await showAlert(err.message || 'Erreur.'); }
       });
     });
