@@ -43,11 +43,16 @@ export async function renderClientTransfers(app, profile) {
     transfers: getMyTransfers(),
     minSetting: { promise: getEconomicSetting('min_transfer_amount'), fallback: null },
     maxSetting: { promise: getEconomicSetting('max_transfer_amount'), fallback: null },
+    feeSetting: { promise: getEconomicSetting('transfer_commission_rate'), fallback: null },
   });
-  const { accounts, beneficiaries, transfers, minSetting, maxSetting } = data;
+  const { accounts, beneficiaries, transfers, minSetting, maxSetting, feeSetting } = data;
 
   const minAmount = minSetting?.amount ?? 100000;
   const maxAmount = maxSetting?.amount ?? 0; // 0 = pas de plafond configuré
+  // La commission est prélevée sur le MONTANT REÇU : l'émetteur est débité du
+  // montant saisi, le destinataire reçoit ce montant moins la commission.
+  // Elle n'était annoncée nulle part — ni avant l'envoi, ni sur le relevé.
+  const feeRate = Number(feeSetting?.amount ?? 0);
 
   // Un compte gelé ou clôturé ne peut ni émettre ni recevoir : la base le
   // refuse (`accounts ... status = 'active'` dans les fonctions serveur). Les
@@ -107,6 +112,11 @@ export async function renderClientTransfers(app, profile) {
           <div class="muted" style="font-size:12px; margin-top:4px;">
             Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).${maxAmount > 0 ? ` Plafond par virement : ${formatMoney(maxAmount)}.` : ''}
           </div>
+          ${
+            feeRate > 0
+              ? `<div id="fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Commission de ${feeRate} % sur un virement externe, prélevée sur le montant reçu.</div>`
+              : ''
+          }
         </div>
 
         <div class="field">
@@ -166,7 +176,7 @@ export async function renderClientTransfers(app, profile) {
   updateMode();
 
   async function resolveIban(iban) {
-    if (!iban || iban.length < 5) { ibanStatus.textContent = ''; resolvedRecipient = null; return; }
+    if (!iban || iban.length < 5) { ibanStatus.textContent = ''; resolvedRecipient = null; majCommission(); return; }
     ibanStatus.textContent = 'Recherche…';
     try {
       const found = await resolveAccountByIban(iban.trim().toUpperCase());
@@ -186,6 +196,7 @@ export async function renderClientTransfers(app, profile) {
       ibanStatus.textContent = 'Erreur de recherche.';
       ibanStatus.className = 'text-danger';
     }
+    majCommission();
   }
 
   let ibanDebounce;
@@ -195,6 +206,32 @@ export async function renderClientTransfers(app, profile) {
   });
   beneficiarySelect?.addEventListener('change', () => resolveIban(beneficiarySelect.value));
   if (modeSelect.value === 'beneficiary' && beneficiarySelect) resolveIban(beneficiarySelect.value);
+
+  // Le montant réellement reçu, recalculé à la saisie. Un virement entre ses
+  // propres comptes ne coûte rien : la commission ne s'applique qu'à l'externe.
+  function majCommission() {
+    const notice = document.getElementById('fee-notice');
+    if (!notice || !(feeRate > 0)) return;
+    const montant = parseFloat(document.getElementById('amount')?.value || '');
+    const interne =
+      modeSelect.value === 'own' ||
+      (resolvedRecipient && usableAccounts.some((a) => a.id === resolvedRecipient.account_id));
+    if (interne) {
+      notice.textContent = 'Aucune commission entre vos propres comptes.';
+      return;
+    }
+    if (!montant || montant <= 0) {
+      notice.textContent = `Commission de ${feeRate} % sur un virement externe, prélevée sur le montant reçu.`;
+      return;
+    }
+    const frais = Math.round(montant * feeRate) / 100;
+    notice.textContent =
+      `Vous serez débité de ${formatMoney(montant)} ; le destinataire recevra ${formatMoney(montant - frais)} ` +
+      `(${formatMoney(frais)} de commission).`;
+  }
+  document.getElementById('amount')?.addEventListener('input', majCommission);
+  modeSelect.addEventListener('change', majCommission);
+  majCommission();
 
   document.getElementById('submit-transfer')?.addEventListener('click', async () => {
     const errorEl = document.getElementById('transfer-error');

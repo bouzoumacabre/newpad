@@ -36,7 +36,7 @@ export async function renderClientTransactions(app, profile) {
 
     // Le solde net de ce que montre le filtre : utile pour « combien m'ont
     // coûté les frais ce mois-ci ».
-    const net = lignes.reduce((s, t) => s + (t.sens === 'debit' ? -Number(t.amount) : Number(t.amount)), 0);
+    const net = lignes.reduce((s, t) => s + Number(t.net_amount ?? (t.sens === 'debit' ? -t.amount : t.amount)), 0);
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Mes opérations</h1>
@@ -93,8 +93,13 @@ export async function renderClientTransactions(app, profile) {
                         <div class="muted" style="font-size:11px;">${escapeHtml(txTypeLabel(t.tx_type))}</div>
                       </td>
                       <td class="muted">${escapeHtml(t.counterpart_label || '—')}</td>
-                      <td style="text-align:right; font-weight:600;" class="${t.sens === 'debit' ? 'text-danger' : 'text-success'}">
-                        ${t.sens === 'debit' ? '−' : '+'}${formatMoney(t.amount)}
+                      <td style="text-align:right; font-weight:600;" class="${Number(t.net_amount) < 0 ? 'text-danger' : 'text-success'}">
+                        ${Number(t.net_amount) < 0 ? '−' : '+'}${formatMoney(Math.abs(Number(t.net_amount)))}
+                        ${
+                          Number(t.fee_amount) > 0 && t.sens === 'credit'
+                            ? `<div class="muted" style="font-size:11px; font-weight:400;">${formatMoney(t.amount)} envoyés, ${formatMoney(t.fee_amount)} de commission</div>`
+                            : ''
+                        }
                       </td>
                       <td>${statusBadge(t.status)}</td>
                     </tr>
@@ -166,7 +171,7 @@ export async function renderClientTransactions(app, profile) {
 // est justement l'intérêt : sortir un relevé d'une période ou d'un type précis.
 function exporterCsv(lignes) {
   const echapper = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const entete = ['Date', 'Type', 'Libellé', 'Contrepartie', 'Sens', 'Montant', 'Statut'];
+  const entete = ['Date', 'Type', 'Libellé', 'Contrepartie', 'Sens', 'Montant porté au compte', 'Commission', 'Statut'];
   const corps = lignes.map((t) =>
     [
       formatDate(t.created_at),
@@ -176,7 +181,8 @@ function exporterCsv(lignes) {
       t.sens === 'debit' ? 'Débit' : 'Crédit',
       // Point décimal et signe explicite : un tableur français lira la colonne
       // comme un nombre plutôt que comme du texte.
-      (t.sens === 'debit' ? '-' : '') + Number(t.amount).toFixed(2),
+      Number(t.net_amount ?? (t.sens === 'debit' ? -t.amount : t.amount)).toFixed(2),
+      Number(t.fee_amount || 0).toFixed(2),
       t.status,
     ]
       .map(echapper)

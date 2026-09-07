@@ -20,13 +20,14 @@ export async function renderClientGoldMarket(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, accounts, goldPrice] = await Promise.all([
+    const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, feeSetting, accounts, goldPrice] = await Promise.all([
       getMarketListings().catch(swallow('getMarketListings', [])),
       getMyMarketListings().catch(swallow('getMyMarketListings', [])),
       getMyGoldBars().catch(swallow('getMyGoldBars', [])),
       getMyMarketPurchaseRequests().catch(swallow('getMyMarketPurchaseRequests', [])),
       getEconomicSetting('gold_listing_min_price').catch(swallow('getEconomicSetting', null)),
       getEconomicSetting('gold_listing_max_price').catch(swallow('getEconomicSetting', null)),
+      getEconomicSetting('marketplace_commission_rate').catch(swallow('getEconomicSetting', null)),
       getMyAccounts().catch(swallow('getMyAccounts', [])),
       getGoldPrice().catch(swallow('getGoldPrice', null)),
     ]);
@@ -39,6 +40,8 @@ export async function renderClientGoldMarket(app, profile) {
       .sort((a, b) => new Date(a.opened_at) - new Date(b.opened_at))[0] || null;
     const minPrice = minSetting?.amount ?? 0;
     const maxPrice = maxSetting?.amount ?? 999999999;
+    const feeRate = Number(feeSetting?.amount ?? 0);
+    const netVendeur = (prix) => prix - Math.round(prix * feeRate) / 100;
 
     content.innerHTML = `
       <h1 style="margin-bottom:14px;">Marché de revente de lingots</h1>
@@ -80,6 +83,11 @@ export async function renderClientGoldMarket(app, profile) {
               <label for="sell-price">Prix de vente ($)</label>
               <input type="number" id="sell-price" min="${minPrice}" max="${maxPrice}" step="0.01" placeholder="0.00" />
               <div class="muted" style="font-size:12px; margin-top:4px;">Entre ${formatMoney(minPrice)} et ${formatMoney(maxPrice)}.</div>
+              ${
+                feeRate > 0
+                  ? `<div id="sell-fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Commission de ${feeRate} % prélevée sur le produit de la vente.</div>`
+                  : ''
+              }
             </div>
             <div id="sell-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
             <button id="sell-submit" class="btn btn-primary" style="width:100%;">Mettre en vente</button>
@@ -95,7 +103,10 @@ export async function renderClientGoldMarket(app, profile) {
                   .map(
                     (l) => `
                 <tr>
-                  <td>N° ${escapeHtml(l.gold_bars?.serial_number || '')} — ${formatMoney(l.listed_price)}</td>
+                  <td>
+                    N° ${escapeHtml(l.gold_bars?.serial_number || '')} — ${formatMoney(l.listed_price)}
+                    ${feeRate > 0 ? `<div class="muted" style="font-size:11px;">vous recevrez ${formatMoney(netVendeur(Number(l.listed_price)))}</div>` : ''}
+                  </td>
                   <td style="text-align:right;">
                     ${statusBadge(l.status)}
                     ${l.status === 'active' ? `<button class="btn btn-secondary cancel-listing" data-id="${l.id}" style="margin-left:8px; font-size:12px; padding:4px 10px;">Retirer</button>` : ''}
@@ -171,6 +182,18 @@ export async function renderClientGoldMarket(app, profile) {
         }
       });
     });
+
+    function majCommissionVente() {
+      const notice = document.getElementById('sell-fee-notice');
+      if (!notice || !(feeRate > 0)) return;
+      const prix = parseFloat(document.getElementById('sell-price')?.value || '');
+      notice.textContent =
+        prix > 0
+          ? `L'acheteur paiera ${formatMoney(prix)} ; vous recevrez ${formatMoney(netVendeur(prix))} (${formatMoney(prix - netVendeur(prix))} de commission).`
+          : `Commission de ${feeRate} % prélevée sur le produit de la vente.`;
+    }
+    document.getElementById('sell-price')?.addEventListener('input', majCommissionVente);
+    majCommissionVente();
 
     document.getElementById('sell-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('sell-error');
