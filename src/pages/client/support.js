@@ -73,12 +73,12 @@ async function drawList(content) {
       </div>
     `;
 
-    document.getElementById('new-ticket').addEventListener('click', () => {
+    document.getElementById('new-ticket')?.addEventListener('click', () => {
       const form = document.getElementById('new-ticket-form');
       form.style.display = form.style.display === 'none' ? 'block' : 'none';
     });
 
-    document.getElementById('ticket-submit').addEventListener('click', async () => {
+    document.getElementById('ticket-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('ticket-error');
       errorEl.style.display = 'none';
       const subject = document.getElementById('ticket-subject').value.trim();
@@ -144,7 +144,7 @@ async function drawThread(content, ticketId) {
       </div>
     `;
 
-    document.getElementById('reply-submit').addEventListener('click', async () => {
+    document.getElementById('reply-submit')?.addEventListener('click', async () => {
       const input = document.getElementById('reply-input');
       const body = input.value.trim();
       if (!body) return;

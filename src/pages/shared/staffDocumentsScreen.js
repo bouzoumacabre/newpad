@@ -127,7 +127,7 @@ export async function renderStaffDocumentsScreen(content, profile, { canRevoke =
       }, 300);
     });
 
-    document.getElementById('doc-submit').addEventListener('click', async () => {
+    document.getElementById('doc-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('doc-error');
       errorEl.style.display = 'none';
       const title = document.getElementById('doc-title').value.trim();

@@ -85,16 +85,16 @@ export async function renderClientLoans(app, profile) {
               ? `<p class="muted">${escapeHtml(formBlock)}</p>`
               : `
             <div class="field">
-              <label>Montant demandé ($)</label>
+              <label for="loan-amount">Montant demandé ($)</label>
               <input type="number" id="loan-amount" min="1" step="0.01" placeholder="0.00" />
               <div class="muted" style="font-size:12px; margin-top:4px;">Plafond autorisé : ${formatMoney(cap)}</div>
             </div>
             <div class="field">
-              <label>Objet du prêt</label>
+              <label for="loan-purpose">Objet du prêt</label>
               <textarea id="loan-purpose" rows="3" placeholder="Décrivez l'usage prévu des fonds..."></textarea>
             </div>
             <div class="field">
-              <label>Durée (mois)</label>
+              <label for="loan-term">Durée (mois)</label>
               <input type="number" id="loan-term" min="1" max="120" value="12" />
               <div class="muted" style="font-size:12px; margin-top:4px;">De 1 à 120 mois.</div>
             </div>

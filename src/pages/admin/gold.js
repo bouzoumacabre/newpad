@@ -106,7 +106,7 @@ export async function renderAdminGold(app, profile) {
         </p>
         <div class="grid" style="grid-template-columns: 2fr 1fr auto; gap:10px; align-items:end;">
           <div class="field" style="margin:0;">
-            <label>Lingot à mettre en vente</label>
+            <label for="listing-bar">Lingot à mettre en vente</label>
             <select id="listing-bar">
               ${
                 availableForListing.length
@@ -121,7 +121,7 @@ export async function renderAdminGold(app, profile) {
             </select>
           </div>
           <div class="field" style="margin:0;">
-            <label>Prix ($)</label>
+            <label for="listing-price">Prix ($)</label>
             <input type="number" id="listing-price" min="0" step="0.01" />
           </div>
           <button id="listing-submit" class="btn btn-primary" ${availableForListing.length ? '' : 'disabled'}>Mettre en vente</button>
@@ -161,15 +161,15 @@ export async function renderAdminGold(app, profile) {
       <div class="card" style="margin-bottom:24px;">
         <div class="grid" style="grid-template-columns: 1fr 1fr 2fr auto; gap:10px; align-items:end;">
           <div class="field" style="margin:0;">
-            <label>N° de série</label>
+            <label for="mint-serial">N° de série</label>
             <input type="text" id="mint-serial" placeholder="Ex: NB-000123" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Poids (g)</label>
+            <label for="mint-weight">Poids (g)</label>
             <input type="number" id="mint-weight" min="0" step="0.01" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Notes</label>
+            <label for="mint-notes">Notes</label>
             <input type="text" id="mint-notes" placeholder="Optionnel" />
           </div>
           <button id="mint-submit" class="btn btn-primary">Frapper</button>

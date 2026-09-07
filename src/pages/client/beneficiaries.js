@@ -17,11 +17,11 @@ export async function renderClientBeneficiaries(app, profile) {
         <div class="card">
           <h3 style="margin-bottom:16px;">Ajouter un bénéficiaire</h3>
           <div class="field">
-            <label>Nom / libellé</label>
+            <label for="ben-label">Nom / libellé</label>
             <input type="text" id="ben-label" placeholder="Ex: Société Lévy & Fils" />
           </div>
           <div class="field">
-            <label>IBAN</label>
+            <label for="ben-iban">IBAN</label>
             <input type="text" id="ben-iban" placeholder="Ex: BNW26XXXXXXXX" />
             <div id="ben-iban-status" class="muted" style="font-size:12px; margin-top:6px;"></div>
           </div>
@@ -73,7 +73,7 @@ export async function renderClientBeneficiaries(app, profile) {
       }, 400);
     });
 
-    document.getElementById('ben-add').addEventListener('click', async () => {
+    document.getElementById('ben-add')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('ben-error');
       errorEl.style.display = 'none';
       const label = document.getElementById('ben-label').value.trim();

@@ -71,13 +71,13 @@ export async function renderClientGoldMarket(app, profile) {
             sellableBars.length
               ? `
             <div class="field">
-              <label>Lingot</label>
+              <label for="sell-bar">Lingot</label>
               <select id="sell-bar">
                 ${sellableBars.map((b) => `<option value="${b.id}">N° ${escapeHtml(b.serial_number)} — ${b.weight_grams} g</option>`).join('')}
               </select>
             </div>
             <div class="field">
-              <label>Prix de vente ($)</label>
+              <label for="sell-price">Prix de vente ($)</label>
               <input type="number" id="sell-price" min="${minPrice}" max="${maxPrice}" step="0.01" placeholder="0.00" />
               <div class="muted" style="font-size:12px; margin-top:4px;">Entre ${formatMoney(minPrice)} et ${formatMoney(maxPrice)}.</div>
             </div>

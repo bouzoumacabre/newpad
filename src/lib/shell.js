@@ -140,7 +140,7 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
     </div>
   `;
 
-  document.getElementById('logout-btn').addEventListener('click', async () => {
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();
   });
 
@@ -287,5 +287,9 @@ async function setupNotifications(profile) {
   });
 
   await refresh();
-  subscribeToMyNotifications(profile.id, () => refresh());
+
+  // La coquille est reconstruite à chaque navigation. En se réenregistrant
+  // sous la même clé, elle remplace son écouteur précédent : rien ne
+  // s'accumule, et le canal Realtime n'est ni fermé ni rouvert.
+  subscribeToMyNotifications(profile.id, () => refresh(), 'shell');
 }

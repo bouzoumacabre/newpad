@@ -133,7 +133,7 @@ export async function renderSignup(app) {
     </style>
   `;
 
-  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  document.getElementById('signup-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('signup-error');
     const successEl = document.getElementById('signup-success');

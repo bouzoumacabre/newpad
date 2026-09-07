@@ -35,17 +35,17 @@ export async function renderEmployeeAccountOpening(app, profile) {
         <div class="card">
           <h3 style="margin-bottom:16px;">Nouvelle demande</h3>
           <div class="field">
-            <label>Nom du client</label>
+            <label for="opening-name">Nom du client</label>
             <input type="text" id="opening-name" placeholder="Nom complet" />
           </div>
           <div class="field">
-            <label>Type de compte</label>
+            <label for="opening-type">Type de compte</label>
             <select id="opening-type">
               ${ACCOUNT_TYPES.map((t) => `<option value="${t.value}">${t.label}</option>`).join('')}
             </select>
           </div>
           <div class="field">
-            <label>Dépôt initial ($)</label>
+            <label for="opening-deposit">Dépôt initial ($)</label>
             <input type="number" id="opening-deposit" min="0" step="0.01" value="0" />
           </div>
           <div id="opening-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
@@ -77,20 +77,20 @@ export async function renderEmployeeAccountOpening(app, profile) {
                 </div>
                 <div class="create-account-form" data-id="${o.id}" style="display:none; margin-bottom:8px; padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
                   <div class="field" style="margin-bottom:8px;">
-                    <label style="font-size:11px;">Identifiant</label>
-                    <input type="text" class="create-username" data-id="${o.id}" placeholder="ex: jdupont" />
+                    <label for="create-username-${o.id}" style="font-size:11px;">Identifiant</label>
+                    <input type="text" class="create-username" data-id="${o.id}" id="create-username-${o.id}" placeholder="ex: jdupont" />
                   </div>
                   <div class="field" style="margin-bottom:8px;">
-                    <label style="font-size:11px;">Mot de passe (min. 8 caractères)</label>
-                    <input type="password" class="create-password" data-id="${o.id}" placeholder="••••••••" />
+                    <label for="create-password-${o.id}" style="font-size:11px;">Mot de passe (min. 8 caractères)</label>
+                    <input type="password" class="create-password" data-id="${o.id}" id="create-password-${o.id}" placeholder="••••••••" />
                   </div>
                   <div class="field" style="margin-bottom:8px;">
-                    <label style="font-size:11px;">ID Discord (facultatif)</label>
-                    <input type="text" class="create-discord-id" data-id="${o.id}" placeholder="Ex: 123456789012345678" />
+                    <label for="create-discord-id-${o.id}" style="font-size:11px;">ID Discord (facultatif)</label>
+                    <input type="text" class="create-discord-id" data-id="${o.id}" id="create-discord-id-${o.id}" placeholder="Ex: 123456789012345678" />
                   </div>
                   <div class="field" style="margin-bottom:8px;">
-                    <label style="font-size:11px;">Téléphone (facultatif)</label>
-                    <input type="text" class="create-phone-number" data-id="${o.id}" placeholder="Ex: 555394399" />
+                    <label for="create-phone-number-${o.id}" style="font-size:11px;">Téléphone (facultatif)</label>
+                    <input type="text" class="create-phone-number" data-id="${o.id}" id="create-phone-number-${o.id}" placeholder="Ex: 555394399" />
                   </div>
                   <div class="create-account-error text-danger" data-id="${o.id}" style="font-size:12px; margin-bottom:8px; display:none;"></div>
                   <button class="btn btn-primary create-submit-btn" data-id="${o.id}" style="width:100%;">Créer et finaliser</button>
@@ -118,7 +118,7 @@ export async function renderEmployeeAccountOpening(app, profile) {
       </div>
     `;
 
-    document.getElementById('opening-submit').addEventListener('click', async () => {
+    document.getElementById('opening-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('opening-error');
       errorEl.style.display = 'none';
       const displayName = document.getElementById('opening-name').value.trim();

@@ -99,13 +99,13 @@ export async function renderAdminVisibility(app, profile) {
         ${selectedTargetId ? `<p style="font-size:13px; margin-bottom:12px;">Cible sélectionnée : <strong class="gold">${escapeHtml(selectedTargetLabel)}</strong></p>` : ''}
         <div class="grid" style="grid-template-columns: 1fr 2fr; gap:10px;">
           <div class="field" style="margin:0;">
-            <label>Type de cible</label>
+            <label for="mask-type">Type de cible</label>
             <select id="mask-type">
               ${TARGET_TYPES.map((t) => `<option value="${t}" ${t === selectedTargetType ? 'selected' : ''}>${t}</option>`).join('')}
             </select>
           </div>
           <div class="field" style="margin:0;">
-            <label>Identifiant (UUID)</label>
+            <label for="mask-id">Identifiant (UUID)</label>
             <input type="text" id="mask-id" placeholder="00000000-0000-0000-0000-000000000000" value="${escapeHtml(selectedTargetId)}" />
           </div>
         </div>
@@ -120,7 +120,7 @@ export async function renderAdminVisibility(app, profile) {
           </div>
         </div>
         <div class="field">
-          <label>Motif</label>
+          <label for="mask-reason">Motif</label>
           <input type="text" id="mask-reason" placeholder="Optionnel" />
         </div>
         <div id="mask-error" class="text-danger" style="font-size:13px; margin-bottom:10px; display:none;"></div>
@@ -154,7 +154,7 @@ export async function renderAdminVisibility(app, profile) {
       </div>
     `;
 
-    document.getElementById('mask-submit').addEventListener('click', async () => {
+    document.getElementById('mask-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('mask-error');
       errorEl.style.display = 'none';
       const type = document.getElementById('mask-type').value;
@@ -196,7 +196,9 @@ export async function renderAdminVisibility(app, profile) {
         if (selectedClient) {
           const [accounts, txResult] = await Promise.all([
             getClientAccounts(selectedClient.id).catch(swallow('getClientAccounts', [])),
-            listStaffTransactions({ search: selectedClient.display_name, limit: 15 }).catch(swallow('listStaffTransactions', [])),
+            listStaffTransactions({ search: selectedClient.display_name, limit: 15 })
+              .then((p) => p.rows)
+              .catch(swallow('listStaffTransactions', [])),
           ]);
           selectedAccounts = accounts;
           selectedTransactions = txResult;

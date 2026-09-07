@@ -23,9 +23,11 @@ export async function renderAuditScreen(content, profile, { isAdmin = false } = 
 
   const filters = { search: '', action: '', role: '' };
   let tab = 'audit';
+  const PAS = 150;
+  let affichees = PAS;
 
   async function draw() {
-    const tasks = { entries: getAuditLog({ ...filters, limit: 300 }), actions: getAuditActions() };
+    const tasks = { entries: getAuditLog({ ...filters, limit: affichees }), actions: getAuditActions() };
     if (isAdmin && tab === 'logins') tasks.logins = getLoginLog({ limit: 300 });
     if (isAdmin && tab === 'anomalies') tasks.anomalies = getAccountAnomalies();
     const { data, errors } = await loadAll(tasks);
@@ -54,7 +56,9 @@ export async function renderAuditScreen(content, profile, { isAdmin = false } = 
     const panel = document.getElementById('tab-content');
 
     if (tab === 'audit') {
-      const entries = data.entries || [];
+      const page = data.entries || { rows: [], total: 0 };
+      const entries = page.rows || [];
+      const total = page.total || 0;
       const actions = data.actions || [];
       panel.innerHTML = `
         <div class="card" style="margin-bottom:16px;">
@@ -85,7 +89,7 @@ export async function renderAuditScreen(content, profile, { isAdmin = false } = 
         </div>
 
         <div class="card" style="overflow-x:auto;">
-          <p class="muted" style="font-size:12px; margin:0 0 12px;">${entries.length} entrée${entries.length > 1 ? 's' : ''} affichée${entries.length > 1 ? 's' : ''} (300 maximum).</p>
+          <p class="muted" style="font-size:12px; margin:0 0 12px;">${entries.length} entrée${entries.length > 1 ? 's' : ''} affichée${entries.length > 1 ? 's' : ''} sur ${total}.</p>
           ${
             entries.length
               ? `<table>
@@ -108,17 +112,21 @@ export async function renderAuditScreen(content, profile, { isAdmin = false } = 
                 </table>`
               : `<p class="muted">Aucune entrée ne correspond à cette recherche.</p>`
           }
+          ${entries.length < total ? `<button id="audit-plus" class="btn btn-secondary" style="margin-top:14px; font-size:13px; padding:5px 14px;">Afficher ${Math.min(PAS, total - entries.length)} de plus</button>` : ''}
         </div>
       `;
+
+      document.getElementById('audit-plus')?.addEventListener('click', () => { affichees += PAS; draw(); });
 
       const rerun = () => {
         filters.search = document.getElementById('audit-search').value.trim();
         filters.action = document.getElementById('audit-action').value;
         filters.role = document.getElementById('audit-role').value;
+        affichees = PAS;
         draw();
       };
-      document.getElementById('audit-action').addEventListener('change', rerun);
-      document.getElementById('audit-role').addEventListener('change', rerun);
+      document.getElementById('audit-action')?.addEventListener('change', rerun);
+      document.getElementById('audit-role')?.addEventListener('change', rerun);
       const searchInput = document.getElementById('audit-search');
       searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') rerun(); });
       searchInput.addEventListener('blur', rerun);

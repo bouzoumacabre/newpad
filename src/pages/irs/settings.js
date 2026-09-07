@@ -16,11 +16,11 @@ export async function renderIrsSettings(app, profile) {
           <input type="text" value="${escapeHtml(profile.username)}" disabled />
         </div>
         <div class="field">
-          <label>Nom affiché</label>
+          <label for="display-name">Nom affiché</label>
           <input type="text" id="display-name" value="${escapeHtml(profile.display_name)}" />
         </div>
         <div class="field">
-          <label>Numéro de téléphone</label>
+          <label for="phone-number">Numéro de téléphone</label>
           <input type="text" id="phone-number" value="${escapeHtml(profile.phone_number || '')}" placeholder="Pour être joignable" />
         </div>
         <div id="profile-msg" style="font-size:13px; margin-bottom:12px; display:none;"></div>
@@ -30,11 +30,11 @@ export async function renderIrsSettings(app, profile) {
       <div class="card">
         <h3 style="margin-bottom:16px;">Mot de passe</h3>
         <div class="field">
-          <label>Nouveau mot de passe</label>
+          <label for="new-password">Nouveau mot de passe</label>
           <input type="password" id="new-password" placeholder="••••••••" />
         </div>
         <div class="field">
-          <label>Confirmer le mot de passe</label>
+          <label for="confirm-password">Confirmer le mot de passe</label>
           <input type="password" id="confirm-password" placeholder="••••••••" />
         </div>
         <div id="password-msg" style="font-size:13px; margin-bottom:12px; display:none;"></div>
@@ -43,7 +43,7 @@ export async function renderIrsSettings(app, profile) {
     </div>
   `;
 
-  document.getElementById('save-profile').addEventListener('click', async () => {
+  document.getElementById('save-profile')?.addEventListener('click', async () => {
     const msg = document.getElementById('profile-msg');
     const displayName = document.getElementById('display-name').value.trim();
     const phoneNumber = document.getElementById('phone-number').value.trim();
@@ -61,7 +61,7 @@ export async function renderIrsSettings(app, profile) {
     }
   });
 
-  document.getElementById('save-password').addEventListener('click', async () => {
+  document.getElementById('save-password')?.addEventListener('click', async () => {
     const msg = document.getElementById('password-msg');
     const pw = document.getElementById('new-password').value;
     const confirm = document.getElementById('confirm-password').value;

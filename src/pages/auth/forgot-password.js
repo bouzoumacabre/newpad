@@ -82,7 +82,7 @@ export function renderForgotPassword(app) {
     attachExternalLinkCopy(app);
 
     if (step === 'request') {
-      document.getElementById('request-form').addEventListener('submit', async (e) => {
+      document.getElementById('request-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const errorEl = document.getElementById('request-error');
         const infoEl = document.getElementById('request-info');
@@ -107,7 +107,7 @@ export function renderForgotPassword(app) {
         }
       });
     } else {
-      document.getElementById('confirm-form').addEventListener('submit', async (e) => {
+      document.getElementById('confirm-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const errorEl = document.getElementById('confirm-error');
         const successEl = document.getElementById('confirm-success');
@@ -130,7 +130,7 @@ export function renderForgotPassword(app) {
           submitBtn.textContent = 'Réinitialiser le mot de passe';
         }
       });
-      document.getElementById('back-to-request').addEventListener('click', (e) => {
+      document.getElementById('back-to-request')?.addEventListener('click', (e) => {
         e.preventDefault();
         step = 'request';
         draw();

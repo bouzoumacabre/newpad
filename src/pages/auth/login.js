@@ -55,7 +55,7 @@ export async function renderLogin(app) {
 
   attachExternalLinkCopy(app);
 
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
+  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('login-error');
     errorEl.style.display = 'none';

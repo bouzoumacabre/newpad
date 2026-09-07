@@ -46,7 +46,7 @@ export async function renderIrsClients(app, profile) {
     `;
 
     let debounce;
-    document.getElementById('search-input').addEventListener('input', (e) => {
+    document.getElementById('search-input')?.addEventListener('input', (e) => {
       clearTimeout(debounce);
       const v = e.target.value;
       debounce = setTimeout(() => draw(v), 300);

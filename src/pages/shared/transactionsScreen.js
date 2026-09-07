@@ -17,13 +17,21 @@ export async function renderTransactionsScreen(content, { canEdit = false } = {}
   let search = '';
   let txType = '';
   let categoryId = '';
+  // Nombre de lignes affichées. On charge par tranches plutôt que de tout
+  // ramener : jusqu'ici l'écran s'arrêtait à 300 sans le dire, et une opération
+  // au-delà passait pour inexistante.
+  const PAS = 100;
+  let affichees = PAS;
 
   async function draw() {
-    const [txs, txTypes, categories] = await Promise.all([
-      listStaffTransactions({ search, txType: txType || null, categoryId: categoryId || null }).catch(swallow('listStaffTransactions', [])),
+    const [page, txTypes, categories] = await Promise.all([
+      listStaffTransactions({ search, txType: txType || null, categoryId: categoryId || null, limit: affichees })
+        .catch(swallow('listStaffTransactions', { rows: [], total: 0 })),
       listDistinctTxTypes().catch(swallow('listDistinctTxTypes', [])),
       getClientCategories().catch(swallow('getClientCategories', [])),
     ]);
+    const txs = page.rows || [];
+    const total = page.total || 0;
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Historique des transactions</h1>
@@ -76,17 +84,32 @@ export async function renderTransactionsScreen(content, { canEdit = false } = {}
               </table>`
             : `<p class="muted">Aucune transaction trouvée.</p>`
         }
+        ${
+          txs.length
+            ? `<div class="flex justify-between items-center" style="margin-top:14px; flex-wrap:wrap; gap:10px;">
+                 <span class="muted" style="font-size:13px;">
+                   ${txs.length} opération${txs.length > 1 ? 's' : ''} affichée${txs.length > 1 ? 's' : ''} sur ${total}
+                 </span>
+                 ${txs.length < total ? `<button id="tx-plus" class="btn btn-secondary" style="font-size:13px; padding:5px 14px;">Afficher ${Math.min(PAS, total - txs.length)} de plus</button>` : ''}
+               </div>`
+            : ''
+        }
       </div>
     `;
 
+    document.getElementById('tx-plus')?.addEventListener('click', () => {
+      affichees += PAS;
+      draw();
+    });
+
     let debounce;
-    document.getElementById('tx-search').addEventListener('input', (e) => {
+    document.getElementById('tx-search')?.addEventListener('input', (e) => {
       clearTimeout(debounce);
       const value = e.target.value;
-      debounce = setTimeout(() => { search = value; draw(); }, 300);
+      debounce = setTimeout(() => { search = value; affichees = PAS; draw(); }, 300);
     });
-    document.getElementById('tx-type-filter').addEventListener('change', (e) => { txType = e.target.value; draw(); });
-    document.getElementById('tx-category-filter').addEventListener('change', (e) => { categoryId = e.target.value; draw(); });
+    document.getElementById('tx-type-filter')?.addEventListener('change', (e) => { txType = e.target.value; affichees = PAS; draw(); });
+    document.getElementById('tx-category-filter')?.addEventListener('change', (e) => { categoryId = e.target.value; affichees = PAS; draw(); });
 
     content.querySelectorAll('.tx-edit-desc').forEach((btn) => {
       btn.addEventListener('click', async () => {

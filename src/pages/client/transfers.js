@@ -68,7 +68,7 @@ export async function renderClientTransfers(app, profile) {
       <div class="card">
         <h3 style="margin-bottom:16px;">Nouveau virement</h3>
         <div class="field">
-          <label>Compte débiteur</label>
+          <label for="sender-account">Compte débiteur</label>
           <select id="sender-account">
             ${usableAccounts.map((a) => `<option value="${a.id}">${escapeHtml(a.account_type)} — ${escapeHtml(a.iban)} (${formatMoney(a.balance)})</option>`).join('')}
           </select>
@@ -76,7 +76,7 @@ export async function renderClientTransfers(app, profile) {
         </div>
 
         <div class="field">
-          <label>Destinataire</label>
+          <label for="recipient-mode">Destinataire</label>
           <select id="recipient-mode">
             <option value="own">Un de mes comptes</option>
             ${beneficiaries.length ? `<option value="beneficiary">Un bénéficiaire enregistré</option>` : ''}
@@ -102,7 +102,7 @@ export async function renderClientTransfers(app, profile) {
         </div>
 
         <div class="field">
-          <label>Montant ($)</label>
+          <label for="amount">Montant ($)</label>
           <input type="number" id="amount" min="1" step="0.01" placeholder="0.00" />
           <div class="muted" style="font-size:12px; margin-top:4px;">
             Minimum ${formatMoney(minAmount)} pour un virement externe (aucun minimum entre vos propres comptes).${maxAmount > 0 ? ` Plafond par virement : ${formatMoney(maxAmount)}.` : ''}
@@ -110,7 +110,7 @@ export async function renderClientTransfers(app, profile) {
         </div>
 
         <div class="field">
-          <label>Motif</label>
+          <label for="motif">Motif</label>
           <input type="text" id="motif" placeholder="Ex: Loyer, remboursement..." />
         </div>
 
@@ -196,7 +196,7 @@ export async function renderClientTransfers(app, profile) {
   beneficiarySelect?.addEventListener('change', () => resolveIban(beneficiarySelect.value));
   if (modeSelect.value === 'beneficiary' && beneficiarySelect) resolveIban(beneficiarySelect.value);
 
-  document.getElementById('submit-transfer').addEventListener('click', async () => {
+  document.getElementById('submit-transfer')?.addEventListener('click', async () => {
     const errorEl = document.getElementById('transfer-error');
     const successEl = document.getElementById('transfer-success');
     errorEl.style.display = 'none';

@@ -51,14 +51,39 @@ export async function getAccountTransactions(accountId, limit = 50) {
   );
 }
 
+// L'ancienne version listait les comptes du client puis assemblait, à la main,
+// un filtre PostgREST de deux conditions PAR COMPTE — toutes passées dans la
+// chaîne de requête d'un GET. Chaque identifiant fait 36 caractères : au-delà
+// d'une poignée de comptes, l'URL dépassait la limite du serveur. Le filtrage
+// se fait désormais côté base (migration 0040), avec pagination et recherche.
 export async function getMyTransactions(limit = 100) {
-  const accounts = await getMyAccounts();
-  const ids = accounts.map((a) => a.id);
-  if (ids.length === 0) return [];
-  const orClause = ids.map((id) => `from_account_id.eq.${id}`).concat(ids.map((id) => `to_account_id.eq.${id}`)).join(',');
-  return unwrap(
-    await supabase.from('transactions').select('*').or(orClause).order('created_at', { ascending: false }).limit(limit)
+  const { rows } = await listMyTransactions({ limit });
+  return rows;
+}
+
+/**
+ * Historique paginé et filtrable du client.
+ * @returns {Promise<{rows: any[], total: number}>} `total` = nombre de lignes
+ *   correspondant au filtre, toutes pages confondues.
+ */
+export async function listMyTransactions({ search, txType, from, to, limit = 50, offset = 0 } = {}) {
+  const rows = unwrap(
+    await supabase.rpc('my_transactions', {
+      p_search: search || null,
+      p_tx_type: txType || null,
+      p_from: from || null,
+      p_to: to || null,
+      p_limit: limit,
+      p_offset: offset,
+    })
   );
+  return { rows, total: rows.length ? Number(rows[0].total_count) : 0 };
+}
+
+// Ne proposer dans le filtre que les types d'opération qui existent réellement
+// sur les comptes de ce client.
+export async function getMyTransactionTypes() {
+  return unwrap(await supabase.rpc('my_transaction_types'));
 }
 
 // ----------------------------------------------------------------------------

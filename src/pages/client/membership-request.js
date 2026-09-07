@@ -71,9 +71,9 @@ export async function renderMembershipRequest(app, profile) {
     </style>
   `;
 
-  document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
+  document.getElementById('logout-btn')?.addEventListener('click', async () => { await supabase.auth.signOut(); });
 
-  document.getElementById('membership-form').addEventListener('submit', async (e) => {
+  document.getElementById('membership-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('membership-error');
     errorEl.style.display = 'none';
@@ -124,6 +124,6 @@ function renderStatus(app, profile, request) {
       .auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
     </style>
   `;
-  document.getElementById('logout-btn').addEventListener('click', async () => { await supabase.auth.signOut(); });
-  document.getElementById('refresh-btn').addEventListener('click', () => window.location.reload());
+  document.getElementById('logout-btn')?.addEventListener('click', async () => { await supabase.auth.signOut(); });
+  document.getElementById('refresh-btn')?.addEventListener('click', () => window.location.reload());
 }

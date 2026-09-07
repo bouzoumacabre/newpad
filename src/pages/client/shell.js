@@ -22,6 +22,7 @@ export async function renderClientShell(app, profile, activeKey) {
       category: 'Comptes & Virements',
       items: [
         { key: 'accounts', label: 'Mes comptes', path: '/client/accounts', icon: '▤' },
+        { key: 'transactions', label: 'Mes opérations', path: '/client/transactions', icon: '≡' },
         ...(has('client.transfers.create') ? [{ key: 'transfers', label: 'Virements', path: '/client/transfers', icon: '⇄' }] : []),
         { key: 'beneficiaries', label: 'Bénéficiaires', path: '/client/beneficiaries', icon: '☺' },
       ],

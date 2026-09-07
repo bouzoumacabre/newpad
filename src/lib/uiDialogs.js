@@ -54,7 +54,7 @@ export function showAlert(message) {
     );
     document.body.appendChild(overlay);
     const done = () => { document.body.removeChild(overlay); resolve(); };
-    overlay.querySelector('.ui-dialog-ok').addEventListener('click', done);
+    overlay.querySelector('.ui-dialog-ok')?.addEventListener('click', done);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) done(); });
   });
 }
@@ -73,8 +73,8 @@ export function showConfirm(message) {
     );
     document.body.appendChild(overlay);
     const done = (value) => { document.body.removeChild(overlay); resolve(value); };
-    overlay.querySelector('.ui-dialog-ok').addEventListener('click', () => done(true));
-    overlay.querySelector('.ui-dialog-cancel').addEventListener('click', () => done(false));
+    overlay.querySelector('.ui-dialog-ok')?.addEventListener('click', () => done(true));
+    overlay.querySelector('.ui-dialog-cancel')?.addEventListener('click', () => done(false));
     overlay.addEventListener('click', (e) => { if (e.target === overlay) done(false); });
   });
 }
@@ -97,8 +97,8 @@ export function showPrompt(message, defaultValue = '') {
     input.focus();
     input.select();
     const done = (value) => { document.body.removeChild(overlay); resolve(value); };
-    overlay.querySelector('.ui-dialog-ok').addEventListener('click', () => done(input.value));
-    overlay.querySelector('.ui-dialog-cancel').addEventListener('click', () => done(null));
+    overlay.querySelector('.ui-dialog-ok')?.addEventListener('click', () => done(input.value));
+    overlay.querySelector('.ui-dialog-cancel')?.addEventListener('click', () => done(null));
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(input.value); if (e.key === 'Escape') done(null); });
     overlay.addEventListener('click', (e) => { if (e.target === overlay) done(null); });
   });

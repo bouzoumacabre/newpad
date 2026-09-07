@@ -106,5 +106,5 @@ export async function renderClientDashboard(app, profile) {
     </div>
   `;
 
-  document.getElementById('quick-transfer').addEventListener('click', () => navigate('/client/transfers'));
+  document.getElementById('quick-transfer')?.addEventListener('click', () => navigate('/client/transfers'));
 }

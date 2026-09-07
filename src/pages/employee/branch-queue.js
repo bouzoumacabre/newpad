@@ -35,8 +35,8 @@ export async function renderEmployeeBranchQueue(app, profile) {
       </div>
 
       <div id="add-form" class="card" style="margin-bottom:20px; display:none;">
-        <div class="field"><label>Nom</label><input type="text" id="visitor-name" /></div>
-        <div class="field"><label>Motif</label><input type="text" id="visitor-reason" placeholder="Ex: ouverture de compte, virement..." /></div>
+        <div class="field"><label for="visitor-name">Nom</label><input type="text" id="visitor-name" /></div>
+        <div class="field"><label for="visitor-reason">Motif</label><input type="text" id="visitor-reason" placeholder="Ex: ouverture de compte, virement..." /></div>
         <button id="add-submit" class="btn btn-primary">Ajouter à la file</button>
       </div>
 
@@ -69,11 +69,11 @@ export async function renderEmployeeBranchQueue(app, profile) {
       </div>
     `;
 
-    document.getElementById('add-visitor').addEventListener('click', () => {
+    document.getElementById('add-visitor')?.addEventListener('click', () => {
       const form = document.getElementById('add-form');
       form.style.display = form.style.display === 'none' ? 'block' : 'none';
     });
-    document.getElementById('add-submit').addEventListener('click', async () => {
+    document.getElementById('add-submit')?.addEventListener('click', async () => {
       const visitorName = document.getElementById('visitor-name').value.trim();
       const reason = document.getElementById('visitor-reason').value.trim();
       if (!visitorName) return;

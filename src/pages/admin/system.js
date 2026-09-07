@@ -52,7 +52,7 @@ export async function renderAdminSystem(app, profile) {
           <input type="checkbox" id="banner-enabled" ${banner.value?.enabled ? 'checked' : ''} /> Bannière active
         </label>
         <div class="field">
-          <label>Message</label>
+          <label for="banner-message">Message</label>
           <input type="text" id="banner-message" value="${escapeHtml(banner.value?.message || '')}" placeholder="Message affiché aux utilisateurs..." />
         </div>
         <p class="muted" style="font-size:12px; margin-bottom:12px;">Effet réel : affichée en haut de l'accueil public et de toutes les interfaces internes (Client, Employé, Admin, IRS) tant qu'elle est active.</p>

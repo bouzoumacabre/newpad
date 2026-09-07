@@ -171,17 +171,17 @@ export async function renderAdminClients(app, profile, params = {}) {
                 ${
                   canOverrideMinBalance
                     ? `<div class="field" style="margin:0;">
-                  <label>Solde minimum (override)</label>
+                  <label for="override-min-balance">Solde minimum (override)</label>
                   <input type="number" id="override-min-balance" step="0.01" value="${detail.min_balance_override ?? ''}" placeholder="—" />
                 </div>`
                     : ''
                 }
                 <div class="field" style="margin:0;">
-                  <label>Virement minimum (override)</label>
+                  <label for="override-min-transfer">Virement minimum (override)</label>
                   <input type="number" id="override-min-transfer" step="0.01" value="${detail.min_transfer_override ?? ''}" placeholder="—" />
                 </div>
                 <div class="field" style="margin:0;">
-                  <label>Note de confiance</label>
+                  <label for="override-trust-score">Note de confiance</label>
                   <input type="number" id="override-trust-score" step="0.01" min="0" max="100" value="${detail.trust_score ?? ''}" />
                 </div>
               </div>
@@ -200,7 +200,7 @@ export async function renderAdminClients(app, profile, params = {}) {
             <input type="text" id="search-input" placeholder="Nom ou identifiant..." value="${escapeHtml(query)}" />
           </div>
           <div class="field" style="margin-bottom:10px;">
-            <label>Filtrer par catégorie</label>
+            <label for="category-filter">Filtrer par catégorie</label>
             <select id="category-filter">
               <option value="">Toutes les catégories</option>
               ${allCategories.map((c) => `<option value="${c.id}" ${c.id === categoryFilter ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
@@ -212,11 +212,11 @@ export async function renderAdminClients(app, profile, params = {}) {
                 ? `
               <div style="padding:10px; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm); margin-bottom:8px;">
                 <div class="field" style="margin-bottom:8px;">
-                  <label style="font-size:11px;">Nom de la catégorie</label>
+                  <label for="new-cat-name" style="font-size:11px;">Nom de la catégorie</label>
                   <input type="text" id="new-cat-name" placeholder="Ex: VIP, Entreprise..." />
                 </div>
                 <div class="field" style="margin-bottom:8px;">
-                  <label style="font-size:11px;">Couleur</label>
+                  <label for="new-cat-color" style="font-size:11px;">Couleur</label>
                   <input type="color" id="new-cat-color" value="#c9a227" style="padding:2px; height:36px;" />
                 </div>
                 <div id="new-cat-error" class="text-danger" style="font-size:12px; margin-bottom:8px; display:none;"></div>
@@ -256,7 +256,7 @@ export async function renderAdminClients(app, profile, params = {}) {
     searchInput.focus();
     searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
 
-    document.getElementById('category-filter').addEventListener('change', (e) => {
+    document.getElementById('category-filter')?.addEventListener('change', (e) => {
       categoryFilter = e.target.value;
       draw();
     });

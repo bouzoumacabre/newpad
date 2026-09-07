@@ -19,6 +19,7 @@ import { renderClientDocuments } from './pages/client/documents.js';
 import { renderClientInfo } from './pages/client/info.js';
 import { renderClientSupport } from './pages/client/support.js';
 import { renderClientMessages } from './pages/client/messages.js';
+import { renderClientTransactions } from './pages/client/transactions.js';
 import { renderClientSettings } from './pages/client/settings.js';
 import { renderEmployeeDashboard } from './pages/employee/dashboard.js';
 import { renderEmployeeClients } from './pages/employee/clients.js';
@@ -71,7 +72,8 @@ import { renderIrsTransactions } from './pages/irs/transactions.js';
 import { renderIrsGold } from './pages/irs/gold.js';
 import { renderIrsMessages } from './pages/irs/messages.js';
 import { renderIrsSettings } from './pages/irs/settings.js';
-import { swallow } from './lib/loadState.js';
+import { swallow, clearLoadFailures } from './lib/loadState.js';
+import { resetNotificationsSubscription } from './lib/notifications.js';
 
 const app = document.getElementById('app');
 
@@ -145,6 +147,7 @@ route('/client/documents', async () => guardedRoleRender('client', (p) => render
 route('/client/info', async () => guardedRoleRender('client', (p) => renderClientInfo(app, p)));
 route('/client/support', async () => guardedRoleRender('client', (p) => renderClientSupport(app, p)));
 route('/client/support/:id', async (params) => guardedRoleRender('client', (p) => renderClientSupport(app, p, params)));
+route('/client/transactions', async () => guardedRoleRender('client', (p) => renderClientTransactions(app, p)));
 route('/client/messages', async () => guardedRoleRender('client', (p) => renderClientMessages(app, p)));
 route('/client/messages/:id', async (params) => guardedRoleRender('client', (p) => renderClientMessages(app, p, params)));
 route('/client/settings', async () => guardedRoleRender('client', (p) => renderClientSettings(app, p)));
@@ -232,6 +235,10 @@ supabase.auth.onAuthStateChange(async (event) => {
     if (profile) navigate('/' + profile.role);
   }
   if (event === 'SIGNED_OUT') {
+    // Sans cela, le canal Realtime de l'utilisateur précédent survit à sa
+    // session et continue d'écouter ses notifications.
+    resetNotificationsSubscription();
+    clearLoadFailures();
     navigate('/login');
   }
 });

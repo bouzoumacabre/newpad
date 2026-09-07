@@ -134,7 +134,7 @@ export async function renderFraudScreen(content, profile, basePath) {
       }, 300);
     });
 
-    document.getElementById('fraud-submit').addEventListener('click', async () => {
+    document.getElementById('fraud-submit')?.addEventListener('click', async () => {
       const severity = document.getElementById('fraud-severity').value;
       const description = document.getElementById('fraud-description').value.trim();
       if (!description) { await showAlert('Veuillez décrire le comportement suspect.'); return; }

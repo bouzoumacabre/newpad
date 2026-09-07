@@ -471,15 +471,17 @@ export async function revokeDocument(id, reason) {
 // Recherche et filtres côté serveur (migration 0031). L'écran chargeait
 // jusqu'ici les N dernières lignes sans aucun moyen de retrouver une action
 // précise — « qui a validé ce virement » se cherchait à l'œil.
-export async function getAuditLog({ search, action, role, limit = 200 } = {}) {
-  return unwrap(
+export async function getAuditLog({ search, action, role, limit = 200, offset = 0 } = {}) {
+  const rows = unwrap(
     await supabase.rpc('staff_list_audit_log', {
       p_search: search || null,
       p_action: action || null,
       p_role: role || null,
       p_limit: limit,
+      p_offset: offset,
     })
   );
+  return { rows, total: rows.length ? Number(rows[0].total_count) : 0 };
 }
 
 export async function getAuditActions() {
@@ -490,15 +492,21 @@ export async function getAuditActions() {
 // HISTORIQUE DES TRANSACTIONS (personnel — employé & admin)
 // ----------------------------------------------------------------------------
 
-export async function listStaffTransactions({ search, txType, categoryId, limit = 300 } = {}) {
-  return unwrap(
+// Depuis la migration 0040, la fonction renvoie aussi `total_count` : le nombre
+// de lignes qui correspondent au filtre, indépendamment de la page demandée.
+// Sans lui, l'écran s'arrêtait à 300 lignes sans jamais dire qu'il s'arrêtait —
+// une opération au-delà passait pour inexistante.
+export async function listStaffTransactions({ search, txType, categoryId, limit = 300, offset = 0 } = {}) {
+  const rows = unwrap(
     await supabase.rpc('staff_list_transactions', {
       p_search: search || null,
       p_tx_type: txType || null,
       p_category_id: categoryId || null,
       p_limit: limit,
+      p_offset: offset,
     })
   );
+  return { rows, total: rows.length ? Number(rows[0].total_count) : 0 };
 }
 
 export async function listDistinctTxTypes() {

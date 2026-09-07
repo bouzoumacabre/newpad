@@ -28,19 +28,19 @@ export async function renderAdminStaff(app, profile) {
         <h3 style="margin-bottom:16px;">Créer un nouveau compte</h3>
         <div class="grid" style="grid-template-columns: repeat(4, 1fr) auto; gap:12px; align-items:end;">
           <div class="field" style="margin:0;">
-            <label>Identifiant</label>
+            <label for="new-username">Identifiant</label>
             <input type="text" id="new-username" placeholder="ex: mdupont" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Mot de passe</label>
+            <label for="new-password">Mot de passe</label>
             <input type="password" id="new-password" placeholder="••••••••" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Nom affiché</label>
+            <label for="new-display-name">Nom affiché</label>
             <input type="text" id="new-display-name" placeholder="Nom complet" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Rôle</label>
+            <label for="new-role">Rôle</label>
             <select id="new-role">
               ${CREATABLE_ROLES.map((r) => `<option value="${r}">${r}</option>`).join('')}
             </select>
@@ -49,15 +49,15 @@ export async function renderAdminStaff(app, profile) {
         </div>
         <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;">
           <div class="field" id="new-title-field" style="margin:0;">
-            <label>Fonction (employé/admin)</label>
+            <label for="new-title">Fonction (employé/admin)</label>
             <input type="text" id="new-title" placeholder="Ex: Guichetier, Directeur d'agence..." />
           </div>
           <div class="field" style="margin:0;">
-            <label>ID Discord (facultatif)</label>
+            <label for="new-discord-id">ID Discord (facultatif)</label>
             <input type="text" id="new-discord-id" placeholder="Ex: 123456789012345678" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Téléphone (facultatif)</label>
+            <label for="new-phone-number">Téléphone (facultatif)</label>
             <input type="text" id="new-phone-number" placeholder="Ex: 555394399" />
           </div>
         </div>
@@ -95,25 +95,25 @@ export async function renderAdminStaff(app, profile) {
             <div class="muted" style="font-size:13px; margin-bottom:20px;">@${escapeHtml(selected.username)}</div>
 
             <div class="field">
-              <label>Rôle</label>
+              <label for="edit-role">Rôle</label>
               <select id="edit-role">
                 ${ROLES.map((r) => `<option value="${r}" ${r === selected.role ? 'selected' : ''}>${r}</option>`).join('')}
               </select>
             </div>
             <div class="field">
-              <label>Fonction (employé/admin)</label>
+              <label for="edit-title">Fonction (employé/admin)</label>
               <input type="text" id="edit-title" value="${escapeHtml(selected.employee_title || '')}" placeholder="Ex: Guichetier, Directeur d'agence..." />
             </div>
             <div class="field">
-              <label>ID Discord</label>
+              <label for="edit-discord-id">ID Discord</label>
               <input type="text" id="edit-discord-id" value="${escapeHtml(selected.discord_id || '')}" placeholder="Ex: 123456789012345678" />
             </div>
             <div class="field">
-              <label>Téléphone</label>
+              <label for="edit-phone-number">Téléphone</label>
               <input type="text" id="edit-phone-number" value="${escapeHtml(selected.phone_number || '')}" placeholder="Ex: 555394399" />
             </div>
             <div class="field">
-              <label>Statut du profil</label>
+              <label for="edit-status">Statut du profil</label>
               <select id="edit-status">
                 ${STATUSES.map((s) => `<option value="${s}" ${s === selected.status ? 'selected' : ''}>${s}</option>`).join('')}
               </select>
@@ -169,7 +169,7 @@ export async function renderAdminStaff(app, profile) {
       }
     });
 
-    document.getElementById('new-account-submit').addEventListener('click', async () => {
+    document.getElementById('new-account-submit')?.addEventListener('click', async () => {
       const msg = document.getElementById('new-account-msg');
       msg.style.display = 'none';
       const username = document.getElementById('new-username').value.trim();

@@ -73,20 +73,20 @@ export async function renderAdminCms(app, profile) {
       <div class="card">
         <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px;">
           <div class="field" style="margin:0;">
-            <label>Zone</label>
+            <label for="new-area">Zone</label>
             <select id="new-area">${AREAS.map((a) => `<option value="${a}">${a}</option>`).join('')}</select>
           </div>
           <div class="field" style="margin:0;">
-            <label>Clé de section</label>
+            <label for="new-key">Clé de section</label>
             <input type="text" id="new-key" placeholder="ex: hero" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Ordre</label>
+            <label for="new-sort">Ordre</label>
             <input type="number" id="new-sort" value="0" />
           </div>
         </div>
         <div class="field">
-          <label>Contenu (JSON)</label>
+          <label for="new-content">Contenu (JSON)</label>
           <textarea id="new-content" rows="4" style="width:100%; font-family:monospace; font-size:12px;">{}</textarea>
         </div>
         <div id="new-error" class="text-danger" style="font-size:13px; margin-bottom:10px; display:none;"></div>
@@ -128,7 +128,7 @@ export async function renderAdminCms(app, profile) {
       });
     });
 
-    document.getElementById('new-submit').addEventListener('click', async () => {
+    document.getElementById('new-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('new-error');
       errorEl.style.display = 'none';
       const area = document.getElementById('new-area').value;

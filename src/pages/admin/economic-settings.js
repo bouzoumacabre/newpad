@@ -176,17 +176,17 @@ export async function renderAdminEconomicSettings(app, profile) {
             }
             <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--card-border);">
               <div class="field">
-                <label>Paramètre</label>
+                <label for="override-setting">Paramètre</label>
                 <select id="override-setting">
                   ${settings.map((s) => `<option value="${s.key}" data-type="${s.value_type}">${escapeHtml(s.label)}</option>`).join('')}
                 </select>
               </div>
               <div class="field">
-                <label>Valeur (JSON — ex: {"amount": 500000} ou {"enabled": true})</label>
+                <label for="override-value">Valeur (JSON — ex: {"amount": 500000} ou {"enabled": true})</label>
                 <input type="text" id="override-value" placeholder='{"amount": 500000}' />
               </div>
               <div class="field">
-                <label>Note</label>
+                <label for="override-note">Note</label>
                 <input type="text" id="override-note" placeholder="Optionnel" />
               </div>
               <div id="override-error" class="text-danger" style="font-size:13px; margin-bottom:10px; display:none;"></div>

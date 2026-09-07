@@ -80,15 +80,15 @@ export async function renderAdminSafes(app, profile) {
       <div class="card" style="margin-bottom:24px;">
         <div class="grid" style="grid-template-columns: 1fr 1.5fr 1fr auto; gap:10px; align-items:end;">
           <div class="field" style="margin:0;">
-            <label>Code</label>
+            <label for="new-box-code">Code</label>
             <input type="text" id="new-box-code" placeholder="Ex: CF-006" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Agence</label>
+            <label for="new-box-branch">Agence</label>
             <input type="text" id="new-box-branch" placeholder="Ex: Agence centrale — Los Santos" />
           </div>
           <div class="field" style="margin:0;">
-            <label>Loyer hebdomadaire ($)</label>
+            <label for="new-box-fee">Loyer hebdomadaire ($)</label>
             <input type="number" id="new-box-fee" min="0" step="0.01" />
           </div>
           <button id="new-box-submit" class="btn btn-primary">Créer</button>
@@ -209,7 +209,7 @@ export async function renderAdminSafes(app, profile) {
       });
     });
 
-    document.getElementById('new-box-submit').addEventListener('click', async () => {
+    document.getElementById('new-box-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('new-box-error');
       errorEl.style.display = 'none';
       const code = document.getElementById('new-box-code').value.trim();

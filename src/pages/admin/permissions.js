@@ -91,16 +91,16 @@ export async function renderAdminPermissions(app, profile) {
       <div class="card" style="margin-bottom:24px;">
         <h3 style="margin-bottom:16px;">Ajouter une fonctionnalité</h3>
         <div class="grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px;">
-          <div class="field" style="margin:0;"><label>Clé (unique)</label><input type="text" id="new-feat-key" placeholder="ex: client.example" /></div>
-          <div class="field" style="margin:0;"><label>Libellé</label><input type="text" id="new-feat-label" /></div>
+          <div class="field" style="margin:0;"><label for="new-feat-key">Clé (unique)</label><input type="text" id="new-feat-key" placeholder="ex: client.example" /></div>
+          <div class="field" style="margin:0;"><label for="new-feat-label">Libellé</label><input type="text" id="new-feat-label" /></div>
           <div class="field" style="margin:0;">
-            <label>Zone</label>
+            <label for="new-feat-area">Zone</label>
             <select id="new-feat-area">${AREAS.map((a) => `<option value="${a}">${a}</option>`).join('')}</select>
           </div>
-          <div class="field" style="margin:0;"><label>Catégorie</label><input type="text" id="new-feat-category" /></div>
+          <div class="field" style="margin:0;"><label for="new-feat-category">Catégorie</label><input type="text" id="new-feat-category" /></div>
         </div>
         <div class="field">
-          <label>Rôles par défaut (séparés par virgule)</label>
+          <label for="new-feat-roles">Rôles par défaut (séparés par virgule)</label>
           <input type="text" id="new-feat-roles" placeholder="ex: client,employee" />
         </div>
         <div id="new-feat-error" class="text-danger" style="font-size:13px; margin-bottom:10px; display:none;"></div>
@@ -163,20 +163,20 @@ export async function renderAdminPermissions(app, profile) {
 
             <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--card-border);">
               <div class="field">
-                <label>Fonctionnalité</label>
+                <label for="grant-feature">Fonctionnalité</label>
                 <select id="grant-feature">
                   ${features.map((f) => `<option value="${f.key}">${escapeHtml(f.label)} (${f.key})</option>`).join('')}
                 </select>
               </div>
               <div class="field">
-                <label>Accordé</label>
+                <label for="grant-granted">Accordé</label>
                 <select id="grant-granted">
                   <option value="true">Oui — accès accordé explicitement</option>
                   <option value="false">Non — accès retiré explicitement</option>
                 </select>
               </div>
               <div class="field">
-                <label>Note</label>
+                <label for="grant-note">Note</label>
                 <input type="text" id="grant-note" placeholder="Optionnel" />
               </div>
               <button id="grant-submit" class="btn btn-primary">Enregistrer l'exception</button>
@@ -243,7 +243,7 @@ export async function renderAdminPermissions(app, profile) {
       });
     });
 
-    document.getElementById('new-feat-submit').addEventListener('click', async () => {
+    document.getElementById('new-feat-submit')?.addEventListener('click', async () => {
       const errorEl = document.getElementById('new-feat-error');
       errorEl.style.display = 'none';
       const key = document.getElementById('new-feat-key').value.trim();
