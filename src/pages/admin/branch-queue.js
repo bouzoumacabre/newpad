@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getBranchQueue, addToBranchQueue, updateBranchQueueStatus } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const STATUS_LABELS = { waiting: 'En attente', in_service: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
 
@@ -10,7 +11,7 @@ export async function renderAdminBranchQueue(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const queue = await getBranchQueue().catch(() => []);
+    const queue = await getBranchQueue().catch(swallow('getBranchQueue', []));
     const waiting = queue.filter((q) => q.status === 'waiting');
     const inService = queue.filter((q) => q.status === 'in_service');
     const done = queue.filter((q) => q.status === 'done' || q.status === 'cancelled').slice(0, 10);

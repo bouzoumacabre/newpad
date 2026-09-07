@@ -1,6 +1,7 @@
 import { renderAdminShell } from './shell.js';
 import { searchProfilesAnyRole, updateProfileRole, adminSetProfileStatus, createAccount } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
+import { swallow } from '../../lib/loadState.js';
 
 const ROLES = ['prospect', 'client', 'employee', 'admin', 'irs'];
 const STATUSES = ['active', 'suspended', 'frozen'];
@@ -132,7 +133,7 @@ export async function renderAdminStaff(app, profile) {
       clearTimeout(debounce);
       debounce = setTimeout(async () => {
         query = searchInput.value;
-        results = await searchProfilesAnyRole(query).catch(() => []);
+        results = await searchProfilesAnyRole(query).catch(swallow('searchProfilesAnyRole', []));
         draw();
       }, 300);
     });

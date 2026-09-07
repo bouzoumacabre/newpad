@@ -3,6 +3,7 @@ import { getBankGoldStock, getMyGoldBars, buyGoldFromBank, getMyGoldPurchaseRequ
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderClientGold(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold');
@@ -10,12 +11,12 @@ export async function renderClientGold(app, profile) {
 
   async function draw() {
     const [stock, myBars, myRequests, priceSetting, accounts, goldPrice] = await Promise.all([
-      getBankGoldStock().catch(() => []),
-      getMyGoldBars().catch(() => []),
-      getMyGoldPurchaseRequests().catch(() => []),
-      getEconomicSetting('gold_price_per_gram').catch(() => null),
-      getMyAccounts().catch(() => []),
-      getGoldPrice().catch(() => null),
+      getBankGoldStock().catch(swallow('getBankGoldStock', [])),
+      getMyGoldBars().catch(swallow('getMyGoldBars', [])),
+      getMyGoldPurchaseRequests().catch(swallow('getMyGoldPurchaseRequests', [])),
+      getEconomicSetting('gold_price_per_gram').catch(swallow('getEconomicSetting', null)),
+      getMyAccounts().catch(swallow('getMyAccounts', [])),
+      getGoldPrice().catch(swallow('getGoldPrice', null)),
     ]);
     // Solde du compte qui paiera réellement : la banque prélève sur le premier
     // compte actif du client (le même ordre que côté serveur). Depuis le

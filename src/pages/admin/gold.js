@@ -15,6 +15,7 @@ import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { getFeatureFlags } from '../../lib/features.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 const GOLD_BAR_STATUSES = ['in_vault', 'listed', 'reserved', 'sold'];
 
@@ -36,11 +37,11 @@ export async function renderAdminGold(app, profile) {
 
   async function draw() {
     const [bankQueue, marketQueue, allBars, marketListings, goldPrice] = await Promise.all([
-      getGoldBankQueue().catch(() => []),
-      getGoldMarketQueue().catch(() => []),
-      getAllGoldBars().catch(() => []),
-      getAllMarketListings().catch(() => []),
-      getGoldPrice().catch(() => null),
+      getGoldBankQueue().catch(swallow('getGoldBankQueue', [])),
+      getGoldMarketQueue().catch(swallow('getGoldMarketQueue', [])),
+      getAllGoldBars().catch(swallow('getAllGoldBars', [])),
+      getAllMarketListings().catch(swallow('getAllMarketListings', [])),
+      getGoldPrice().catch(swallow('getGoldPrice', null)),
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'bank' }));
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'market' }));

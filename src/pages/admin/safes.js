@@ -3,6 +3,7 @@ import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequ
 import { getAllSafeBoxes, adminCreateSafeBox, adminUpdateSafeBox } from '../../lib/adminApi.js';
 import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderAdminSafes(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'safes');
@@ -10,9 +11,9 @@ export async function renderAdminSafes(app, profile) {
 
   async function draw() {
     const [requests, availableBoxes, allBoxes] = await Promise.all([
-      getSafeRequestsQueue().catch(() => []),
-      getAvailableSafeBoxesForAssignment().catch(() => []),
-      getAllSafeBoxes().catch(() => []),
+      getSafeRequestsQueue().catch(swallow('getSafeRequestsQueue', [])),
+      getAvailableSafeBoxesForAssignment().catch(swallow('getAvailableSafeBoxesForAssignment', [])),
+      getAllSafeBoxes().catch(swallow('getAllSafeBoxes', [])),
     ]);
     const relevant = requests.filter((r) => r.status === 'pending' || r.status === 'processing');
 

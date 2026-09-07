@@ -12,6 +12,8 @@ import { getMyNotifications, markNotificationsRead, markAllNotificationsRead, su
 import { attachExternalLinkCopy } from './externalLink.js';
 import { getSystemFlags } from './systemSettings.js';
 import { escapeHtml } from './format.js';
+import { showAlert } from './uiDialogs.js';
+import { loadFailureCount, loadFailures, onLoadFailure } from './loadState.js';
 
 function initials(name) {
   return (name || '?')
@@ -112,6 +114,8 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
             <div class="font-display" style="font-size:16px;">${roleLabel}</div>
           </div>
           <div class="flex items-center gap-md" style="position:relative;">
+            <button id="load-warning" class="btn btn-ghost" style="display:none; color:var(--status-danger, #c0392b); font-size:13px; padding:4px 10px;"
+              title="Certaines données n'ont pas pu être chargées">⚠ Données incomplètes</button>
             <button id="notif-bell" class="notif-bell" aria-label="Notifications">
               🔔
               <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
@@ -149,9 +153,48 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
 
   setupNotifications(profile);
   setupSystemBanners(profile);
+  setupLoadWarning();
   attachExternalLinkCopy(app);
 
   return { content: document.getElementById('content') };
+}
+
+// ----------------------------------------------------------------------------
+// Indicateur « données incomplètes »
+// ----------------------------------------------------------------------------
+// Un chargement qui échoue garde son repli (liste vide) pour ne pas faire
+// tomber tout l'écran — mais l'utilisateur voyait exactement le même écran vide
+// qu'en l'absence de résultat. C'est ce qui a masqué trois écrans clients
+// définitivement vides pendant des semaines (voir loadState.js).
+//
+// Depuis, chaque appel nomme son échec (`swallow`). Un seul endroit suffit donc
+// pour en avertir : la coquille commune, présente sur les quatre interfaces.
+function setupLoadWarning() {
+  const btn = document.getElementById('load-warning');
+  if (!btn) return;
+
+  const rafraichir = (n) => {
+    btn.style.display = n > 0 ? '' : 'none';
+    btn.textContent = n > 1 ? `⚠ ${n} chargements incomplets` : '⚠ Données incomplètes';
+  };
+
+  btn.addEventListener('click', () => {
+    const details = loadFailures()
+      .slice(-8)
+      .map((e) => `• ${e.nom} : ${e.message}`)
+      .join('\n');
+    // Volontairement une modale simple : c'est un outil de diagnostic, pas un
+    // écran. L'essentiel est que l'utilisateur puisse dire au personnel CE QUI
+    // n'a pas chargé, au lieu de « ça marche pas ».
+    showAlert(
+      'Certaines données n’ont pas pu être chargées. Ce qui s’affiche est peut-être incomplet.\n\n' +
+        details +
+        '\n\nRechargez la page ; si cela persiste, signalez ces lignes au support.'
+    );
+  });
+
+  rafraichir(loadFailureCount());
+  onLoadFailure(rafraichir);
 }
 
 // Bannière d'annonce (visible par tout le monde quand activée depuis

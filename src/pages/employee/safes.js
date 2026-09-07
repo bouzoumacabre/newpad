@@ -2,6 +2,7 @@ import { renderEmployeeShell } from './shell.js';
 import { getSafeRequestsQueue, getAvailableSafeBoxesForAssignment, claimSafeRequest, confirmSafeRental, rejectSafeRequest, decideSafeRequestSimple, getSafeBoxesForStaff, endSafeRental } from '../../lib/employeeApi.js';
 import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderEmployeeSafes(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'safes');
@@ -9,9 +10,9 @@ export async function renderEmployeeSafes(app, profile) {
 
   async function draw() {
     const [requests, availableBoxes, allBoxes] = await Promise.all([
-      getSafeRequestsQueue().catch(() => []),
-      getAvailableSafeBoxesForAssignment().catch(() => []),
-      getSafeBoxesForStaff().catch(() => []),
+      getSafeRequestsQueue().catch(swallow('getSafeRequestsQueue', [])),
+      getAvailableSafeBoxesForAssignment().catch(swallow('getAvailableSafeBoxesForAssignment', [])),
+      getSafeBoxesForStaff().catch(swallow('getSafeBoxesForStaff', [])),
     ]);
     const rentedBoxes = allBoxes.filter((b) => b.status === 'rented');
     const relevant = requests.filter((r) => r.status === 'pending' || r.status === 'processing');

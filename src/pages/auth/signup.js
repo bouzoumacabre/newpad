@@ -5,6 +5,7 @@ import { navigate } from '../../lib/router.js';
 import { getSystemFlags } from '../../lib/systemSettings.js';
 import { escapeHtml } from '../../lib/format.js';
 import { humanError } from '../../lib/errorMessages.js';
+import { swallow } from '../../lib/loadState.js';
 
 // Liste figée à dessein : sur cet écran le visiteur n'a pas encore de session,
 // et la policy de lecture d'`account_types` exige `auth.uid() is not null`.
@@ -17,7 +18,7 @@ const ACCOUNT_TYPES = [
 ];
 
 export async function renderSignup(app) {
-  const flags = await getSystemFlags().catch(() => null);
+  const flags = await getSystemFlags().catch(swallow('getSystemFlags', null));
   if (flags?.maintenanceEnabled) {
     app.innerHTML = `
       <div class="auth-screen">

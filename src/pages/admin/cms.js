@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getSiteContent, upsertSiteContent, deleteSiteContent } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const AREAS = ['public', 'client', 'employee', 'admin', 'irs'];
 // Sections lues par la page d'accueil publique (src/pages/public/home.js) :
@@ -23,7 +24,7 @@ export async function renderAdminCms(app, profile) {
   }
 
   async function draw() {
-    const rows = await getSiteContent().catch(() => []);
+    const rows = await getSiteContent().catch(swallow('getSiteContent', []));
     const grouped = groupByArea(rows);
 
     content.innerHTML = `

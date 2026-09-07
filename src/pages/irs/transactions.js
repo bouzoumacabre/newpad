@@ -1,6 +1,7 @@
 import { renderIrsShell } from './shell.js';
 import { listIrsTransactions } from '../../lib/irsApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderIrsTransactions(app, profile) {
   const { content } = await renderIrsShell(app, profile, 'transactions');
@@ -9,7 +10,7 @@ export async function renderIrsTransactions(app, profile) {
   let query = '';
 
   async function draw() {
-    const txs = await listIrsTransactions(query).catch(() => []);
+    const txs = await listIrsTransactions(query).catch(swallow('listIrsTransactions', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Transactions</h1>

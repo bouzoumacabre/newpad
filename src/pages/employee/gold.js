@@ -3,6 +3,7 @@ import { getGoldBankQueue, decideGoldBankPurchase, getGoldMarketQueue, decideMar
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderEmployeeGold(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'gold');
@@ -10,10 +11,10 @@ export async function renderEmployeeGold(app, profile) {
 
   async function draw() {
     const [bankQueue, marketQueue, marketListings, goldPrice] = await Promise.all([
-      getGoldBankQueue().catch(() => []),
-      getGoldMarketQueue().catch(() => []),
-      getAllMarketListings().catch(() => []),
-      getGoldPrice().catch(() => null),
+      getGoldBankQueue().catch(swallow('getGoldBankQueue', [])),
+      getGoldMarketQueue().catch(swallow('getGoldMarketQueue', [])),
+      getAllMarketListings().catch(swallow('getAllMarketListings', [])),
+      getGoldPrice().catch(swallow('getGoldPrice', null)),
     ]);
     const bankPending = bankQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'bank' }));
     const marketPending = marketQueue.filter((r) => r.status === 'pending' || r.status === 'processing').map((r) => ({ ...r, _kind: 'market' }));

@@ -21,6 +21,7 @@ import {
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const ROLE_LABELS = { client: 'Client', employee: 'Employé', admin: 'Admin', irs: 'IRS' };
 
@@ -57,8 +58,8 @@ async function drawList(content, profile, basePath) {
   // besoin de cliquer sur un bouton pour faire apparaître la liste de
   // contacts derrière une fenêtre modale séparée).
   const [threads, contacts] = await Promise.all([
-    listMyThreads().catch(() => []),
-    listMessageableContacts().catch(() => []),
+    listMyThreads().catch(swallow('listMyThreads', [])),
+    listMessageableContacts().catch(swallow('listMessageableContacts', [])),
   ]);
 
   content.innerHTML = `
@@ -168,8 +169,8 @@ async function drawThread(content, profile, basePath, threadId) {
 
   async function draw() {
     const [threads, messages] = await Promise.all([
-      listMyThreads().catch(() => []),
-      getThreadMessages(threadId).catch(() => []),
+      listMyThreads().catch(swallow('listMyThreads', [])),
+      getThreadMessages(threadId).catch(swallow('getThreadMessages', [])),
     ]);
     const thread = threads.find((t) => t.id === threadId);
 

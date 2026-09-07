@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getLoansQueue, decideLoanFinal, getTreasuryStats } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderAdminLoans(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'loans');
@@ -9,8 +10,8 @@ export async function renderAdminLoans(app, profile) {
 
   async function draw() {
     const [loans, treasury] = await Promise.all([
-      getLoansQueue().catch(() => []),
-      getTreasuryStats().catch(() => null),
+      getLoansQueue().catch(swallow('getLoansQueue', [])),
+      getTreasuryStats().catch(swallow('getTreasuryStats', null)),
     ]);
     // Depuis la migration 0027, la banque refuse un décaissement supérieur à
     // ses fonds propres. L'admin doit donc voir ce plafond AVANT de cliquer sur

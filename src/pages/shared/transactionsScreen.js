@@ -9,6 +9,7 @@ import { listStaffTransactions, listDistinctTxTypes, getClientCategories } from 
 import { adminUpdateTransactionDescription, adminCorrectTransactionAmount } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml, txTypeLabel } from '../../lib/format.js';
 import { showPrompt, showAlert } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderTransactionsScreen(content, { canEdit = false } = {}) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
@@ -19,9 +20,9 @@ export async function renderTransactionsScreen(content, { canEdit = false } = {}
 
   async function draw() {
     const [txs, txTypes, categories] = await Promise.all([
-      listStaffTransactions({ search, txType: txType || null, categoryId: categoryId || null }).catch(() => []),
-      listDistinctTxTypes().catch(() => []),
-      getClientCategories().catch(() => []),
+      listStaffTransactions({ search, txType: txType || null, categoryId: categoryId || null }).catch(swallow('listStaffTransactions', [])),
+      listDistinctTxTypes().catch(swallow('listDistinctTxTypes', [])),
+      getClientCategories().catch(swallow('getClientCategories', [])),
     ]);
 
     content.innerHTML = `

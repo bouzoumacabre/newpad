@@ -2,14 +2,15 @@ import { renderIrsShell } from './shell.js';
 import { listIrsGoldBars } from '../../lib/irsApi.js';
 import { formatMoney, statusBadge, escapeHtml } from '../../lib/format.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderIrsGold(app, profile) {
   const { content } = await renderIrsShell(app, profile, 'gold');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   const [bars, goldPrice] = await Promise.all([
-    listIrsGoldBars().catch(() => []),
-    getGoldPrice().catch(() => null),
+    listIrsGoldBars().catch(swallow('listIrsGoldBars', [])),
+    getGoldPrice().catch(swallow('getGoldPrice', null)),
   ]);
   const totalWeight = bars.reduce((sum, b) => sum + Number(b.weight_grams || 0), 0);
 

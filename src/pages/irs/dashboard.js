@@ -2,12 +2,13 @@ import { renderIrsShell } from './shell.js';
 import { getIrsStats } from '../../lib/irsApi.js';
 import { escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderIrsDashboard(app, profile) {
   const { content } = await renderIrsShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const stats = await getIrsStats().catch(() => null);
+  const stats = await getIrsStats().catch(swallow('getIrsStats', null));
 
   const cards = [
     { label: 'Clients enregistrés', value: stats?.clients_total ?? '—', path: '/irs/clients' },

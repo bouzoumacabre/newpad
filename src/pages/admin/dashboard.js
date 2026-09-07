@@ -15,6 +15,7 @@ import {
 import { getTreasuryStats, checkLedgerIntegrity } from '../../lib/adminApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { swallow } from '../../lib/loadState.js';
 
 function countPending(list, statuses = ['pending', 'processing']) {
   return list.filter((x) => statuses.includes(x.status)).length;
@@ -25,18 +26,18 @@ export async function renderAdminDashboard(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, cashierReports, treasury, consulting] = await Promise.all([
-    getMembershipRequests(['pending', 'processing']).catch(() => []),
-    getTransfersQueue().catch(() => []),
-    getGoldBankQueue().catch(() => []),
-    getGoldMarketQueue().catch(() => []),
-    getSafeRequestsQueue().catch(() => []),
-    getLoansQueue().catch(() => []),
-    getFraudAlerts('open').catch(() => []),
-    getAllSupportTickets('open').catch(() => []),
-    getBranchQueue().catch(() => []),
-    getCashierReports(1).catch(() => []),
-    getTreasuryStats().catch(() => null),
-    getConsultingQueue().catch(() => []),
+    getMembershipRequests(['pending', 'processing']).catch(swallow('getMembershipRequests', [])),
+    getTransfersQueue().catch(swallow('getTransfersQueue', [])),
+    getGoldBankQueue().catch(swallow('getGoldBankQueue', [])),
+    getGoldMarketQueue().catch(swallow('getGoldMarketQueue', [])),
+    getSafeRequestsQueue().catch(swallow('getSafeRequestsQueue', [])),
+    getLoansQueue().catch(swallow('getLoansQueue', [])),
+    getFraudAlerts('open').catch(swallow('getFraudAlerts', [])),
+    getAllSupportTickets('open').catch(swallow('getAllSupportTickets', [])),
+    getBranchQueue().catch(swallow('getBranchQueue', [])),
+    getCashierReports(1).catch(swallow('getCashierReports', [])),
+    getTreasuryStats().catch(swallow('getTreasuryStats', null)),
+    getConsultingQueue().catch(swallow('getConsultingQueue', [])),
   ]);
 
   // Contrôle de conservation du grand livre. Volontairement placé sur le
@@ -44,7 +45,7 @@ export async function renderAdminDashboard(app, profile) {
   // doit sauter aux yeux dès la connexion, pas attendre qu'on pense à aller
   // la chercher. `null` = le contrôle lui-même n'a pas pu tourner (on ne
   // prétend alors pas que tout va bien).
-  const ledgerAnomalies = await checkLedgerIntegrity().catch(() => null);
+  const ledgerAnomalies = await checkLedgerIntegrity().catch(swallow('checkLedgerIntegrity', null));
 
   const loansAwaitingDecision = loans.filter((l) => l.status === 'processing').length;
   const lastReport = cashierReports[0];

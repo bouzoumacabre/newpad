@@ -3,6 +3,7 @@ import { getMySupportTickets, getSupportMessages, createSupportTicket, postSuppo
 import { formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const CATEGORIES = ['Compte', 'Virement', 'Lingots & marché', 'Coffre-fort', 'Prêt', 'Autre'];
 
@@ -19,7 +20,7 @@ export async function renderClientSupport(app, profile, params = {}) {
 
 async function drawList(content) {
   async function draw() {
-    const tickets = await getMySupportTickets().catch(() => []);
+    const tickets = await getMySupportTickets().catch(swallow('getMySupportTickets', []));
 
     content.innerHTML = `
       <div class="flex justify-between items-center" style="margin-bottom:20px;">
@@ -108,8 +109,8 @@ async function drawList(content) {
 async function drawThread(content, ticketId) {
   async function draw() {
     const [tickets, messages] = await Promise.all([
-      getMySupportTickets().catch(() => []),
-      getSupportMessages(ticketId).catch(() => []),
+      getMySupportTickets().catch(swallow('getMySupportTickets', [])),
+      getSupportMessages(ticketId).catch(swallow('getSupportMessages', [])),
     ]);
     const ticket = tickets.find((t) => t.id === ticketId);
 

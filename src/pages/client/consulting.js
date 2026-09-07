@@ -1,7 +1,7 @@
 import { renderClientShell } from './shell.js';
 import { getMyConsultingRequests, requestConsulting, lookupProfile } from '../../lib/clientApi.js';
 import { formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
-import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
+import { loadAll, loadErrorBanner, swallow } from '../../lib/loadState.js';
 
 export async function renderClientConsulting(app, profile) {
   const { content } = await renderClientShell(app, profile, 'consulting');
@@ -22,7 +22,7 @@ export async function renderClientConsulting(app, profile) {
     const advisors = new Map();
     await Promise.all(
       advisorIds.map(async (id) => {
-        const p = await lookupProfile(id).catch(() => null);
+        const p = await lookupProfile(id).catch(swallow('lookupProfile', null));
         if (p) advisors.set(id, p);
       })
     );

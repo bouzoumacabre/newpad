@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getEconomicSettings, upsertEconomicSetting } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const SYSTEM_CATEGORY = 'système';
 const KNOWN_KEYS = ['maintenance_mode', 'announcement_banner'];
@@ -11,7 +12,7 @@ export async function renderAdminSystem(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const allSettings = await getEconomicSettings().catch(() => []);
+    const allSettings = await getEconomicSettings().catch(swallow('getEconomicSettings', []));
     const systemSettings = allSettings.filter((s) => s.category === SYSTEM_CATEGORY);
     const maintenance = systemSettings.find((s) => s.key === 'maintenance_mode');
     const banner = systemSettings.find((s) => s.key === 'announcement_banner');

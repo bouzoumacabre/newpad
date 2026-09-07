@@ -71,6 +71,7 @@ import { renderIrsTransactions } from './pages/irs/transactions.js';
 import { renderIrsGold } from './pages/irs/gold.js';
 import { renderIrsMessages } from './pages/irs/messages.js';
 import { renderIrsSettings } from './pages/irs/settings.js';
+import { swallow } from './lib/loadState.js';
 
 const app = document.getElementById('app');
 
@@ -110,7 +111,7 @@ function renderBlockedProfile(profile) {
 }
 
 async function guardedRoleRender(expectedRole, renderFn) {
-  const profile = await getCurrentProfile().catch(() => null);
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
   if (!profile) { navigate('/login'); return; }
   if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   if (profile.role !== expectedRole) { navigate('/' + profile.role); return; }
@@ -227,7 +228,7 @@ initRouter();
 // Redirection automatique après connexion selon le rôle du profil.
 supabase.auth.onAuthStateChange(async (event) => {
   if (event === 'SIGNED_IN') {
-    const profile = await getCurrentProfile().catch(() => null);
+    const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
     if (profile) navigate('/' + profile.role);
   }
   if (event === 'SIGNED_OUT') {

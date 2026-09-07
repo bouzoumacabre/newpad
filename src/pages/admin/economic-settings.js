@@ -11,6 +11,7 @@ import {
 } from '../../lib/adminApi.js';
 import { escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const SYSTEM_CATEGORY = 'système';
 // 1 once troy = 31,1034768 grammes — référence standard du marché de l'or.
@@ -54,12 +55,12 @@ export async function renderAdminEconomicSettings(app, profile) {
 
   async function draw() {
     const [allSettings, safeBoxes] = await Promise.all([
-      getEconomicSettings().catch(() => []),
-      getAllSafeBoxes().catch(() => []),
+      getEconomicSettings().catch(swallow('getEconomicSettings', [])),
+      getAllSafeBoxes().catch(swallow('getAllSafeBoxes', [])),
     ]);
     const settings = allSettings.filter((s) => s.category !== SYSTEM_CATEGORY);
     const grouped = groupByCategory(settings);
-    const overrides = selectedClient ? await getClientOverrides(selectedClient.id).catch(() => []) : [];
+    const overrides = selectedClient ? await getClientOverrides(selectedClient.id).catch(swallow('getClientOverrides', [])) : [];
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Pilotage économique</h1>
@@ -234,7 +235,7 @@ export async function renderAdminEconomicSettings(app, profile) {
       clearTimeout(debounce);
       debounce = setTimeout(async () => {
         query = searchInput.value;
-        results = await searchProfilesAnyRole(query).catch(() => []);
+        results = await searchProfilesAnyRole(query).catch(swallow('searchProfilesAnyRole', []));
         draw();
       }, 300);
     });

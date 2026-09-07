@@ -2,6 +2,7 @@ import { renderClientShell } from './shell.js';
 import { getMyLoans, getLoanSchedule, requestLoan, repayLoanEarly, getEconomicSetting, getMyAccounts } from '../../lib/clientApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 // L'énumération `installment_status` ne connaît que pending|paid|late : une
 // échéance prélevée AVEC pénalité de retard est enregistrée en 'late', ce qui
@@ -23,9 +24,9 @@ export async function renderClientLoans(app, profile) {
 
   async function draw() {
     const [loans, capSetting, accounts] = await Promise.all([
-      getMyLoans().catch(() => []),
-      getEconomicSetting('loan_cap').catch(() => null),
-      getMyAccounts().catch(() => []),
+      getMyLoans().catch(swallow('getMyLoans', [])),
+      getEconomicSetting('loan_cap').catch(swallow('getEconomicSetting', null)),
+      getMyAccounts().catch(swallow('getMyAccounts', [])),
     ]);
     const cap = capSetting?.amount ?? 50000000;
     const hasPending = loans.some((l) => l.status === 'pending' || l.status === 'processing');
@@ -48,7 +49,7 @@ export async function renderClientLoans(app, profile) {
 
     let scheduleHtml = '';
     if (expandedLoanId) {
-      const schedule = await getLoanSchedule(expandedLoanId).catch(() => []);
+      const schedule = await getLoanSchedule(expandedLoanId).catch(swallow('getLoanSchedule', []));
       scheduleHtml = `
         <div class="card" style="margin-top:16px;">
           <h3 style="margin-bottom:12px;">Échéancier</h3>
@@ -181,7 +182,7 @@ export async function renderClientLoans(app, profile) {
         // tableau. Le client confirmait jusqu'ici un montant qu'il ne voyait
         // nulle part — et depuis la migration 0027 la banque refuse le
         // prélèvement s'il dépasse le solde du compte.
-        const schedule = await getLoanSchedule(loanId).catch(() => null);
+        const schedule = await getLoanSchedule(loanId).catch(swallow('getLoanSchedule', null));
         if (schedule === null) {
           await showAlert('Impossible de charger l’échéancier — réessayez dans un instant.');
           return;

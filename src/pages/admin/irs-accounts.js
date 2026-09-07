@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getIrsAccounts, grantIrsAccount, revokeIrsAccount, searchProfilesAnyRole } from '../../lib/adminApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderAdminIrsAccounts(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'irs-accounts');
@@ -11,7 +12,7 @@ export async function renderAdminIrsAccounts(app, profile) {
   let results = [];
 
   async function draw() {
-    const accounts = await getIrsAccounts().catch(() => []);
+    const accounts = await getIrsAccounts().catch(swallow('getIrsAccounts', []));
     const active = accounts.filter((a) => !a.revoked_at);
     const revoked = accounts.filter((a) => a.revoked_at);
 
@@ -102,7 +103,7 @@ export async function renderAdminIrsAccounts(app, profile) {
       clearTimeout(debounce);
       debounce = setTimeout(async () => {
         query = searchInput.value;
-        results = await searchProfilesAnyRole(query).catch(() => []);
+        results = await searchProfilesAnyRole(query).catch(swallow('searchProfilesAnyRole', []));
         draw();
       }, 300);
     });

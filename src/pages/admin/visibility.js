@@ -2,6 +2,7 @@ import { renderAdminShell } from './shell.js';
 import { getVisibilityMasks, setVisibilityMask } from '../../lib/adminApi.js';
 import { searchClients, getClientAccounts, listStaffTransactions } from '../../lib/employeeApi.js';
 import { formatDateTime, formatMoney, escapeHtml } from '../../lib/format.js';
+import { swallow } from '../../lib/loadState.js';
 
 const TARGET_TYPES = ['account', 'transaction'];
 const INTERFACES = ['client', 'employee', 'admin', 'irs', 'public'];
@@ -20,7 +21,7 @@ export async function renderAdminVisibility(app, profile) {
   let selectedTargetLabel = '';
 
   async function draw() {
-    const masks = await getVisibilityMasks().catch(() => []);
+    const masks = await getVisibilityMasks().catch(swallow('getVisibilityMasks', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Masquage par interface</h1>
@@ -182,7 +183,7 @@ export async function renderAdminVisibility(app, profile) {
       clearTimeout(debounce);
       debounce = setTimeout(async () => {
         query = clientSearchInput.value;
-        clientResults = query.trim().length >= 2 ? await searchClients(query).catch(() => []) : [];
+        clientResults = query.trim().length >= 2 ? await searchClients(query).catch(swallow('searchClients', [])) : [];
         draw();
       }, 300);
     });
@@ -194,8 +195,8 @@ export async function renderAdminVisibility(app, profile) {
         selectedTransactions = [];
         if (selectedClient) {
           const [accounts, txResult] = await Promise.all([
-            getClientAccounts(selectedClient.id).catch(() => []),
-            listStaffTransactions({ search: selectedClient.display_name, limit: 15 }).catch(() => []),
+            getClientAccounts(selectedClient.id).catch(swallow('getClientAccounts', [])),
+            listStaffTransactions({ search: selectedClient.display_name, limit: 15 }).catch(swallow('listStaffTransactions', [])),
           ]);
           selectedAccounts = accounts;
           selectedTransactions = txResult;

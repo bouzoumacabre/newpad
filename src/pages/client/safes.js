@@ -2,6 +2,7 @@ import { renderClientShell } from './shell.js';
 import { getAvailableSafeBoxes, getMySafeBoxes, getMySafeRequests, requestSafeBox, endSafeRental, getMyAccounts } from '../../lib/clientApi.js';
 import { formatMoney, formatDate, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 // Date du prochain prélèvement hebdomadaire. Depuis la migration 0027 elle est
 // portée par la colonne `last_charged_at` du coffre — plus par le libellé de la
@@ -20,10 +21,10 @@ export async function renderClientSafes(app, profile) {
 
   async function draw() {
     const [available, myBoxes, myRequests, accounts] = await Promise.all([
-      getAvailableSafeBoxes().catch(() => []),
-      getMySafeBoxes().catch(() => []),
-      getMySafeRequests().catch(() => []),
-      getMyAccounts().catch(() => []),
+      getAvailableSafeBoxes().catch(swallow('getAvailableSafeBoxes', [])),
+      getMySafeBoxes().catch(swallow('getMySafeBoxes', [])),
+      getMySafeRequests().catch(swallow('getMySafeRequests', [])),
+      getMyAccounts().catch(swallow('getMyAccounts', [])),
     ]);
 
     const rentedBoxes = myBoxes.filter((b) => b.status === 'rented');

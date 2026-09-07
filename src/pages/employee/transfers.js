@@ -2,16 +2,17 @@ import { renderEmployeeShell } from './shell.js';
 import { getTransfersQueue, getAccountsByIds, claimTransfer, decideTransfer } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderEmployeeTransfers(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'transfers');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const transfers = await getTransfersQueue().catch(() => []);
+    const transfers = await getTransfersQueue().catch(swallow('getTransfersQueue', []));
     const relevant = transfers.filter((t) => t.status === 'pending' || t.status === 'processing');
     const accountIds = [...new Set(relevant.flatMap((t) => [t.sender_account_id, t.recipient_account_id]))];
-    const accounts = await getAccountsByIds(accountIds).catch(() => []);
+    const accounts = await getAccountsByIds(accountIds).catch(swallow('getAccountsByIds', []));
     const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
     content.innerHTML = `

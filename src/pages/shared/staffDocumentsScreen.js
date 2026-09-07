@@ -14,7 +14,7 @@
 import { getStaffDocuments, issueDocument, revokeDocument, searchClients } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
-import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
+import { loadAll, loadErrorBanner, swallow } from '../../lib/loadState.js';
 
 const DOC_TYPES = [
   ['attestation', 'Attestation'],
@@ -112,7 +112,7 @@ export async function renderStaffDocumentsScreen(content, profile, { canRevoke =
       const typed = clientInput.value.trim();
       if (typed.length < 2) return;
       debounce = setTimeout(async () => {
-        matches = await searchClients(typed, 5).catch(() => []);
+        matches = await searchClients(typed, 5).catch(swallow('searchClients', []));
         if (!matches.length) {
           matchEl.textContent = 'Aucun client ne correspond.';
           return;

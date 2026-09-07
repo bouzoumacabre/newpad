@@ -10,7 +10,7 @@ import {
 } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
-import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
+import { loadAll, loadErrorBanner, swallow } from '../../lib/loadState.js';
 
 const SEVERITY_BADGE = { low: 'badge-neutral', medium: 'badge-pending', high: 'badge-danger' };
 const SEVERITY_LABEL = { low: 'Faible', medium: 'Moyenne', high: 'Élevée' };
@@ -121,7 +121,7 @@ export async function renderFraudScreen(content, profile, basePath) {
       const typed = clientInput.value.trim();
       if (!typed) return;
       debounce = setTimeout(async () => {
-        const matches = await searchProfilesAnyRole(typed).catch(() => []);
+        const matches = await searchProfilesAnyRole(typed).catch(swallow('searchProfilesAnyRole', []));
         const exact = matches.find((m) => m.username.toLowerCase() === typed.toLowerCase());
         matchedClientId = exact ? exact.id : null;
         matchedClientName = exact ? exact.display_name : '';

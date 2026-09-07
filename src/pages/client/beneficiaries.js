@@ -2,13 +2,14 @@ import { renderClientShell } from './shell.js';
 import { getBeneficiaries, addBeneficiary, deleteBeneficiary, resolveAccountByIban } from '../../lib/clientApi.js';
 import { escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderClientBeneficiaries(app, profile) {
   const { content } = await renderClientShell(app, profile, 'beneficiaries');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const beneficiaries = await getBeneficiaries().catch(() => []);
+    const beneficiaries = await getBeneficiaries().catch(swallow('getBeneficiaries', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:20px;">Bénéficiaires</h1>

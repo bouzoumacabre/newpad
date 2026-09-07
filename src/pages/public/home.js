@@ -5,6 +5,7 @@ import { attachExternalLinkCopy } from '../../lib/externalLink.js';
 import { getSystemFlags } from '../../lib/systemSettings.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
 import { escapeHtml } from '../../lib/format.js';
+import { swallow } from '../../lib/loadState.js';
 
 // Contenu de secours si la base n'est pas encore joignable (mode démo hors-ligne) —
 // une fois Supabase connecté, tout provient de la table `site_content` (pilotée
@@ -70,10 +71,10 @@ export async function renderPublicHome(app) {
   app.innerHTML = `<div class="flex justify-between items-center" style="padding:24px;"><span class="muted">Chargement…</span></div>`;
   const [c, flags, goldPrice] = await Promise.all([
     loadContent(),
-    getSystemFlags().catch(() => null),
+    getSystemFlags().catch(swallow('getSystemFlags', null)),
     // Le cours de l'or est une information de vitrine : une banque l'affiche
     // publiquement. Lisible sans session depuis la migration 0026.
-    getGoldPrice().catch(() => null),
+    getGoldPrice().catch(swallow('getGoldPrice', null)),
   ]);
   const maintenance = flags?.maintenanceEnabled;
 

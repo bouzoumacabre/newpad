@@ -8,12 +8,13 @@
 import { renderClientShell } from './shell.js';
 import { getMyInfo } from '../../lib/clientApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderClientInfo(app, profile) {
   const { content } = await renderClientShell(app, profile, 'info');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
-  const info = await getMyInfo().catch(() => null);
+  const info = await getMyInfo().catch(swallow('getMyInfo', null));
 
   content.innerHTML = `
     <h1 style="margin-bottom:6px;">Infos</h1>

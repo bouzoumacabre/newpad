@@ -12,6 +12,7 @@ import {
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { invalidateFeatureCache } from '../../lib/features.js';
+import { swallow } from '../../lib/loadState.js';
 
 const ROLES = ['prospect', 'client', 'employee', 'admin', 'irs'];
 const AREAS = ['client', 'employee', 'admin', 'irs', 'public'];
@@ -35,8 +36,8 @@ export async function renderAdminPermissions(app, profile) {
 
   async function draw() {
     const [features, grants] = await Promise.all([
-      getFeatureRegistry().catch(() => []),
-      selectedAccount ? getPermissionGrants(selectedAccount.id).catch(() => []) : Promise.resolve([]),
+      getFeatureRegistry().catch(swallow('getFeatureRegistry', [])),
+      selectedAccount ? getPermissionGrants(selectedAccount.id).catch(swallow('getPermissionGrants', [])) : Promise.resolve([]),
     ]);
     const grouped = groupByArea(features);
 
@@ -271,7 +272,7 @@ export async function renderAdminPermissions(app, profile) {
       clearTimeout(debounce);
       debounce = setTimeout(async () => {
         query = searchInput.value;
-        results = await searchProfilesAnyRole(query).catch(() => []);
+        results = await searchProfilesAnyRole(query).catch(swallow('searchProfilesAnyRole', []));
         draw();
       }, 300);
     });

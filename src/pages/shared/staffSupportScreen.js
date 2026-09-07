@@ -16,7 +16,7 @@ import {
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
-import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
+import { loadAll, loadErrorBanner, swallow } from '../../lib/loadState.js';
 
 const STATUS_LABELS = { open: 'Ouvert', in_progress: 'En cours', resolved: 'Résolu' };
 const STATUS_BADGE = { open: 'badge-pending', in_progress: 'badge-pending', resolved: 'badge-success' };
@@ -90,8 +90,8 @@ async function drawList(content, profile, basePath) {
 async function drawThread(content, profile, basePath, ticketId) {
   async function draw() {
     const [tickets, messages] = await Promise.all([
-      getAllSupportTickets().catch(() => []),
-      getSupportMessages(ticketId).catch(() => []),
+      getAllSupportTickets().catch(swallow('getAllSupportTickets', [])),
+      getSupportMessages(ticketId).catch(swallow('getSupportMessages', [])),
     ]);
     const ticket = tickets.find((t) => t.id === ticketId);
 

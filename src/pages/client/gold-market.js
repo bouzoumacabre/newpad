@@ -13,6 +13,7 @@ import {
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderClientGoldMarket(app, profile) {
   const { content } = await renderClientShell(app, profile, 'gold-market');
@@ -20,14 +21,14 @@ export async function renderClientGoldMarket(app, profile) {
 
   async function draw() {
     const [listings, myListings, myBars, myPurchases, minSetting, maxSetting, accounts, goldPrice] = await Promise.all([
-      getMarketListings().catch(() => []),
-      getMyMarketListings().catch(() => []),
-      getMyGoldBars().catch(() => []),
-      getMyMarketPurchaseRequests().catch(() => []),
-      getEconomicSetting('gold_listing_min_price').catch(() => null),
-      getEconomicSetting('gold_listing_max_price').catch(() => null),
-      getMyAccounts().catch(() => []),
-      getGoldPrice().catch(() => null),
+      getMarketListings().catch(swallow('getMarketListings', [])),
+      getMyMarketListings().catch(swallow('getMyMarketListings', [])),
+      getMyGoldBars().catch(swallow('getMyGoldBars', [])),
+      getMyMarketPurchaseRequests().catch(swallow('getMyMarketPurchaseRequests', [])),
+      getEconomicSetting('gold_listing_min_price').catch(swallow('getEconomicSetting', null)),
+      getEconomicSetting('gold_listing_max_price').catch(swallow('getEconomicSetting', null)),
+      getMyAccounts().catch(swallow('getMyAccounts', [])),
+      getGoldPrice().catch(swallow('getGoldPrice', null)),
     ]);
 
     const sellableBars = myBars.filter((b) => b.status === 'in_vault');

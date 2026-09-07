@@ -13,6 +13,7 @@ import {
 } from '../../lib/employeeApi.js';
 import { formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
+import { swallow } from '../../lib/loadState.js';
 
 function countPending(list, statuses = ['pending', 'processing']) {
   return list.filter((x) => statuses.includes(x.status)).length;
@@ -23,16 +24,16 @@ export async function renderEmployeeDashboard(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   const [membership, transfers, goldBank, goldMarket, safes, loans, fraud, tickets, queue, consulting] = await Promise.all([
-    getMembershipRequests(['pending', 'processing']).catch(() => []),
-    getTransfersQueue().catch(() => []),
-    getGoldBankQueue().catch(() => []),
-    getGoldMarketQueue().catch(() => []),
-    getSafeRequestsQueue().catch(() => []),
-    getLoansQueue().catch(() => []),
-    getFraudAlerts('open').catch(() => []),
-    getAllSupportTickets('open').catch(() => []),
-    getBranchQueue().catch(() => []),
-    getConsultingQueue().catch(() => []),
+    getMembershipRequests(['pending', 'processing']).catch(swallow('getMembershipRequests', [])),
+    getTransfersQueue().catch(swallow('getTransfersQueue', [])),
+    getGoldBankQueue().catch(swallow('getGoldBankQueue', [])),
+    getGoldMarketQueue().catch(swallow('getGoldMarketQueue', [])),
+    getSafeRequestsQueue().catch(swallow('getSafeRequestsQueue', [])),
+    getLoansQueue().catch(swallow('getLoansQueue', [])),
+    getFraudAlerts('open').catch(swallow('getFraudAlerts', [])),
+    getAllSupportTickets('open').catch(swallow('getAllSupportTickets', [])),
+    getBranchQueue().catch(swallow('getBranchQueue', [])),
+    getConsultingQueue().catch(swallow('getConsultingQueue', [])),
   ]);
 
   const consultingPending = consulting.filter((c) => c.status === 'pending');

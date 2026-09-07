@@ -7,6 +7,7 @@
 // (auto-filtrées côté serveur au compte du client connecté).
 
 import { supabase } from './supabaseClient.js';
+import { swallow } from './loadState.js';
 
 async function requireUser() {
   const { data: { user } } = await supabase.auth.getUser();

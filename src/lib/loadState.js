@@ -72,3 +72,55 @@ export function loadErrorBanner(errors) {
     </div>
   `;
 }
+
+// ----------------------------------------------------------------------------
+// `swallow` — le repli, mais jamais en silence
+// ----------------------------------------------------------------------------
+// `loadAll` est le bon outil quand on réécrit un écran. Mais 149 appels
+// dispersés dans 44 fichiers utilisaient encore `.catch(() => [])` : un écran
+// vide y signifie indifféremment « aucun résultat » ou « la requête a échoué ».
+// Les réécrire tous d'un coup serait un chantier risqué pour un gain de forme.
+//
+// `swallow` garde donc exactement le même comportement — même repli, même flux
+// d'exécution, aucune exception propagée — mais l'échec est journalisé en
+// console avec le nom de l'appel, et enregistré pour que la coquille commune
+// puisse en avertir l'utilisateur d'un seul endroit.
+//
+//     getMyAccounts().catch(() => [])            // avant : muet
+//     getMyAccounts().catch(() => [])   // après : tracé
+
+const echecs = [];
+const abonnes = new Set();
+
+export function swallow(nom, repli = []) {
+  return (error) => {
+    console.error(`[newpad] échec de chargement « ${nom} » :`, error?.message || error, error);
+    echecs.push({ nom, message: error?.message || String(error), at: Date.now() });
+    for (const fn of abonnes) {
+      try { fn(echecs.length); } catch (_) { /* un abonné défaillant n'empêche rien */ }
+    }
+    return repli;
+  };
+}
+
+export function loadFailureCount() {
+  return echecs.length;
+}
+
+export function loadFailures() {
+  return echecs.slice();
+}
+
+export function clearLoadFailures() {
+  echecs.length = 0;
+  for (const fn of abonnes) {
+    try { fn(0); } catch (_) { /* idem */ }
+  }
+}
+
+// La coquille s'abonne pour afficher un indicateur dès le premier échec, quel
+// que soit l'écran qui l'a rencontré.
+export function onLoadFailure(fn) {
+  abonnes.add(fn);
+  return () => abonnes.delete(fn);
+}

@@ -2,13 +2,14 @@ import { renderAdminShell } from './shell.js';
 import { getMembershipRequests, claimMembershipRequest, decideMembershipRequest } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderAdminMembership(app, profile) {
   const { content } = await renderAdminShell(app, profile, 'membership');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const requests = await getMembershipRequests(['pending', 'processing']).catch(() => []);
+    const requests = await getMembershipRequests(['pending', 'processing']).catch(swallow('getMembershipRequests', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:20px;">Demandes d'adhésion</h1>

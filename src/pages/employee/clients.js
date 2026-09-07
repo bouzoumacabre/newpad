@@ -15,6 +15,7 @@ import {
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDate, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderEmployeeClients(app, profile, params = {}) {
   const { content } = await renderEmployeeShell(app, profile, 'clients');
@@ -27,12 +28,12 @@ export async function renderEmployeeClients(app, profile, params = {}) {
 
   async function draw() {
     let [results, allCategories] = await Promise.all([
-      searchClients(query).catch(() => []),
-      getClientCategories().catch(() => []),
+      searchClients(query).catch(swallow('searchClients', [])),
+      getClientCategories().catch(swallow('getClientCategories', [])),
     ]);
 
     if (categoryFilter) {
-      const idsInCategory = await getClientIdsInCategory(categoryFilter).catch(() => []);
+      const idsInCategory = await getClientIdsInCategory(categoryFilter).catch(swallow('getClientIdsInCategory', []));
       const idSet = new Set(idsInCategory);
       results = results.filter((r) => idSet.has(r.id));
     }
@@ -40,11 +41,11 @@ export async function renderEmployeeClients(app, profile, params = {}) {
     let detailHtml = '<div class="card"><p class="muted">Sélectionnez un client dans la liste pour voir sa fiche.</p></div>';
     if (selectedId) {
       const [detail, accounts, links, loans, info] = await Promise.all([
-        getClientProfile(selectedId).catch(() => null),
-        getClientAccounts(selectedId).catch(() => []),
-        getClientCategoryLinks(selectedId).catch(() => []),
-        getClientLoans(selectedId).catch(() => []),
-        getClientInfo(selectedId).catch(() => null),
+        getClientProfile(selectedId).catch(swallow('getClientProfile', null)),
+        getClientAccounts(selectedId).catch(swallow('getClientAccounts', [])),
+        getClientCategoryLinks(selectedId).catch(swallow('getClientCategoryLinks', [])),
+        getClientLoans(selectedId).catch(swallow('getClientLoans', [])),
+        getClientInfo(selectedId).catch(swallow('getClientInfo', null)),
       ]);
       if (detail) {
         const total = accounts.reduce((s, a) => s + Number(a.balance), 0);

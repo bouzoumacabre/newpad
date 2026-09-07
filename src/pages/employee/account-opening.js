@@ -8,6 +8,7 @@ import {
 } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
@@ -20,7 +21,7 @@ export async function renderEmployeeAccountOpening(app, profile) {
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const openings = await getManualAccountOpenings().catch(() => []);
+    const openings = await getManualAccountOpenings().catch(swallow('getManualAccountOpenings', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Ouverture de compte au guichet</h1>
@@ -166,7 +167,7 @@ export async function renderEmployeeAccountOpening(app, profile) {
         debounce = setTimeout(async () => {
           const q = input.value.trim();
           if (q.length < 2) { resultsEl.innerHTML = '<p class="muted" style="font-size:12px; padding:4px;">Saisissez au moins 2 caractères.</p>'; return; }
-          const matches = await searchProfilesAnyRole(q).catch(() => []);
+          const matches = await searchProfilesAnyRole(q).catch(swallow('searchProfilesAnyRole', []));
           resultsEl.innerHTML = matches.length
             ? matches
                 .map(

@@ -2,13 +2,14 @@ import { renderIrsShell } from './shell.js';
 import { listIrsClients, getClientInfo, upsertClientInfo } from '../../lib/irsApi.js';
 import { formatDate, escapeHtml } from '../../lib/format.js';
 import { showAlert, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderIrsClients(app, profile) {
   const { content } = await renderIrsShell(app, profile, 'clients');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw(search) {
-    const clients = await listIrsClients(search).catch(() => []);
+    const clients = await listIrsClients(search).catch(swallow('listIrsClients', []));
 
     content.innerHTML = `
       <h1 style="margin-bottom:6px;">Clients</h1>
@@ -57,7 +58,7 @@ export async function renderIrsClients(app, profile) {
       btn.addEventListener('click', async () => {
         const clientId = btn.getAttribute('data-id');
         const name = btn.getAttribute('data-name');
-        const current = await getClientInfo(clientId).catch(() => null);
+        const current = await getClientInfo(clientId).catch(swallow('getClientInfo', null));
         const next = await showPrompt(`Infos communiquées à ${name} (visibles par lui, lecture seule pour lui) :`, current?.content || '');
         if (next === null) return;
         try {

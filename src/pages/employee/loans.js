@@ -2,13 +2,14 @@ import { renderEmployeeShell } from './shell.js';
 import { getLoansQueue, reviewLoan } from '../../lib/employeeApi.js';
 import { formatMoney, formatDateTime, statusBadge, escapeHtml } from '../../lib/format.js';
 import { showAlert, showConfirm, showPrompt } from '../../lib/uiDialogs.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderEmployeeLoans(app, profile) {
   const { content } = await renderEmployeeShell(app, profile, 'loans');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   async function draw() {
-    const loans = await getLoansQueue().catch(() => []);
+    const loans = await getLoansQueue().catch(swallow('getLoansQueue', []));
     const pending = loans.filter((l) => l.status === 'pending');
     const inReview = loans.filter((l) => l.status === 'processing');
 

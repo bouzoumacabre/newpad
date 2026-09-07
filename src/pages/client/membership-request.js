@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 import { getMyMembershipRequest, submitMembershipRequest, getClientAccountTypes } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusLabel, escapeHtml } from '../../lib/format.js';
 import { humanError } from '../../lib/errorMessages.js';
+import { swallow } from '../../lib/loadState.js';
 
 // Repli si la lecture échoue : la liste des types réellement proposés vient de
 // la base (`account_types`, filtrée sur `is_client_facing`), pour qu'un type
@@ -14,14 +15,14 @@ const ACCOUNT_TYPES_FALLBACK = [
 ];
 
 export async function renderMembershipRequest(app, profile) {
-  const existing = await getMyMembershipRequest().catch(() => null);
+  const existing = await getMyMembershipRequest().catch(swallow('getMyMembershipRequest', null));
 
   if (existing && existing.status !== 'rejected') {
     renderStatus(app, profile, existing);
     return;
   }
 
-  const loaded = await getClientAccountTypes().catch(() => []);
+  const loaded = await getClientAccountTypes().catch(swallow('getClientAccountTypes', []));
   const accountTypes = loaded.length ? loaded : ACCOUNT_TYPES_FALLBACK;
 
   app.innerHTML = `
@@ -91,7 +92,7 @@ export async function renderMembershipRequest(app, profile) {
       // formulaire qui ne pourra jamais aboutir.
       const message = humanError(err, "Impossible d'envoyer la demande pour le moment.");
       if (/déjà une demande/i.test(message)) {
-        const fresh = await getMyMembershipRequest().catch(() => null);
+        const fresh = await getMyMembershipRequest().catch(swallow('getMyMembershipRequest', null));
         if (fresh) { renderStatus(app, profile, fresh); return; }
       }
       errorEl.textContent = message;

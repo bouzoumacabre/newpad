@@ -3,18 +3,19 @@ import { getMyAccounts, getMyTotalBalance, getMyTransactions, getCityNews, getMy
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
 import { navigate } from '../../lib/router.js';
 import { getGoldPrice, renderGoldTicker } from '../../lib/goldPrice.js';
+import { swallow } from '../../lib/loadState.js';
 
 export async function renderClientDashboard(app, profile) {
   const { content } = await renderClientShell(app, profile, 'dashboard');
   content.innerHTML = `<p class="muted">Chargement…</p>`;
 
   const [accounts, totalFromBank, transactions, news, loans, goldPrice] = await Promise.all([
-    getMyAccounts().catch(() => []),
-    getMyTotalBalance().catch(() => null),
-    getMyTransactions(6).catch(() => []),
-    getCityNews().catch(() => []),
-    getMyLoans().catch(() => []),
-    getGoldPrice().catch(() => null),
+    getMyAccounts().catch(swallow('getMyAccounts', [])),
+    getMyTotalBalance().catch(swallow('getMyTotalBalance', null)),
+    getMyTransactions(6).catch(swallow('getMyTransactions', [])),
+    getCityNews().catch(swallow('getCityNews', [])),
+    getMyLoans().catch(swallow('getMyLoans', [])),
+    getGoldPrice().catch(swallow('getGoldPrice', null)),
   ]);
 
   // Le « solde total » affiché doit être CELUI QUE LA BANQUE UTILISE, pas une
