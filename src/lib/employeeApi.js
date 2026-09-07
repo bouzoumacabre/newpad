@@ -438,6 +438,33 @@ export async function resolveSupportTicket(ticketId) {
 }
 
 // ----------------------------------------------------------------------------
+// DOCUMENTS (émission côté banque — migration 0034)
+// ----------------------------------------------------------------------------
+// La table `documents` existait depuis l'origine, mais aucun chemin n'y
+// écrivait : l'écran /client/documents était structurellement vide.
+
+export async function getStaffDocuments(clientId) {
+  return unwrap(await supabase.rpc('staff_list_documents', { p_client_id: clientId || null, p_limit: 200 }));
+}
+
+export async function issueDocument({ clientId, docType, title, content, periodLabel }) {
+  return unwrap(
+    await supabase.rpc('issue_document', {
+      p_client_id: clientId,
+      p_doc_type: docType || null,
+      p_title: title,
+      p_content: content,
+      p_period_label: periodLabel || null,
+    })
+  );
+}
+
+export async function revokeDocument(id, reason) {
+  const { error } = await supabase.rpc('revoke_document', { p_id: id, p_reason: reason || null });
+  if (error) throw error;
+}
+
+// ----------------------------------------------------------------------------
 // JOURNAL D'ACTIVITÉ
 // ----------------------------------------------------------------------------
 

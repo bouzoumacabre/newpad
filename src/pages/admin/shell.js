@@ -61,6 +61,7 @@ export async function renderAdminShell(app, profile, activeKey) {
       items: [
         { key: 'messages', label: 'Messagerie', path: '/admin/messages', icon: '✉' },
         { key: 'support', label: 'Support', path: '/admin/support', icon: '☏' },
+        { key: 'documents', label: 'Documents', path: '/admin/documents', icon: '📄' },
         { key: 'audit', label: "Journal d'activité", path: '/admin/audit', icon: '▦' },
         { key: 'discord', label: 'Discord Newman Bank', path: DISCORD_INVITE_URL, icon: '💬', external: true },
       ],

@@ -36,6 +36,7 @@ import { renderEmployeeFraud } from './pages/employee/fraud.js';
 import { renderEmployeeSupport } from './pages/employee/support.js';
 import { renderEmployeeMessages } from './pages/employee/messages.js';
 import { renderEmployeeAudit } from './pages/employee/audit.js';
+import { renderEmployeeDocuments } from './pages/employee/documents.js';
 import { renderEmployeeSettings } from './pages/employee/settings.js';
 import { renderAdminDashboard } from './pages/admin/dashboard.js';
 import { renderAdminClients } from './pages/admin/clients.js';
@@ -53,6 +54,7 @@ import { renderAdminFraud } from './pages/admin/fraud.js';
 import { renderAdminSupport } from './pages/admin/support.js';
 import { renderAdminMessages } from './pages/admin/messages.js';
 import { renderAdminAudit } from './pages/admin/audit.js';
+import { renderAdminDocuments } from './pages/admin/documents.js';
 import { renderAdminSettings } from './pages/admin/settings.js';
 import { renderAdminStaff } from './pages/admin/staff.js';
 import { renderAdminPermissions } from './pages/admin/permissions.js';
@@ -168,6 +170,7 @@ route('/employee/support/:id', async (params) => guardedRoleRender('employee', (
 route('/employee/messages', async () => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p)));
 route('/employee/messages/:id', async (params) => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p, params)));
 route('/employee/audit', async () => guardedRoleRender('employee', (p) => renderEmployeeAudit(app, p)));
+route('/employee/documents', async () => guardedRoleRender('employee', (p) => renderEmployeeDocuments(app, p)));
 route('/employee/settings', async () => guardedRoleRender('employee', (p) => renderEmployeeSettings(app, p)));
 
 // ----------------------------------------------------------------------------
@@ -192,6 +195,7 @@ route('/admin/support/:id', async (params) => guardedRoleRender('admin', (p) => 
 route('/admin/messages', async () => guardedRoleRender('admin', (p) => renderAdminMessages(app, p)));
 route('/admin/messages/:id', async (params) => guardedRoleRender('admin', (p) => renderAdminMessages(app, p, params)));
 route('/admin/audit', async () => guardedRoleRender('admin', (p) => renderAdminAudit(app, p)));
+route('/admin/documents', async () => guardedRoleRender('admin', (p) => renderAdminDocuments(app, p)));
 route('/admin/settings', async () => guardedRoleRender('admin', (p) => renderAdminSettings(app, p)));
 route('/admin/staff', async () => guardedRoleRender('admin', (p) => renderAdminStaff(app, p)));
 route('/admin/permissions', async () => guardedRoleRender('admin', (p) => renderAdminPermissions(app, p)));

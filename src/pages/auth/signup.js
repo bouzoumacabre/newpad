@@ -6,6 +6,10 @@ import { getSystemFlags } from '../../lib/systemSettings.js';
 import { escapeHtml } from '../../lib/format.js';
 import { humanError } from '../../lib/errorMessages.js';
 
+// Liste figée à dessein : sur cet écran le visiteur n'a pas encore de session,
+// et la policy de lecture d'`account_types` exige `auth.uid() is not null`.
+// Les codes sont validés côté serveur à la soumission (migration 0035), donc
+// une divergence éventuelle serait refusée plutôt que silencieusement acceptée.
 const ACCOUNT_TYPES = [
   { value: 'courant', label: 'Compte courant' },
   { value: 'epargne', label: 'Compte épargne' },

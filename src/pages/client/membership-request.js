@@ -1,13 +1,16 @@
 import logoUrl from '../../assets/logo.svg';
 import { supabase } from '../../lib/supabaseClient.js';
-import { getMyMembershipRequest, submitMembershipRequest } from '../../lib/clientApi.js';
+import { getMyMembershipRequest, submitMembershipRequest, getClientAccountTypes } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, statusLabel, escapeHtml } from '../../lib/format.js';
 import { humanError } from '../../lib/errorMessages.js';
 
-const ACCOUNT_TYPES = [
-  { value: 'courant', label: 'Compte courant' },
-  { value: 'epargne', label: 'Compte épargne' },
-  { value: 'entreprise', label: 'Compte entreprise' },
+// Repli si la lecture échoue : la liste des types réellement proposés vient de
+// la base (`account_types`, filtrée sur `is_client_facing`), pour qu'un type
+// ajouté ou retiré par l'admin se reflète ici sans modification de code.
+const ACCOUNT_TYPES_FALLBACK = [
+  { code: 'courant', label: 'Compte courant' },
+  { code: 'epargne', label: 'Compte épargne' },
+  { code: 'entreprise', label: 'Compte entreprise' },
 ];
 
 export async function renderMembershipRequest(app, profile) {
@@ -17,6 +20,9 @@ export async function renderMembershipRequest(app, profile) {
     renderStatus(app, profile, existing);
     return;
   }
+
+  const loaded = await getClientAccountTypes().catch(() => []);
+  const accountTypes = loaded.length ? loaded : ACCOUNT_TYPES_FALLBACK;
 
   app.innerHTML = `
     <div class="auth-screen">
@@ -38,7 +44,7 @@ export async function renderMembershipRequest(app, profile) {
           <div class="field">
             <label for="account_type">Type de compte souhaité</label>
             <select id="account_type" name="account_type">
-              ${ACCOUNT_TYPES.map((t) => `<option value="${t.value}">${t.label}</option>`).join('')}
+              ${accountTypes.map((t) => `<option value="${t.code}">${escapeHtml(t.label)}</option>`).join('')}
             </select>
           </div>
           <div class="field">

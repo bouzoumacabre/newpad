@@ -68,11 +68,17 @@ export async function getBeneficiaries() {
   return unwrap(await supabase.from('beneficiaries').select('*').order('label', { ascending: true }));
 }
 
+// Passe par une fonction serveur depuis la migration 0034. L'insertion directe
+// n'était contrôlée que sur `client_id` : un IBAN inexistant ou mal saisi était
+// accepté sans un mot, et le client ne le découvrait qu'au moment du virement.
+// L'IBAN est désormais résolu à l'enregistrement, et le compte réel mémorisé.
 export async function addBeneficiary({ label, iban }) {
-  const user = await requireUser();
-  return unwrap(
-    await supabase.from('beneficiaries').insert({ client_id: user.id, label, beneficiary_iban: iban }).select().single()
-  );
+  return unwrap(await supabase.rpc('add_beneficiary', { p_label: label, p_iban: iban }));
+}
+
+export async function renameBeneficiary(id, label) {
+  const { error } = await supabase.rpc('rename_beneficiary', { p_id: id, p_label: label });
+  if (error) throw error;
 }
 
 export async function deleteBeneficiary(id) {
@@ -334,19 +340,26 @@ export async function getMyMembershipRequest() {
   return data;
 }
 
+// Passe par une fonction serveur depuis la migration 0035. L'insertion directe
+// n'était contrôlée que sur `applicant_id` : toutes les colonnes de décision de
+// la banque (statut, décideur, autorisation admin) restaient à la main du
+// candidat — et surtout, un INSERT ne notifie personne, si bien qu'une demande
+// d'adhésion pouvait dormir jusqu'à ce qu'un employé pense à ouvrir l'écran.
 export async function submitMembershipRequest({ requestedAccountType, initialDeposit, motivation }) {
-  const user = await requireUser();
   return unwrap(
-    await supabase
-      .from('membership_requests')
-      .insert({
-        applicant_id: user.id,
-        requested_account_type: requestedAccountType,
-        initial_deposit: initialDeposit,
-        motivation,
-      })
-      .select()
-      .single()
+    await supabase.rpc('submit_membership_request', {
+      p_account_type: requestedAccountType,
+      p_initial_deposit: initialDeposit,
+      p_motivation: motivation || null,
+    })
+  );
+}
+
+// Types de compte proposés à la clientèle (le code `treasury` existe en base
+// mais désigne le compte de la banque elle-même — il n'est pas ouvrable).
+export async function getClientAccountTypes() {
+  return unwrap(
+    await supabase.from('account_types').select('*').eq('is_client_facing', true).order('sort_order', { ascending: true })
   );
 }
 
