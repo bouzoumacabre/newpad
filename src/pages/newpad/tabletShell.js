@@ -82,7 +82,7 @@ export function renderTabletShell(root, profile, opts = {}) {
       </div>
     </header>
 
-    <div class="np-body" id="np-body"></div>
+    <div class="np-body ${opts.scroll ? 'np-body-scroll' : ''}" id="np-body"></div>
 
     <footer class="np-footer">
       <span>${escapeHtml(opts.footerLeft || 'Newpad')}</span>

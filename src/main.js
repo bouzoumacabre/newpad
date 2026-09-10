@@ -86,6 +86,7 @@ import { swallow, clearLoadFailures } from './lib/loadState.js';
 import { resetNotificationsSubscription } from './lib/notifications.js';
 import { renderLauncher } from './pages/newpad/launcher.js';
 import { renderLockScreen } from './pages/newpad/lockScreen.js';
+import { renderTabletShell } from './pages/newpad/tabletShell.js';
 import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
@@ -102,7 +103,10 @@ const app = document.getElementById('app');
 // une opération, et lui indique quoi faire.
 function renderBlockedProfile(profile) {
   const gelé = profile.status === 'frozen';
-  app.innerHTML = `
+  // Même un compte bloqué reste dans la tablette : c'est son appareil, pas une
+  // page d'erreur d'un site tiers.
+  const { body } = renderTabletShell(app, null, { scroll: true, footerLeft: gelé ? 'Compte gelé' : 'Compte suspendu' });
+  body.innerHTML = `
     <div class="auth-screen">
       <div class="auth-card card" style="max-width:460px; text-align:center;">
         <h2 style="margin-bottom:12px;">${gelé ? 'Compte gelé' : 'Compte suspendu'}</h2>
@@ -143,6 +147,24 @@ async function guardedRoleRender(expectedRole, renderFn) {
 // Contrairement à `guardedRoleRender`, ce garde ne réclame aucun rôle
 // particulier : la tablette est commune à tout le monde. Elle exige seulement
 // une session, parce que le registre d'applications n'est lisible que connecté.
+// Enveloppe un écran existant dans le châssis Newpad. Sans cela, l'inscription,
+// la connexion ou la vitrine de la banque s'affichaient bien à l'intérieur du
+// cadre, mais SANS l'en-tête ni le pied de la tablette : le joueur avait
+// l'impression de basculer sur un autre site au milieu de l'objet. Les écrans
+// eux-mêmes ne sont pas réécrits — on leur donne simplement pour conteneur le
+// corps de la tablette au lieu de la page entière.
+async function dansLaTablette(renderFn, opts = {}) {
+  const profile = opts.avecProfil
+    ? await getCurrentProfile().catch(swallow('getCurrentProfile', null))
+    : null;
+  const { body } = renderTabletShell(app, profile, {
+    scroll: true,
+    showHome: opts.showHome !== false,
+    footerLeft: opts.footerLeft,
+  });
+  await renderFn(body, profile);
+}
+
 async function guardedNewpadRender(renderFn) {
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
   if (!profile) { navigate('/login'); return; }
@@ -163,17 +185,17 @@ route('/', async () => {
 });
 
 route('/bank', async () => guardedNewpadRender((p) => enterBank(p)));
-route('/bank/home', async () => renderPublicHome(app));
+route('/bank/home', async () => dansLaTablette((c) => renderPublicHome(c), { avecProfil: true, footerLeft: 'Newman Bank' }));
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
-route('/login', async () => renderLogin(app));
-route('/signup', async () => renderSignup(app));
-route('/forgot-password', async () => renderForgotPassword(app));
+route('/login', async () => dansLaTablette((c) => renderLogin(c), { footerLeft: 'Connexion' }));
+route('/signup', async () => dansLaTablette((c) => renderSignup(c), { footerLeft: 'Inscription' }));
+route('/forgot-password', async () => dansLaTablette((c) => renderForgotPassword(c), { footerLeft: 'Mot de passe oublié' }));
 
 // Prospect — en attente de validation de sa demande d'adhésion (comble
 // l'absence antérieure de route pour ce rôle, qui provoquait une boucle de
 // redirection vers l'accueil après inscription).
-route('/prospect', async () => guardedRoleRender('prospect', (p) => renderMembershipRequest(app, p)));
+route('/prospect', async () => guardedRoleRender('prospect', (p) => dansLaTablette((c) => renderMembershipRequest(c, p), { avecProfil: true, footerLeft: 'Demande d\'adhésion' })));
 
 // ----------------------------------------------------------------------------
 // CLIENT — interface complète (phase 3)

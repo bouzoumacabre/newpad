@@ -218,6 +218,12 @@
   overflow: hidden;
   touch-action: pan-y;
 }
+/* Le corps ne défile pas sur l'accueil — la grille est paginée, pas déroulée.
+   Les écrans qui vivent à l'intérieur du châssis sans être l'accueil
+   (inscription, connexion, vitrine) sont plus hauts que l'écran : eux doivent
+   défiler, à l'intérieur du cadre et non en emportant la page entière. */
+.np-body-scroll { overflow-y: auto; overflow-x: hidden; touch-action: auto; }
+
 .np-pages {
   display: flex;
   height: 100%;
