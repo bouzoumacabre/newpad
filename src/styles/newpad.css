@@ -413,3 +413,40 @@
   border: 1px solid var(--card-border); border-radius: var(--radius-md);
   background: linear-gradient(180deg, #071023 0%, #0c1b38 100%);
 }
+
+/* --------------------------------------------------------------------------
+   Écran verrouillé
+   -------------------------------------------------------------------------- */
+.np-lock {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+}
+.np-lock-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 26px 26px 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  background: rgba(13, 26, 51, 0.82);
+  box-shadow: var(--shadow-card), var(--shadow-gold-glow);
+}
+.np-lock-card h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: .1em;
+  color: var(--ivory);
+  margin-bottom: 4px;
+}
+.np-lock-card > p { font-size: 13px; margin-bottom: 20px; }
+.np-lock-links {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  text-align: center;
+  font-size: 12.5px;
+}
