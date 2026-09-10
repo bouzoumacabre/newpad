@@ -7,12 +7,18 @@
 
 * { box-sizing: border-box; }
 
-html, body {
+html, html { background: transparent; }
+
+body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: var(--bg-gradient);
-  background-attachment: fixed;
+  /* Fond volontairement transparent : en jeu, la page est affichée par-dessus
+     GTA. Peindre un décor derrière la tablette reviendrait à masquer le jeu
+     avec une image de jeu — seul l'appareil doit ressortir. Hors jeu, le
+     navigateur retombe sur sa propre couleur de fond, ce qui n'a pas
+     d'importance : la cible est le navigateur intégré de FiveM. */
+  background: transparent;
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
