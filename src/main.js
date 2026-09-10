@@ -89,6 +89,7 @@ import { renderLockScreen } from './pages/newpad/lockScreen.js';
 import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
+const renderNewpadConsole = (...a) => import('./pages/newpad/admin/console.js').then((m) => m.renderNewpadConsole(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
 const app = document.getElementById('app');
@@ -118,7 +119,7 @@ function renderBlockedProfile(profile) {
       </div>
     </div>
     <style>
-      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-screen { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
       .auth-card { width:100%; }
     </style>
   `;
@@ -163,6 +164,7 @@ route('/', async () => {
 
 route('/bank', async () => guardedNewpadRender((p) => enterBank(p)));
 route('/bank/home', async () => renderPublicHome(app));
+route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
 route('/login', async () => renderLogin(app));
 route('/signup', async () => renderSignup(app));

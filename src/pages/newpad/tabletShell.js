@@ -14,6 +14,7 @@ import { supabase } from '../../lib/supabaseClient.js';
 import { navigate } from '../../lib/router.js';
 import { setupNotifications } from '../../lib/shell.js';
 import { escapeHtml } from '../../lib/format.js';
+import { isNewpadAdmin } from '../../lib/newpadApi.js';
 
 function initiales(nom) {
   return (nom || '?').split(' ').filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('');
@@ -42,57 +43,53 @@ export function renderTabletShell(root, profile, opts = {}) {
   // déconnexion.
   const verrouille = !profile;
 
+  // Le châssis (fond, cadre, écran) vit désormais dans index.html et enveloppe
+  // toute l'application. Ici on ne dessine plus que ce qui appartient à
+  // l'accueil Newpad : en-tête, corps, pied.
   root.innerHTML = `
-    <div class="np-stage">
-      <div class="np-skyline"></div>
-      <div class="np-glow"></div>
-      <div class="np-tablet">
-        <div class="np-screen">
-          <header class="np-header">
-            ${opts.showHome
-              ? `<button id="np-home" class="np-chip" title="Retour à l'accueil Newpad" aria-label="Accueil Newpad">◀ Accueil</button>`
-              : ''}
-            <div class="np-brand">
-              <img src="${logoUrl}" alt="" />
-              <div class="np-brand-name">NEWPAD</div>
-            </div>
-
-            <div class="np-clock">
-              <strong id="np-clock-time">${heure}</strong>
-              <span id="np-clock-date">${jour}</span>
-            </div>
-
-            <div class="np-header-actions" style="position:relative;">
-              ${verrouille ? '' : `
-              <button id="notif-bell" class="notif-bell" aria-label="Notifications">
-                🔔
-                <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
-              </button>
-              <button class="np-chip np-chip-user" id="np-user">
-                <span class="avatar" style="width:24px;height:24px;font-size:11px;">${initiales(profile.display_name)}</span>
-                <strong>${escapeHtml(profile.display_name || '')}</strong>
-              </button>
-              <div id="notif-panel" class="notif-panel">
-                <div class="notif-panel-header">
-                  <strong style="font-size:13px;">Notifications</strong>
-                  <button id="notif-mark-all" class="btn btn-ghost" style="padding:4px 8px; font-size:12px;">Tout marquer lu</button>
-                </div>
-                <div id="notif-list"></div>
-              </div>`}
-            </div>
-          </header>
-
-          <div class="np-body" id="np-body"></div>
-
-          <footer class="np-footer">
-            <span>${escapeHtml(opts.footerLeft || 'Newpad')}</span>
-            <div id="np-footer-center" style="margin:0 auto;"></div>
-            ${verrouille ? '<span></span>'
-              : '<button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>'}
-          </footer>
-        </div>
+    <header class="np-header">
+      ${opts.showHome
+        ? `<button id="np-home" class="np-chip" title="Retour à l'accueil Newpad" aria-label="Accueil Newpad">◀ Accueil</button>`
+        : ''}
+      <div class="np-brand">
+        <img src="${logoUrl}" alt="" />
+        <div class="np-brand-name">NEWPAD</div>
       </div>
-    </div>
+
+      <div class="np-clock">
+        <strong id="np-clock-time">${heure}</strong>
+        <span id="np-clock-date">${jour}</span>
+      </div>
+
+      <div class="np-header-actions" style="position:relative;">
+        ${verrouille ? '' : `
+        <button id="np-admin" class="np-chip" style="display:none;" title="Console d'administration">⚙</button>
+        <button id="notif-bell" class="notif-bell" aria-label="Notifications">
+          🔔
+          <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
+        </button>
+        <button class="np-chip np-chip-user" id="np-user">
+          <span class="avatar" style="width:24px;height:24px;font-size:11px;">${initiales(profile.display_name)}</span>
+          <strong>${escapeHtml(profile.display_name || '')}</strong>
+        </button>
+        <div id="notif-panel" class="notif-panel">
+          <div class="notif-panel-header">
+            <strong style="font-size:13px;">Notifications</strong>
+            <button id="notif-mark-all" class="btn btn-ghost" style="padding:4px 8px; font-size:12px;">Tout marquer lu</button>
+          </div>
+          <div id="notif-list"></div>
+        </div>`}
+      </div>
+    </header>
+
+    <div class="np-body" id="np-body"></div>
+
+    <footer class="np-footer">
+      <span>${escapeHtml(opts.footerLeft || 'Newpad')}</span>
+      <div id="np-footer-center" style="margin:0 auto;"></div>
+      ${verrouille ? '<span></span>'
+        : '<button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>'}
+    </footer>
   `;
 
   document.getElementById('np-home')?.addEventListener('click', () => navigate('/'));
@@ -116,6 +113,19 @@ export function renderTabletShell(root, profile, opts = {}) {
 
   if (!verrouille) {
     setupNotifications(profile).catch(() => { /* la tablette reste utilisable */ });
+
+    // La console d'administration n'est pas une icône du lanceur : ce n'est pas
+    // une application, et elle n'a pas à occuper une place sur l'écran d'accueil
+    // de tous les joueurs. Elle apparaît dans l'en-tête, et seulement pour qui
+    // y a droit — la vérification est faite en base, l'affichage n'est qu'un
+    // confort : la route elle-même refuse quiconque n'est pas administrateur.
+    const bouton = document.getElementById('np-admin');
+    if (bouton) {
+      isNewpadAdmin()
+        .then((oui) => { if (oui) bouton.style.display = ''; })
+        .catch(() => { /* pas d'accès : le bouton reste caché */ });
+      bouton.addEventListener('click', () => navigate('/newpad/admin'));
+    }
   }
 
   return {

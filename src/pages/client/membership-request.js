@@ -63,7 +63,7 @@ export async function renderMembershipRequest(app, profile) {
       </div>
     </div>
     <style>
-      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-screen { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
       .auth-card { width:100%; }
       .auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
       .auth-brand-title { font-size:20px; margin:0; }
@@ -120,7 +120,7 @@ function renderStatus(app, profile, request) {
       </div>
     </div>
     <style>
-      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-screen { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
       .auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
     </style>
   `;

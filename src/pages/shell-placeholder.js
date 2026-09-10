@@ -46,7 +46,7 @@ export function renderRoleShellPlaceholder(app, profile, roleLabel) {
       </div>
     </div>
     <style>
-      .shell { display:flex; min-height:100vh; }
+      .shell { display:flex; min-height:100%; }
       .sidebar { width: var(--sidebar-width); background: var(--bg-950); border-right:1px solid var(--card-border); display:flex; flex-direction:column; padding:20px 16px; }
       .sidebar-brand { display:flex; align-items:center; gap:10px; padding: 0 8px 20px; }
       .sidebar-nav { flex:1; }

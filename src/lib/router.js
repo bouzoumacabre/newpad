@@ -26,7 +26,7 @@ function showRouteError(err) {
   const app = document.getElementById('app');
   if (!app) return;
   app.innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:24px;">
+    <div style="display:flex; align-items:center; justify-content:center; min-height:100%; padding:24px;">
       <div class="card" style="max-width:420px; text-align:center;">
         <h2 style="margin-bottom:12px;">Une erreur est survenue</h2>
         <p class="muted" style="margin-bottom:20px;">L'écran n'a pas pu s'afficher correctement. Réessayez, ou revenez à l'accueil.</p>
