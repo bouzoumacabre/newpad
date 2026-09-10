@@ -233,7 +233,10 @@ function remapLinkForRole(link, role) {
   return link;
 }
 
-async function setupNotifications(profile) {
+// Exportée pour la coquille tablette : même balisage, même canal Realtime,
+// même clé d'abonnement — dupliquer cette logique reviendrait à maintenir deux
+// centres de notifications qui divergeraient au premier correctif.
+export async function setupNotifications(profile) {
   const bell = document.getElementById('notif-bell');
   const panel = document.getElementById('notif-panel');
   const badge = document.getElementById('notif-badge');

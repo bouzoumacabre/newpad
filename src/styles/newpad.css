@@ -1,0 +1,415 @@
+/* ============================================================================
+   NEWPAD — la tablette
+   ============================================================================
+   Cible prioritaire : navigateur intégré FiveM (CEF), écran de bureau, format
+   paysage. Aucune image de fond n'est chargée : la ville nocturne est dessinée
+   en dégradés et en silhouettes CSS. C'est un choix de performance assumé —
+   une photographie de skyline en fond coûterait plusieurs centaines de kilo-
+   octets à chaque ouverture de l'objet en jeu, pour un décor qui reste flou
+   derrière la tablette.
+   ============================================================================ */
+
+.np-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, #16264d 0%, rgba(10, 20, 40, 0) 60%),
+    linear-gradient(180deg, #050a16 0%, #0a1428 45%, #101f3d 100%);
+}
+
+/* Silhouette de ville : deux bandes de dégradés répétés, l'une derrière
+   l'autre, plus quelques fenêtres allumées. Coût : zéro requête réseau. */
+.np-skyline {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 46%;
+  pointer-events: none;
+  opacity: 0.28;
+  filter: blur(1.5px);
+}
+.np-skyline::before,
+.np-skyline::after {
+  content: '';
+  position: absolute;
+  left: -5%; right: -5%; bottom: 0;
+  background-repeat: repeat-x;
+}
+.np-skyline::before {
+  height: 100%;
+  background-image:
+    linear-gradient(to top, #0a1024 0%, #0a1024 55%, transparent 55%),
+    repeating-linear-gradient(90deg,
+      transparent 0 34px, #0d1630 34px 62px,
+      transparent 62px 96px, #0b1228 96px 150px,
+      transparent 150px 176px, #0e1834 176px 226px);
+  background-position: bottom;
+  background-size: auto, 260px 78%;
+}
+.np-skyline::after {
+  height: 76%;
+  background-image: repeating-linear-gradient(90deg,
+      transparent 0 22px, #101c3c 22px 48px,
+      transparent 48px 78px, #0f1a36 78px 122px);
+  background-size: 180px 100%;
+  background-position: bottom;
+  opacity: 0.85;
+}
+.np-glow {
+  position: absolute;
+  left: 50%; bottom: -14%;
+  width: 70%; height: 40%;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(201, 162, 39, 0.16), transparent 70%);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Le châssis
+   -------------------------------------------------------------------------- */
+.np-tablet {
+  position: relative;
+  width: 100%;
+  max-width: 1180px;
+  aspect-ratio: 16 / 10;
+  max-height: calc(100vh - 48px);
+  border-radius: 28px;
+  padding: 14px;
+  background: linear-gradient(150deg, #14161c 0%, #05070c 45%, #101319 100%);
+  box-shadow:
+    0 0 0 1px rgba(201, 162, 39, 0.28),
+    0 40px 90px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+}
+
+.np-screen {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(100% 70% at 50% 0%, #12224a 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, #071023 0%, #0a1730 50%, #0c1b38 100%);
+  box-shadow: inset 0 0 0 1px rgba(34, 51, 90, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   En-tête et pied — identiques sur TOUTES les pages de la tablette (§3)
+   -------------------------------------------------------------------------- */
+.np-header {
+  flex: 0 0 auto;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 22px;
+  border-bottom: 1px solid rgba(34, 51, 90, 0.85);
+  background: rgba(5, 10, 22, 0.55);
+}
+.np-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.np-brand img { width: 26px; height: 26px; }
+.np-brand-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 0.14em;
+  color: var(--ivory);
+}
+.np-brand-sub {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--gold-dark);
+  text-transform: uppercase;
+}
+.np-clock {
+  margin-left: auto;
+  text-align: right;
+  line-height: 1.15;
+}
+.np-clock strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ivory);
+  font-weight: 500;
+}
+.np-clock span { font-size: 11px; color: var(--text-muted); text-transform: capitalize; }
+
+.np-header-actions { display: flex; align-items: center; gap: 8px; }
+.np-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: rgba(13, 26, 51, 0.75);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.np-chip:hover { border-color: var(--gold-dark); background: rgba(20, 36, 68, 0.9); }
+.np-chip-user strong { color: var(--ivory); font-weight: 600; }
+.np-badge {
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px;
+  background: var(--status-danger);
+  color: #1a0708;
+  font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.np-footer {
+  flex: 0 0 auto;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 22px;
+  border-top: 1px solid rgba(34, 51, 90, 0.85);
+  background: rgba(5, 10, 22, 0.55);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.np-footer .np-dots { margin: 0 auto; }
+
+/* --------------------------------------------------------------------------
+   Grille d'applications
+   -------------------------------------------------------------------------- */
+.np-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.np-pages {
+  display: flex;
+  height: 100%;
+  will-change: transform;
+  transition: transform .32s cubic-bezier(.22,.61,.36,1);
+}
+.np-pages.np-nodrag { transition: none; }
+.np-page {
+  flex: 0 0 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: min-content;
+  gap: 34px 4px;
+  padding: 26px 30px;
+  align-content: center;
+}
+
+.np-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+.np-app:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.np-app-tile {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #16264a 0%, #0d1a33 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--card-border);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.np-app-tile img { width: 46px; height: 46px; object-fit: contain; border-radius: 12px; }
+.np-app:hover .np-app-tile,
+.np-app:focus-visible .np-app-tile {
+  transform: translateY(-3px);
+  border-color: var(--gold-dark);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 10px 26px rgba(0,0,0,.55), var(--shadow-gold-glow);
+}
+.np-app:active .np-app-tile { transform: translateY(-1px) scale(.97); }
+
+/* Sous chaque icône : UNIQUEMENT le nom (§3). Aucune description. */
+.np-app-name {
+  font-size: 12.5px;
+  line-height: 1.25;
+  color: var(--text);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.np-app-soon .np-app-tile { opacity: .62; }
+.np-app-soon .np-app-name { color: var(--text-muted); }
+.np-app-flag {
+  position: absolute;
+  top: -6px; right: -6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: var(--bg-950);
+  border: 1px solid var(--gold-dark);
+  color: var(--gold-light);
+}
+
+/* --------------------------------------------------------------------------
+   Pagination (§4)
+   -------------------------------------------------------------------------- */
+.np-dots { display: flex; align-items: center; gap: 9px; }
+.np-dot {
+  width: 8px; height: 8px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: rgba(139, 147, 171, 0.4);
+  cursor: pointer;
+  transition: background .18s, width .18s;
+}
+.np-dot.is-active { background: var(--gold); width: 22px; }
+
+.np-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px; height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--card-border);
+  background: rgba(8, 16, 33, .8);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, border-color .15s, opacity .15s;
+}
+.np-arrow:hover { color: var(--gold-light); border-color: var(--gold-dark); }
+.np-arrow[disabled] { opacity: .25; cursor: default; }
+.np-arrow-prev { left: 8px; }
+.np-arrow-next { right: 8px; }
+
+/* --------------------------------------------------------------------------
+   Écran d'application non encore construite
+   -------------------------------------------------------------------------- */
+.np-soon {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px;
+  text-align: center;
+}
+.np-soon-icon {
+  width: 96px; height: 96px;
+  border-radius: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #16264a 0%, #0d1a33 100%);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-gold-glow);
+}
+.np-soon h1 { font-family: var(--font-display); font-size: 30px; color: var(--ivory); }
+.np-soon p { color: var(--text-muted); max-width: 460px; font-size: 14px; line-height: 1.6; }
+
+/* --------------------------------------------------------------------------
+   Adaptations : petites fenêtres et écrans tactiles
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px), (max-height: 620px) {
+  .np-stage { padding: 0; }
+  .np-tablet { max-width: none; border-radius: 0; padding: 0; aspect-ratio: auto; height: 100vh; max-height: none; box-shadow: none; }
+  .np-screen { border-radius: 0; }
+  .np-page { grid-template-columns: repeat(4, 1fr); padding: 16px; }
+  .np-app-tile { width: 64px; height: 64px; border-radius: 16px; }
+  .np-arrow { display: none; }
+}
+@media (max-width: 560px) {
+  .np-page { grid-template-columns: repeat(3, 1fr); }
+  .np-clock strong { font-size: 16px; }
+  .np-brand-sub { display: none; }
+}
+@media (pointer: coarse) {
+  .np-dot { width: 12px; height: 12px; }
+  .np-dot.is-active { width: 26px; }
+}
+
+/* ============================================================================
+   Administration Newpad — hors châssis tablette
+   ============================================================================
+   L'admin travaille au clavier et à la souris, sur un vrai écran : l'enfermer
+   dans un cadre 16/10 rendrait le glisser-déposer et les formulaires étroits
+   pour rien. La tablette est l'objet du joueur, pas l'outil de l'exploitant.
+*/
+.npadmin { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg-gradient); }
+.npadmin-top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 16px 24px;
+  border-bottom: 1px solid var(--card-border);
+  background: rgba(5, 10, 22, .6);
+}
+.npadmin-body {
+  flex: 1; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(340px, .85fr);
+  gap: 18px; padding: 18px 24px 28px; align-items: start;
+}
+@media (max-width: 980px) { .npadmin-body { grid-template-columns: 1fr; } }
+
+.np-adm-page { margin-bottom: 18px; }
+.np-adm-page-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 6px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--card-border);
+}
+.np-adm-page-head strong { font-family: var(--font-display); color: var(--ivory); letter-spacing: .06em; }
+.np-adm-list { list-style: none; margin: 0; padding: 0; min-height: 46px; }
+.np-adm-empty {
+  border: 1px dashed var(--card-border); border-radius: var(--radius-md);
+  padding: 12px; color: var(--text-muted); font-size: 12.5px; text-align: center;
+}
+.np-adm-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; margin-bottom: 6px;
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  background: var(--card-bg); cursor: grab;
+}
+.np-adm-item.is-selected { border-color: var(--gold-dark); box-shadow: var(--shadow-gold-glow); }
+.np-adm-item.is-dragging { opacity: .45; }
+.np-adm-handle { color: var(--text-muted); cursor: grab; }
+.np-adm-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.np-adm-icon img { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; }
+.np-adm-name { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.np-adm-name small { font-size: 11px; }
+.np-adm-move { display: flex; gap: 2px; }
+.np-adm-move .btn { padding: 2px 7px; font-size: 12px; }
+
+.np-adm-preview {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px; margin-bottom: 16px;
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #071023 0%, #0c1b38 100%);
+}
