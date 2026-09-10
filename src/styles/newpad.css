@@ -17,56 +17,11 @@
   justify-content: center;
   padding: 24px;
   overflow: hidden;
-  background:
-    radial-gradient(120% 80% at 50% 0%, #16264d 0%, rgba(10, 20, 40, 0) 60%),
-    linear-gradient(180deg, #050a16 0%, #0a1428 45%, #101f3d 100%);
-}
-
-/* Silhouette de ville : deux bandes de dégradés répétés, l'une derrière
-   l'autre, plus quelques fenêtres allumées. Coût : zéro requête réseau. */
-.np-skyline {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 46%;
-  pointer-events: none;
-  opacity: 0.28;
-  filter: blur(1.5px);
-}
-.np-skyline::before,
-.np-skyline::after {
-  content: '';
-  position: absolute;
-  left: -5%; right: -5%; bottom: 0;
-  background-repeat: repeat-x;
-}
-.np-skyline::before {
-  height: 100%;
-  background-image:
-    linear-gradient(to top, #0a1024 0%, #0a1024 55%, transparent 55%),
-    repeating-linear-gradient(90deg,
-      transparent 0 34px, #0d1630 34px 62px,
-      transparent 62px 96px, #0b1228 96px 150px,
-      transparent 150px 176px, #0e1834 176px 226px);
-  background-position: bottom;
-  background-size: auto, 260px 78%;
-}
-.np-skyline::after {
-  height: 76%;
-  background-image: repeating-linear-gradient(90deg,
-      transparent 0 22px, #101c3c 22px 48px,
-      transparent 48px 78px, #0f1a36 78px 122px);
-  background-size: 180px 100%;
-  background-position: bottom;
-  opacity: 0.85;
-}
-.np-glow {
-  position: absolute;
-  left: 50%; bottom: -14%;
-  width: 70%; height: 40%;
-  transform: translateX(-50%);
-  background: radial-gradient(closest-side, rgba(201, 162, 39, 0.16), transparent 70%);
+  /* Aucun décor : ce qui entoure la tablette, c'est le jeu lui-même. */
+  background: transparent;
   pointer-events: none;
 }
+.np-stage > * { pointer-events: auto; }
 
 /* --------------------------------------------------------------------------
    Le châssis
