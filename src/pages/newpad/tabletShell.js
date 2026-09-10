@@ -36,6 +36,11 @@ function texteHorloge() {
  */
 export function renderTabletShell(root, profile, opts = {}) {
   const { heure, jour } = texteHorloge();
+  // Écran verrouillé : la tablette est allumée mais personne n'est identifié.
+  // Le châssis reste rigoureusement le même (§3) ; seules disparaissent les
+  // commandes qui n'ont pas de sens sans session — notifications, profil,
+  // déconnexion.
+  const verrouille = !profile;
 
   root.innerHTML = `
     <div class="np-stage">
@@ -58,6 +63,7 @@ export function renderTabletShell(root, profile, opts = {}) {
             </div>
 
             <div class="np-header-actions" style="position:relative;">
+              ${verrouille ? '' : `
               <button id="notif-bell" class="notif-bell" aria-label="Notifications">
                 🔔
                 <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
@@ -72,7 +78,7 @@ export function renderTabletShell(root, profile, opts = {}) {
                   <button id="notif-mark-all" class="btn btn-ghost" style="padding:4px 8px; font-size:12px;">Tout marquer lu</button>
                 </div>
                 <div id="notif-list"></div>
-              </div>
+              </div>`}
             </div>
           </header>
 
@@ -81,7 +87,8 @@ export function renderTabletShell(root, profile, opts = {}) {
           <footer class="np-footer">
             <span>${escapeHtml(opts.footerLeft || 'Newpad')}</span>
             <div id="np-footer-center" style="margin:0 auto;"></div>
-            <button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>
+            ${verrouille ? '<span></span>'
+              : '<button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>'}
           </footer>
         </div>
       </div>
@@ -107,7 +114,9 @@ export function renderTabletShell(root, profile, opts = {}) {
     j.textContent = v.jour;
   }, 15000);
 
-  setupNotifications(profile).catch(() => { /* la tablette reste utilisable */ });
+  if (!verrouille) {
+    setupNotifications(profile).catch(() => { /* la tablette reste utilisable */ });
+  }
 
   return {
     body: document.getElementById('np-body'),

@@ -85,6 +85,7 @@ const renderIrsSettings = (...a) => import('./pages/irs/settings.js').then((m) =
 import { swallow, clearLoadFailures } from './lib/loadState.js';
 import { resetNotificationsSubscription } from './lib/notifications.js';
 import { renderLauncher } from './pages/newpad/launcher.js';
+import { renderLockScreen } from './pages/newpad/lockScreen.js';
 import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
@@ -148,12 +149,14 @@ async function guardedNewpadRender(renderFn) {
   await renderFn(profile);
 }
 
-// La racine est l'unique URL que FiveM connaît (§1). Connecté, elle ouvre la
-// tablette ; déconnecté, elle garde la page d'accueil publique existante, qui
-// reste le seul point d'entrée pour créer un compte.
+// La racine est l'unique URL que FiveM connaît (§1) : elle montre TOUJOURS la
+// tablette. Connecté, l'écran d'accueil et ses applications ; déconnecté, la
+// même tablette verrouillée, avec le formulaire d'identification. La vitrine
+// publique de Newman Bank reste accessible depuis cet écran (#/bank/home) —
+// c'est une application de Newpad, pas sa porte d'entrée.
 route('/', async () => {
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
-  if (!profile) { await renderPublicHome(app); return; }
+  if (!profile) { renderLockScreen(app); return; }
   if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   await renderLauncher(app, profile);
 });
