@@ -1,83 +1,166 @@
 import './styles/base.css';
+import './styles/newpad.css';
 import { route, setNotFound, initRouter, navigate } from './lib/router.js';
 import { renderPublicHome } from './pages/public/home.js';
 import { renderLogin } from './pages/auth/login.js';
 import { renderSignup } from './pages/auth/signup.js';
 import { renderForgotPassword } from './pages/auth/forgot-password.js';
 import { getCurrentProfile, supabase } from './lib/supabaseClient.js';
-import { renderMembershipRequest } from './pages/client/membership-request.js';
-import { renderClientDashboard } from './pages/client/dashboard.js';
-import { renderClientAccounts } from './pages/client/accounts.js';
-import { renderClientTransfers } from './pages/client/transfers.js';
-import { renderClientBeneficiaries } from './pages/client/beneficiaries.js';
-import { renderClientGold } from './pages/client/gold.js';
-import { renderClientGoldMarket } from './pages/client/gold-market.js';
-import { renderClientSafes } from './pages/client/safes.js';
-import { renderClientLoans } from './pages/client/loans.js';
-import { renderClientConsulting } from './pages/client/consulting.js';
-import { renderClientDocuments } from './pages/client/documents.js';
-import { renderClientSupport } from './pages/client/support.js';
-import { renderClientMessages } from './pages/client/messages.js';
-import { renderClientSettings } from './pages/client/settings.js';
-import { renderEmployeeDashboard } from './pages/employee/dashboard.js';
-import { renderEmployeeClients } from './pages/employee/clients.js';
-import { renderEmployeeMembership } from './pages/employee/membership.js';
-import { renderEmployeeAccountOpening } from './pages/employee/account-opening.js';
-import { renderEmployeeBranchQueue } from './pages/employee/branch-queue.js';
-import { renderEmployeeTransfers } from './pages/employee/transfers.js';
-import { renderEmployeeGold } from './pages/employee/gold.js';
-import { renderEmployeeTransactions } from './pages/employee/transactions.js';
-import { renderEmployeeSafes } from './pages/employee/safes.js';
-import { renderEmployeeLoans } from './pages/employee/loans.js';
-import { renderEmployeeConsulting } from './pages/employee/consulting.js';
-import { renderEmployeeCashier } from './pages/employee/cashier.js';
-import { renderEmployeeFraud } from './pages/employee/fraud.js';
-import { renderEmployeeSupport } from './pages/employee/support.js';
-import { renderEmployeeMessages } from './pages/employee/messages.js';
-import { renderEmployeeAudit } from './pages/employee/audit.js';
-import { renderEmployeeSettings } from './pages/employee/settings.js';
-import { renderAdminDashboard } from './pages/admin/dashboard.js';
-import { renderAdminClients } from './pages/admin/clients.js';
-import { renderAdminMembership } from './pages/admin/membership.js';
-import { renderAdminAccountOpening } from './pages/admin/account-opening.js';
-import { renderAdminBranchQueue } from './pages/admin/branch-queue.js';
-import { renderAdminTransfers } from './pages/admin/transfers.js';
-import { renderAdminGold } from './pages/admin/gold.js';
-import { renderAdminTransactions } from './pages/admin/transactions.js';
-import { renderAdminSafes } from './pages/admin/safes.js';
-import { renderAdminLoans } from './pages/admin/loans.js';
-import { renderAdminConsulting } from './pages/admin/consulting.js';
-import { renderAdminCashier } from './pages/admin/cashier.js';
-import { renderAdminFraud } from './pages/admin/fraud.js';
-import { renderAdminSupport } from './pages/admin/support.js';
-import { renderAdminMessages } from './pages/admin/messages.js';
-import { renderAdminAudit } from './pages/admin/audit.js';
-import { renderAdminSettings } from './pages/admin/settings.js';
-import { renderAdminStaff } from './pages/admin/staff.js';
-import { renderAdminPermissions } from './pages/admin/permissions.js';
-import { renderAdminIrsAccounts } from './pages/admin/irs-accounts.js';
-import { renderAdminVisibility } from './pages/admin/visibility.js';
-import { renderAdminEconomicSettings } from './pages/admin/economic-settings.js';
-import { renderAdminCms } from './pages/admin/cms.js';
-import { renderAdminSystem } from './pages/admin/system.js';
-import { renderIrsDashboard } from './pages/irs/dashboard.js';
-import { renderIrsClients } from './pages/irs/clients.js';
-import { renderIrsAccounts } from './pages/irs/accounts.js';
-import { renderIrsTransactions } from './pages/irs/transactions.js';
-import { renderIrsGold } from './pages/irs/gold.js';
-import { renderIrsMessages } from './pages/irs/messages.js';
-import { renderIrsSettings } from './pages/irs/settings.js';
+// ----------------------------------------------------------------------------
+// Chargement à la demande des écrans internes
+// ----------------------------------------------------------------------------
+// Sans cela, un joueur qui ouvre sa tablette télécharge aussi la fiche client
+// de l'employé, le pilotage économique de l'admin et les registres de l'IRS —
+// des écrans qu'il ne verra jamais et que la base lui refuserait de toute
+// façon. Chaque interface est un module séparé, chargé au premier écran de
+// cette interface. C'est d'autant plus déterminant ici que les 22 applications
+// Newpad à venir viendront s'ajouter au même paquet.
+const renderMembershipRequest = (...a) => import('./pages/client/membership-request.js').then((m) => m.renderMembershipRequest(...a));
+const renderClientDashboard = (...a) => import('./pages/client/dashboard.js').then((m) => m.renderClientDashboard(...a));
+const renderClientAccounts = (...a) => import('./pages/client/accounts.js').then((m) => m.renderClientAccounts(...a));
+const renderClientTransfers = (...a) => import('./pages/client/transfers.js').then((m) => m.renderClientTransfers(...a));
+const renderClientBeneficiaries = (...a) => import('./pages/client/beneficiaries.js').then((m) => m.renderClientBeneficiaries(...a));
+const renderClientGold = (...a) => import('./pages/client/gold.js').then((m) => m.renderClientGold(...a));
+const renderClientGoldMarket = (...a) => import('./pages/client/gold-market.js').then((m) => m.renderClientGoldMarket(...a));
+const renderClientSafes = (...a) => import('./pages/client/safes.js').then((m) => m.renderClientSafes(...a));
+const renderClientLoans = (...a) => import('./pages/client/loans.js').then((m) => m.renderClientLoans(...a));
+const renderClientConsulting = (...a) => import('./pages/client/consulting.js').then((m) => m.renderClientConsulting(...a));
+const renderClientDocuments = (...a) => import('./pages/client/documents.js').then((m) => m.renderClientDocuments(...a));
+const renderClientInfo = (...a) => import('./pages/client/info.js').then((m) => m.renderClientInfo(...a));
+const renderClientSupport = (...a) => import('./pages/client/support.js').then((m) => m.renderClientSupport(...a));
+const renderClientMessages = (...a) => import('./pages/client/messages.js').then((m) => m.renderClientMessages(...a));
+const renderClientTransactions = (...a) => import('./pages/client/transactions.js').then((m) => m.renderClientTransactions(...a));
+const renderClientSettings = (...a) => import('./pages/client/settings.js').then((m) => m.renderClientSettings(...a));
+const renderEmployeeDashboard = (...a) => import('./pages/employee/dashboard.js').then((m) => m.renderEmployeeDashboard(...a));
+const renderEmployeeClients = (...a) => import('./pages/employee/clients.js').then((m) => m.renderEmployeeClients(...a));
+const renderEmployeeMembership = (...a) => import('./pages/employee/membership.js').then((m) => m.renderEmployeeMembership(...a));
+const renderEmployeeAccountOpening = (...a) => import('./pages/employee/account-opening.js').then((m) => m.renderEmployeeAccountOpening(...a));
+const renderEmployeeBranchQueue = (...a) => import('./pages/employee/branch-queue.js').then((m) => m.renderEmployeeBranchQueue(...a));
+const renderEmployeeTransfers = (...a) => import('./pages/employee/transfers.js').then((m) => m.renderEmployeeTransfers(...a));
+const renderEmployeeGold = (...a) => import('./pages/employee/gold.js').then((m) => m.renderEmployeeGold(...a));
+const renderEmployeeTransactions = (...a) => import('./pages/employee/transactions.js').then((m) => m.renderEmployeeTransactions(...a));
+const renderEmployeeSafes = (...a) => import('./pages/employee/safes.js').then((m) => m.renderEmployeeSafes(...a));
+const renderEmployeeLoans = (...a) => import('./pages/employee/loans.js').then((m) => m.renderEmployeeLoans(...a));
+const renderEmployeeConsulting = (...a) => import('./pages/employee/consulting.js').then((m) => m.renderEmployeeConsulting(...a));
+const renderEmployeeCashier = (...a) => import('./pages/employee/cashier.js').then((m) => m.renderEmployeeCashier(...a));
+const renderEmployeeFraud = (...a) => import('./pages/employee/fraud.js').then((m) => m.renderEmployeeFraud(...a));
+const renderEmployeeSupport = (...a) => import('./pages/employee/support.js').then((m) => m.renderEmployeeSupport(...a));
+const renderEmployeeMessages = (...a) => import('./pages/employee/messages.js').then((m) => m.renderEmployeeMessages(...a));
+const renderEmployeeAudit = (...a) => import('./pages/employee/audit.js').then((m) => m.renderEmployeeAudit(...a));
+const renderEmployeeDocuments = (...a) => import('./pages/employee/documents.js').then((m) => m.renderEmployeeDocuments(...a));
+const renderEmployeeSettings = (...a) => import('./pages/employee/settings.js').then((m) => m.renderEmployeeSettings(...a));
+const renderAdminDashboard = (...a) => import('./pages/admin/dashboard.js').then((m) => m.renderAdminDashboard(...a));
+const renderAdminClients = (...a) => import('./pages/admin/clients.js').then((m) => m.renderAdminClients(...a));
+const renderAdminMembership = (...a) => import('./pages/admin/membership.js').then((m) => m.renderAdminMembership(...a));
+const renderAdminAccountOpening = (...a) => import('./pages/admin/account-opening.js').then((m) => m.renderAdminAccountOpening(...a));
+const renderAdminBranchQueue = (...a) => import('./pages/admin/branch-queue.js').then((m) => m.renderAdminBranchQueue(...a));
+const renderAdminTransfers = (...a) => import('./pages/admin/transfers.js').then((m) => m.renderAdminTransfers(...a));
+const renderAdminGold = (...a) => import('./pages/admin/gold.js').then((m) => m.renderAdminGold(...a));
+const renderAdminTransactions = (...a) => import('./pages/admin/transactions.js').then((m) => m.renderAdminTransactions(...a));
+const renderAdminSafes = (...a) => import('./pages/admin/safes.js').then((m) => m.renderAdminSafes(...a));
+const renderAdminLoans = (...a) => import('./pages/admin/loans.js').then((m) => m.renderAdminLoans(...a));
+const renderAdminConsulting = (...a) => import('./pages/admin/consulting.js').then((m) => m.renderAdminConsulting(...a));
+const renderAdminCashier = (...a) => import('./pages/admin/cashier.js').then((m) => m.renderAdminCashier(...a));
+const renderAdminFraud = (...a) => import('./pages/admin/fraud.js').then((m) => m.renderAdminFraud(...a));
+const renderAdminSupport = (...a) => import('./pages/admin/support.js').then((m) => m.renderAdminSupport(...a));
+const renderAdminMessages = (...a) => import('./pages/admin/messages.js').then((m) => m.renderAdminMessages(...a));
+const renderAdminAudit = (...a) => import('./pages/admin/audit.js').then((m) => m.renderAdminAudit(...a));
+const renderAdminDocuments = (...a) => import('./pages/admin/documents.js').then((m) => m.renderAdminDocuments(...a));
+const renderAdminSettings = (...a) => import('./pages/admin/settings.js').then((m) => m.renderAdminSettings(...a));
+const renderAdminStaff = (...a) => import('./pages/admin/staff.js').then((m) => m.renderAdminStaff(...a));
+const renderAdminPermissions = (...a) => import('./pages/admin/permissions.js').then((m) => m.renderAdminPermissions(...a));
+const renderAdminIrsAccounts = (...a) => import('./pages/admin/irs-accounts.js').then((m) => m.renderAdminIrsAccounts(...a));
+const renderAdminVisibility = (...a) => import('./pages/admin/visibility.js').then((m) => m.renderAdminVisibility(...a));
+const renderAdminEconomicSettings = (...a) => import('./pages/admin/economic-settings.js').then((m) => m.renderAdminEconomicSettings(...a));
+const renderAdminTreasury = (...a) => import('./pages/admin/treasury.js').then((m) => m.renderAdminTreasury(...a));
+const renderAdminCms = (...a) => import('./pages/admin/cms.js').then((m) => m.renderAdminCms(...a));
+const renderAdminSystem = (...a) => import('./pages/admin/system.js').then((m) => m.renderAdminSystem(...a));
+const renderIrsDashboard = (...a) => import('./pages/irs/dashboard.js').then((m) => m.renderIrsDashboard(...a));
+const renderIrsClients = (...a) => import('./pages/irs/clients.js').then((m) => m.renderIrsClients(...a));
+const renderIrsAccounts = (...a) => import('./pages/irs/accounts.js').then((m) => m.renderIrsAccounts(...a));
+const renderIrsTransactions = (...a) => import('./pages/irs/transactions.js').then((m) => m.renderIrsTransactions(...a));
+const renderIrsGold = (...a) => import('./pages/irs/gold.js').then((m) => m.renderIrsGold(...a));
+const renderIrsMessages = (...a) => import('./pages/irs/messages.js').then((m) => m.renderIrsMessages(...a));
+const renderIrsSettings = (...a) => import('./pages/irs/settings.js').then((m) => m.renderIrsSettings(...a));
+import { swallow, clearLoadFailures } from './lib/loadState.js';
+import { resetNotificationsSubscription } from './lib/notifications.js';
+import { renderLauncher } from './pages/newpad/launcher.js';
+import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
+import { enterBank } from './pages/newpad/bankEntry.js';
+const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
+import { findAppByRoute } from './lib/newpadApi.js';
 
 const app = document.getElementById('app');
 
+// Écran opposé à un profil suspendu ou gelé.
+// Jusqu'ici, le garde ne testait que le rôle : un compte suspendu par l'admin
+// se connectait et naviguait normalement dans toute son interface. Le blocage
+// réel est posé en base (déclencheur, migration 0022) ; cet écran évite que
+// l'utilisateur découvre son état par un message d'erreur au moment de valider
+// une opération, et lui indique quoi faire.
+function renderBlockedProfile(profile) {
+  const gelé = profile.status === 'frozen';
+  app.innerHTML = `
+    <div class="auth-screen">
+      <div class="auth-card card" style="max-width:460px; text-align:center;">
+        <h2 style="margin-bottom:12px;">${gelé ? 'Compte gelé' : 'Compte suspendu'}</h2>
+        <p class="muted" style="margin-bottom:20px;">
+          Votre accès à Newman Bank est temporairement ${gelé ? 'gelé' : 'suspendu'}.
+          Aucune opération ne peut être effectuée pour le moment.
+          Vos avoirs restent intacts.
+        </p>
+        <p class="muted" style="margin-bottom:24px; font-size:13px;">
+          Pour comprendre la raison de cette mesure et la faire lever,
+          contactez la banque sur le Discord Newman Bank.
+        </p>
+        <button id="blocked-logout" class="btn btn-secondary" style="width:100%;">Se déconnecter</button>
+      </div>
+    </div>
+    <style>
+      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-card { width:100%; }
+    </style>
+  `;
+  document.getElementById('blocked-logout')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  });
+}
+
 async function guardedRoleRender(expectedRole, renderFn) {
-  const profile = await getCurrentProfile().catch(() => null);
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
   if (!profile) { navigate('/login'); return; }
+  if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   if (profile.role !== expectedRole) { navigate('/' + profile.role); return; }
   await renderFn(profile);
 }
 
-route('/', async () => renderPublicHome(app));
+// ----------------------------------------------------------------------------
+// NEWPAD — la tablette
+// ----------------------------------------------------------------------------
+// Contrairement à `guardedRoleRender`, ce garde ne réclame aucun rôle
+// particulier : la tablette est commune à tout le monde. Elle exige seulement
+// une session, parce que le registre d'applications n'est lisible que connecté.
+async function guardedNewpadRender(renderFn) {
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!profile) { navigate('/login'); return; }
+  if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
+  await renderFn(profile);
+}
+
+// La racine est l'unique URL que FiveM connaît (§1). Connecté, elle ouvre la
+// tablette ; déconnecté, elle garde la page d'accueil publique existante, qui
+// reste le seul point d'entrée pour créer un compte.
+route('/', async () => {
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!profile) { await renderPublicHome(app); return; }
+  if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
+  await renderLauncher(app, profile);
+});
+
+route('/bank', async () => guardedNewpadRender((p) => enterBank(p)));
+route('/bank/home', async () => renderPublicHome(app));
+route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
 route('/login', async () => renderLogin(app));
 route('/signup', async () => renderSignup(app));
 route('/forgot-password', async () => renderForgotPassword(app));
@@ -101,8 +184,10 @@ route('/client/safes', async () => guardedRoleRender('client', (p) => renderClie
 route('/client/loans', async () => guardedRoleRender('client', (p) => renderClientLoans(app, p)));
 route('/client/consulting', async () => guardedRoleRender('client', (p) => renderClientConsulting(app, p)));
 route('/client/documents', async () => guardedRoleRender('client', (p) => renderClientDocuments(app, p)));
+route('/client/info', async () => guardedRoleRender('client', (p) => renderClientInfo(app, p)));
 route('/client/support', async () => guardedRoleRender('client', (p) => renderClientSupport(app, p)));
 route('/client/support/:id', async (params) => guardedRoleRender('client', (p) => renderClientSupport(app, p, params)));
+route('/client/transactions', async () => guardedRoleRender('client', (p) => renderClientTransactions(app, p)));
 route('/client/messages', async () => guardedRoleRender('client', (p) => renderClientMessages(app, p)));
 route('/client/messages/:id', async (params) => guardedRoleRender('client', (p) => renderClientMessages(app, p, params)));
 route('/client/settings', async () => guardedRoleRender('client', (p) => renderClientSettings(app, p)));
@@ -129,6 +214,7 @@ route('/employee/support/:id', async (params) => guardedRoleRender('employee', (
 route('/employee/messages', async () => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p)));
 route('/employee/messages/:id', async (params) => guardedRoleRender('employee', (p) => renderEmployeeMessages(app, p, params)));
 route('/employee/audit', async () => guardedRoleRender('employee', (p) => renderEmployeeAudit(app, p)));
+route('/employee/documents', async () => guardedRoleRender('employee', (p) => renderEmployeeDocuments(app, p)));
 route('/employee/settings', async () => guardedRoleRender('employee', (p) => renderEmployeeSettings(app, p)));
 
 // ----------------------------------------------------------------------------
@@ -153,12 +239,14 @@ route('/admin/support/:id', async (params) => guardedRoleRender('admin', (p) => 
 route('/admin/messages', async () => guardedRoleRender('admin', (p) => renderAdminMessages(app, p)));
 route('/admin/messages/:id', async (params) => guardedRoleRender('admin', (p) => renderAdminMessages(app, p, params)));
 route('/admin/audit', async () => guardedRoleRender('admin', (p) => renderAdminAudit(app, p)));
+route('/admin/documents', async () => guardedRoleRender('admin', (p) => renderAdminDocuments(app, p)));
 route('/admin/settings', async () => guardedRoleRender('admin', (p) => renderAdminSettings(app, p)));
 route('/admin/staff', async () => guardedRoleRender('admin', (p) => renderAdminStaff(app, p)));
 route('/admin/permissions', async () => guardedRoleRender('admin', (p) => renderAdminPermissions(app, p)));
 route('/admin/irs-accounts', async () => guardedRoleRender('admin', (p) => renderAdminIrsAccounts(app, p)));
 route('/admin/visibility', async () => guardedRoleRender('admin', (p) => renderAdminVisibility(app, p)));
 route('/admin/economic-settings', async () => guardedRoleRender('admin', (p) => renderAdminEconomicSettings(app, p)));
+route('/admin/treasury', async () => guardedRoleRender('admin', (p) => renderAdminTreasury(app, p)));
 route('/admin/cms', async () => guardedRoleRender('admin', (p) => renderAdminCms(app, p)));
 route('/admin/system', async () => guardedRoleRender('admin', (p) => renderAdminSystem(app, p)));
 
@@ -176,17 +264,37 @@ route('/irs/messages', async () => guardedRoleRender('irs', (p) => renderIrsMess
 route('/irs/messages/:id', async (params) => guardedRoleRender('irs', (p) => renderIrsMessages(app, p, params)));
 route('/irs/settings', async () => guardedRoleRender('irs', (p) => renderIrsSettings(app, p)));
 
-setNotFound(async () => { navigate('/'); });
+// Les applications du registre ne peuvent pas être déclarées à l'avance : leurs
+// routes vivent en base et l'admin peut en créer de nouvelles sans déploiement.
+// On les résout donc ici, au moment où aucune route codée ne correspond — ce
+// qui laisse intactes les 81 routes existantes, toujours prioritaires.
+setNotFound(async () => {
+  const chemin = (window.location.hash || '#/').slice(1).split('?')[0];
+  try {
+    const appEnregistree = await findAppByRoute(chemin);
+    if (appEnregistree && appEnregistree.is_enabled) {
+      await guardedNewpadRender((p) => renderAppPlaceholder(app, p, appEnregistree));
+      return;
+    }
+  } catch (_) { /* registre injoignable : on retombe sur l'accueil */ }
+  navigate('/');
+});
 
 initRouter();
 
 // Redirection automatique après connexion selon le rôle du profil.
 supabase.auth.onAuthStateChange(async (event) => {
   if (event === 'SIGNED_IN') {
-    const profile = await getCurrentProfile().catch(() => null);
-    if (profile) navigate('/' + profile.role);
+    // Après connexion, on ouvre la tablette, pas directement la banque :
+    // Newpad est l'écosystème, Newman Bank n'en est qu'une application.
+    const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+    if (profile) navigate(profile.status && profile.status !== 'active' ? '/' + profile.role : '/');
   }
   if (event === 'SIGNED_OUT') {
+    // Sans cela, le canal Realtime de l'utilisateur précédent survit à sa
+    // session et continue d'écouter ses notifications.
+    resetNotificationsSubscription();
+    clearLoadFailures();
     navigate('/login');
   }
 });
