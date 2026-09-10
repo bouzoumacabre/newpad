@@ -44,6 +44,11 @@ export async function listLauncherApps(options) {
   return apps.filter((a) => a.is_enabled);
 }
 
+export async function findAppBySlug(slug) {
+  const apps = await listApps();
+  return apps.find((a) => a.slug === slug) || null;
+}
+
 export async function findAppByRoute(route) {
   const apps = await listApps();
   const cible = String(route || '').replace(/\/+$/, '') || '/';

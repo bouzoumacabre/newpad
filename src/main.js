@@ -1,6 +1,7 @@
 import './styles/base.css';
 import './styles/newpad.css';
-import { route, setNotFound, initRouter, navigate } from './lib/router.js';
+import './styles/apps.css';
+import { route, setNotFound, initRouter, navigate, resolve } from './lib/router.js';
 import { renderPublicHome } from './pages/public/home.js';
 import { renderLogin } from './pages/auth/login.js';
 import { renderSignup } from './pages/auth/signup.js';
@@ -91,6 +92,7 @@ import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
 const renderNewpadConsole = (...a) => import('./pages/newpad/admin/console.js').then((m) => m.renderNewpadConsole(...a));
+const renderFilesApp = (...a) => import('./apps/files/index.js').then((m) => m.renderFilesApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
 const app = document.getElementById('app');
@@ -186,6 +188,11 @@ route('/', async () => {
 
 route('/bank', async () => guardedNewpadRender((p) => enterBank(p)));
 route('/bank/home', async () => dansLaTablette((c) => renderPublicHome(c), { avecProfil: true, footerLeft: 'Newman Bank' }));
+// ----------------------------------------------------------------------------
+// Applications Newpad
+// ----------------------------------------------------------------------------
+route('/files', async () => guardedNewpadRender((p) => renderFilesApp(app, p)));
+
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
 route('/login', async () => dansLaTablette((c) => renderLogin(c), { footerLeft: 'Connexion' }));
@@ -314,8 +321,24 @@ supabase.auth.onAuthStateChange(async (event) => {
   if (event === 'SIGNED_IN') {
     // Après connexion, on ouvre la tablette, pas directement la banque :
     // Newpad est l'écosystème, Newman Bank n'en est qu'une application.
+    //
+    // Mais uniquement si l'on VIENT de s'identifier. Supabase émet aussi cet
+    // événement au démarrage, quand il restaure une session depuis le stockage
+    // local : rediriger sans condition écrasait alors la route demandée, et
+    // ouvrir Newpad sur une application précise — un lien de notification, par
+    // exemple — renvoyait systématiquement à l'écran d'accueil une fraction de
+    // seconde plus tard. Constaté en test : #/files affichait l'accueil.
+    const chemin = (window.location.hash || '#/').slice(1).split('?')[0];
+    const ecransIdentification = ['/', '/login', '/signup', '/forgot-password'];
+    if (!ecransIdentification.includes(chemin)) return;
+
     const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
-    if (profile) navigate(profile.status && profile.status !== 'active' ? '/' + profile.role : '/');
+    if (!profile) return;
+    const cible = profile.status && profile.status !== 'active' ? '/' + profile.role : '/';
+    // Déjà sur la cible (cas de l'écran verrouillé) : changer le hash ne
+    // déclencherait aucun rendu, il faut redemander explicitement la route.
+    if (chemin === cible) await resolve();
+    else navigate(cible);
   }
   if (event === 'SIGNED_OUT') {
     // Sans cela, le canal Realtime de l'utilisateur précédent survit à sa
