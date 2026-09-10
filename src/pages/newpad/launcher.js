@@ -51,7 +51,7 @@ function tuileApp(app) {
 
 export async function renderLauncher(root, profile) {
   const { body, footerCenter } = renderTabletShell(root, profile, {
-    footerLeft: 'Hurricane FA · Newpad',
+    footerLeft: 'Newpad',
   });
 
   let pages = [];

@@ -49,10 +49,7 @@ export function renderTabletShell(root, profile, opts = {}) {
               : ''}
             <div class="np-brand">
               <img src="${logoUrl}" alt="" />
-              <div>
-                <div class="np-brand-name">NEWPAD</div>
-                <div class="np-brand-sub">Hurricane FA</div>
-              </div>
+              <div class="np-brand-name">NEWPAD</div>
             </div>
 
             <div class="np-clock">
