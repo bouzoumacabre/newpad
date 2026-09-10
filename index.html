@@ -12,9 +12,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div id="app">
-    <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#8b93ab;font-family:Inter,sans-serif;">
-      Chargement de Newpad…
+  <!-- Le châssis de la tablette enveloppe TOUTE l'application, pas seulement
+       l'écran d'accueil. C'est la seule façon de tenir la promesse du §3 : le
+       joueur ne sort jamais de l'objet, quelle que soit l'application ouverte.
+       Le routeur remplit #app ; le cadre, lui, ne bouge jamais. -->
+  <div class="np-stage">
+    <div class="np-skyline"></div>
+    <div class="np-glow"></div>
+    <div class="np-tablet">
+      <div class="np-screen">
+        <div id="app">
+          <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8b93ab;font-family:Inter,sans-serif;">
+            Chargement de Newpad…
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

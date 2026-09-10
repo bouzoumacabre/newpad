@@ -51,7 +51,8 @@ export async function renderNewpadApps(root, profile) {
         </div>
         <div class="flex items-center gap-sm">
           <button class="btn btn-primary" id="np-new">+ Nouvelle application</button>
-          <button class="btn btn-ghost" id="np-quit">Retour à la tablette</button>
+          <button class="btn btn-ghost" id="np-console">◀ Console d'administration</button>
+          <button class="btn btn-ghost" id="np-quit">Tablette</button>
         </div>
       </header>
       <div class="npadmin-body">
@@ -70,6 +71,7 @@ export async function renderNewpadApps(root, profile) {
   `;
 
   document.getElementById('np-quit').addEventListener('click', () => navigate('/'));
+  document.getElementById('np-console').addEventListener('click', () => navigate('/newpad/admin'));
   document.getElementById('np-new').addEventListener('click', () => { selection = 'nouvelle'; dessinerFormulaire(); });
 
   // --------------------------------------------------------------------------
@@ -240,7 +242,7 @@ export async function renderNewpadApps(root, profile) {
     const nouvelle = selection === 'nouvelle';
     const a = nouvelle
       ? { slug: '', name: '', short_name: '', description: '', icon_key: 'grid', icon_url: '',
-          logo_url: '', accent_color: '#c9a227', route: '/', page: 1, is_enabled: true,
+          logo_url: '', accent_color: '#c9a227', route: '/', admin_route: '', page: 1, is_enabled: true,
           status: 'soon', visibility: 'public', owner_organization_id: '', is_system_app: false }
       : selection;
 
@@ -274,6 +276,12 @@ export async function renderNewpadApps(root, profile) {
 
       <div class="field"><label for="f-desc">Description (interne — jamais affichée sous l'icône)</label>
         <input id="f-desc" maxlength="160" value="${escapeHtml(a.description || '')}" /></div>
+
+      <div class="field"><label for="f-adminroute">Route de son administration (vide si l'application n'en a pas)</label>
+        <input id="f-adminroute" placeholder="/admin" value="${escapeHtml(a.admin_route || '')}" />
+        <div class="muted" style="font-size:12px;margin-top:4px;">
+          Renseignée, l'application apparaît dans la console d'administration générale.
+        </div></div>
 
       <div class="grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label for="f-icon">Icône intégrée</label>
@@ -406,6 +414,7 @@ export async function renderNewpadApps(root, profile) {
           is_enabled: $('f-enabled').value === '1',
           status: $('f-status').value,
           visibility: $('f-vis').value,
+          admin_route: $('f-adminroute').value.trim() || null,
         });
         apps = await listApps({ force: true });
         selection = nouvelle ? null : apps.find((x) => x.id === a.id) || null;

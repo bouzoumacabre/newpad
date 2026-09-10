@@ -26,7 +26,7 @@ export async function listApps({ force = false } = {}) {
   if (!force && cache && Date.now() - cacheAt < CACHE_MS) return cache;
   const { data, error } = await supabase
     .from('app_registry')
-    .select('id, slug, name, short_name, description, icon_key, icon_url, logo_url, accent_color, route, page, position, is_enabled, is_system_app, status, visibility, owner_organization_id')
+    .select('id, slug, name, short_name, description, icon_key, icon_url, logo_url, accent_color, route, admin_route, page, position, is_enabled, is_system_app, status, visibility, owner_organization_id')
     .order('page', { ascending: true })
     .order('position', { ascending: true });
   if (error) throw error;
@@ -100,6 +100,7 @@ export async function upsertApp(app) {
     p_is_enabled: app.is_enabled !== false,
     p_status: app.status || 'soon',
     p_visibility: app.visibility || 'public',
+    p_admin_route: app.admin_route || null,
   });
   if (error) throw error;
   invalidateAppCache();

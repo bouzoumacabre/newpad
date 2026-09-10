@@ -104,6 +104,11 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
         <nav class="sidebar-nav">${navHtml}</nav>
         <div class="sidebar-footer">
           ${footerHtml}
+          <!-- Newman Bank est une application de Newpad : il faut un chemin de
+               retour vers la tablette depuis n'importe quel écran, sinon le
+               joueur est enfermé dans la banque et doit se déconnecter pour en
+               sortir. -->
+          <button id="newpad-home-btn" class="btn btn-ghost" style="width:100%; justify-content:flex-start; margin-top:6px;">◀ Accueil Newpad</button>
           <button id="logout-btn" class="btn btn-ghost" style="width:100%; justify-content:flex-start; margin-top:6px;">↩ Déconnexion</button>
         </div>
       </aside>
@@ -139,6 +144,8 @@ export function renderShell(app, profile, roleLabel, sections, activeKey, opts =
       </div>
     </div>
   `;
+
+  document.getElementById('newpad-home-btn')?.addEventListener('click', () => navigate('/'));
 
   document.getElementById('logout-btn')?.addEventListener('click', async () => {
     await supabase.auth.signOut();

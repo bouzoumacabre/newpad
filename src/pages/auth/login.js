@@ -45,7 +45,7 @@ export async function renderLogin(app) {
       </div>
     </div>
     <style>
-      .auth-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .auth-screen { min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; }
       .auth-card { width:100%; max-width:400px; }
       .auth-brand { display:flex; align-items:center; gap:12px; margin-bottom:24px; }
       .auth-brand-title { font-size:20px; margin:0; }
