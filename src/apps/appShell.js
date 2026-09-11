@@ -28,6 +28,10 @@ export async function renderAppShell(root, profile, slug, opts = {}) {
   const { body } = renderTabletShell(root, profile, {
     showHome: true,
     scroll: false,
+    // Sans profil, on est en mode invité : l'en-tête doit proposer de se
+    // connecter plutôt que de laisser un coin vide. Une application à audience
+    // s'ouvre sans compte, c'est bien là qu'on donne envie d'en créer un.
+    invite: !profile,
     footerLeft: app.name,
   });
 

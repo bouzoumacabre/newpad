@@ -101,6 +101,7 @@ const renderMailApp = (...a) => import('./apps/mail/index.js').then((m) => m.ren
 const renderPageApp = (...a) => import('./apps/page/index.js').then((m) => m.renderPageApp(...a));
 const renderProApp = (...a) => import('./apps/pro/index.js').then((m) => m.renderProApp(...a));
 const renderWorkApp = (...a) => import('./apps/work/index.js').then((m) => m.renderWorkApp(...a));
+const renderNewsApp = (...a) => import('./apps/news/index.js').then((m) => m.renderNewsApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -239,6 +240,7 @@ route('/mail', async () => guardedAppRender('mail', (p) => renderMailApp(app, p)
 route('/page', async () => guardedAppRender('page', (p) => renderPageApp(app, p)));
 route('/pro', async () => guardedAppRender('pro', (p) => renderProApp(app, p)));
 route('/work', async () => guardedAppRender('work', (p) => renderWorkApp(app, p)));
+route('/news', async () => guardedAppRender('news', (p) => renderNewsApp(app, p)));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
