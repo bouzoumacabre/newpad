@@ -96,6 +96,7 @@ import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
 const renderNewpadConsole = (...a) => import('./pages/newpad/admin/console.js').then((m) => m.renderNewpadConsole(...a));
 const renderFilesApp = (...a) => import('./apps/files/index.js').then((m) => m.renderFilesApp(...a));
+const renderMailApp = (...a) => import('./apps/mail/index.js').then((m) => m.renderMailApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -230,6 +231,7 @@ route('/bank/home', async () => dansLaTablette((c) => renderPublicHome(c), { ave
 // Applications Newpad
 // ----------------------------------------------------------------------------
 route('/files', async () => guardedAppRender('files', (p) => renderFilesApp(app, p)));
+route('/mail', async () => guardedAppRender('mail', (p) => renderMailApp(app, p)));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
