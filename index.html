@@ -5,6 +5,15 @@
   <!-- `maximum-scale` retiré : il interdisait purement et simplement d'agrandir
        la page, un blocage d'accessibilité que rien ne justifie sur un écran de jeu. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Le navigateur intégré de FiveM (CEF) garde index.html en cache bien plus
+       longtemps qu'un navigateur ordinaire : un joueur pouvait continuer à voir
+       l'ancienne version des jours après un déploiement, en chargeant un fichier
+       de script qui n'existe plus. Les noms des fichiers construits portent déjà
+       une empreinte, donc seul ce document-ci a besoin d'être redemandé à chaque
+       ouverture. -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Newpad — Hurricane FA</title>
   <meta name="description" content="Newpad — l'écosystème numérique de Hurricane FA." />
   <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />

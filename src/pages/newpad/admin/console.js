@@ -21,7 +21,7 @@ import { listApps, isNewpadAdmin } from '../../../lib/newpadApi.js';
 // masqués : l'admin voit ce qui existera, et ne cherche pas une page absente.
 const ESPACES_NEWPAD = [
   { titre: 'Applications', desc: 'Registre, icônes, pages, ordre, visibilité', route: '/newpad/apps', icon: 'grid', pret: true },
-  { titre: 'Organisations', desc: 'Entreprises, gouvernement, médias, labels', route: '/newpad/organizations', icon: 'briefcase', pret: false },
+  { titre: 'Organisations', desc: 'Entreprises, gouvernement, médias, labels', route: '/newpad/organizations', icon: 'briefcase', pret: true },
   { titre: 'Utilisateurs', desc: 'Profils Newpad, rôles, administrateurs', route: '/newpad/users', icon: 'work', pret: false },
   { titre: 'Publicité', desc: 'Régie NewAds, campagnes, emplacements', route: '/newpad/ads', icon: 'megaphone', pret: false },
   { titre: 'Documents', desc: 'Coffre NewFiles et permissions', route: '/newpad/files', icon: 'folder', pret: false },

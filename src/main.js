@@ -95,8 +95,11 @@ import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
 const renderNewpadConsole = (...a) => import('./pages/newpad/admin/console.js').then((m) => m.renderNewpadConsole(...a));
+const renderNewpadOrganizations = (...a) => import('./pages/newpad/admin/organizations.js').then((m) => m.renderNewpadOrganizations(...a));
 const renderFilesApp = (...a) => import('./apps/files/index.js').then((m) => m.renderFilesApp(...a));
 const renderMailApp = (...a) => import('./apps/mail/index.js').then((m) => m.renderMailApp(...a));
+const renderPageApp = (...a) => import('./apps/page/index.js').then((m) => m.renderPageApp(...a));
+const renderProApp = (...a) => import('./apps/pro/index.js').then((m) => m.renderProApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -232,9 +235,12 @@ route('/bank/home', async () => dansLaTablette((c) => renderPublicHome(c), { ave
 // ----------------------------------------------------------------------------
 route('/files', async () => guardedAppRender('files', (p) => renderFilesApp(app, p)));
 route('/mail', async () => guardedAppRender('mail', (p) => renderMailApp(app, p)));
+route('/page', async () => guardedAppRender('page', (p) => renderPageApp(app, p)));
+route('/pro', async () => guardedAppRender('pro', (p) => renderProApp(app, p)));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
+route('/newpad/organizations', async () => guardedNewpadRender((p) => renderNewpadOrganizations(app, p)));
 route('/login', async () => dansLaTablette((c) => renderLogin(c), { footerLeft: 'Connexion' }));
 route('/signup', async () => dansLaTablette((c) => renderSignup(c), { footerLeft: 'Inscription' }));
 route('/forgot-password', async () => dansLaTablette((c) => renderForgotPassword(c), { footerLeft: 'Mot de passe oublié' }));
