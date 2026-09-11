@@ -60,9 +60,15 @@ export function navigate(path) {
 
 export function initRouter() {
   window.addEventListener('hashchange', resolve);
-  window.addEventListener('DOMContentLoaded', resolve);
+  // Un module s'exécute alors que le document est déjà « interactive » : le
+  // premier rendu se déclenchait donc à la fois ici ET sur DOMContentLoaded,
+  // et chaque écran se construisait deux fois au démarrage — deux fois les
+  // requêtes, deux fois les écouteurs. On ne garde qu'un seul déclencheur.
+  let demarre = false;
+  const premierRendu = () => { if (demarre) return; demarre = true; resolve(); };
+  window.addEventListener('DOMContentLoaded', premierRendu);
   window.addEventListener('unhandledrejection', (event) => {
     console.error('[router] promesse rejetée non interceptée :', event.reason);
   });
-  if (document.readyState !== 'loading') resolve();
+  if (document.readyState !== 'loading') premierRendu();
 }
