@@ -26,7 +26,7 @@ export async function listApps({ force = false } = {}) {
   if (!force && cache && Date.now() - cacheAt < CACHE_MS) return cache;
   const { data, error } = await supabase
     .from('app_registry')
-    .select('id, slug, name, short_name, description, icon_key, icon_url, logo_url, accent_color, route, admin_route, page, position, is_enabled, is_system_app, status, visibility, owner_organization_id')
+    .select('id, slug, name, short_name, description, icon_key, icon_url, logo_url, accent_color, route, admin_route, page, position, is_enabled, is_system_app, status, visibility, access_level, owner_organization_id')
     .order('page', { ascending: true })
     .order('position', { ascending: true });
   if (error) throw error;
@@ -81,6 +81,14 @@ export function unsubscribeAppRegistry() {
 // Administration du registre (§8, §10)
 // ----------------------------------------------------------------------------
 
+// L'autorité sur « ai-je le droit d'ouvrir cette application ». Le lanceur
+// devine pour dessiner un cadenas ; cette réponse-ci décide.
+export async function canOpenApp(slug) {
+  const { data, error } = await supabase.rpc('can_open_app', { p_slug: slug });
+  if (error) return false;
+  return data === true;
+}
+
 export async function isNewpadAdmin() {
   const { data, error } = await supabase.rpc('is_newpad_admin');
   if (error) return false;
@@ -106,6 +114,7 @@ export async function upsertApp(app) {
     p_status: app.status || 'soon',
     p_visibility: app.visibility || 'public',
     p_admin_route: app.admin_route || null,
+    p_access_level: app.access_level || 'client',
   });
   if (error) throw error;
   invalidateAppCache();
@@ -122,6 +131,40 @@ export async function deleteApp(id) {
   const { error } = await supabase.rpc('newpad_delete_app', { p_id: id });
   if (error) throw error;
   invalidateAppCache();
+}
+
+// ----------------------------------------------------------------------------
+// Autorisations nominatives (applications restreintes — NewDark)
+// ----------------------------------------------------------------------------
+
+export async function listAppAccess(appId) {
+  const { data, error } = await supabase.rpc('newpad_list_app_access', { p_app_id: appId });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function grantAppAccess(appId, profileId, note = null, expiresAt = null) {
+  const { error } = await supabase.rpc('newpad_grant_app_access', {
+    p_app_id: appId, p_profile_id: profileId, p_note: note, p_expires_at: expiresAt,
+  });
+  if (error) throw error;
+}
+
+export async function revokeAppAccess(appId, profileId) {
+  const { error } = await supabase.rpc('newpad_revoke_app_access', {
+    p_app_id: appId, p_profile_id: profileId,
+  });
+  if (error) throw error;
+}
+
+// Recherche de profil partagée. La fonction serveur est née pour NewFiles mais
+// ne lui est pas propre : elle cherche un destinataire, et renvoie au plus dix
+// résultats. En écrire une seconde, identique, pour l'administration serait la
+// garantie que les deux divergent.
+export async function searchProfiles(query) {
+  const { data, error } = await supabase.rpc('newfiles_search_recipients', { p_query: query });
+  if (error) throw error;
+  return data || [];
 }
 
 // ----------------------------------------------------------------------------

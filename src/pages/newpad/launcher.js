@@ -24,7 +24,7 @@ function grouperParPage(apps) {
     .map((num) => ({ num, apps: pages.get(num).sort((x, y) => x.position - y.position) }));
 }
 
-function tuileApp(app) {
+function tuileApp(app, ouverte) {
   const couleur = app.accent_color || 'var(--gold)';
   const visuel = app.icon_url
     ? `<img src="${escapeHtml(app.icon_url)}" alt="" loading="lazy" />`
@@ -38,21 +38,42 @@ function tuileApp(app) {
   const drapeau = maintenance ? 'Maintenance' : '';
 
   return `
-    <button class="np-app ${bientot || maintenance ? 'np-app-soon' : ''}"
-            data-route="${escapeHtml(app.route)}" title="${escapeHtml(app.name)}">
+    <button class="np-app ${bientot || maintenance ? 'np-app-soon' : ''} ${ouverte ? '' : 'np-app-locked'}"
+            data-route="${escapeHtml(app.route)}" data-slug="${escapeHtml(app.slug)}"
+            data-locked="${ouverte ? '' : '1'}"
+            title="${escapeHtml(ouverte ? app.name : app.name + ' — réservé aux clients Newman Bank')}">
       <span class="np-app-tile">
         ${visuel}
         ${drapeau ? `<span class="np-app-flag">${drapeau}</span>` : ''}
+        ${ouverte ? '' : '<span class="np-app-lock" aria-hidden="true">🔒</span>'}
       </span>
       <span class="np-app-name">${escapeHtml(app.name)}</span>
     </button>
   `;
 }
 
-export async function renderLauncher(root, profile) {
+// `profile` vaut null en mode invité : la tablette s'affiche quand même, avec
+// les seules applications que la base laisse lire à un visiteur sans compte.
+export async function renderLauncher(root, profile, opts = {}) {
+  const invite = !profile;
   const { body, footerCenter } = renderTabletShell(root, profile, {
     footerLeft: 'Newpad',
+    invite,
   });
+
+  // Ce que l'utilisateur peut ouvrir, décidé ici pour l'affichage seulement.
+  // L'autorité reste `can_open_app` en base, revérifiée à chaque entrée dans
+  // une application : ce calcul ne sert qu'à savoir s'il faut dessiner un
+  // cadenas, jamais à laisser entrer.
+  const rolesClient = ['client', 'employee', 'admin', 'irs'];
+  function ouvrable(app) {
+    if (app.access_level === 'guest') return true;
+    if (invite) return false;
+    // Une application restreinte qui arrive jusqu'ici est déjà autorisée :
+    // la policy du registre ne la renvoie qu'aux personnes admises.
+    if (app.access_level === 'restricted') return true;
+    return rolesClient.includes(profile.role);
+  }
 
   let pages = [];
   let index = 0;
@@ -84,7 +105,7 @@ export async function renderLauncher(root, profile) {
   function dessiner() {
     body.innerHTML = `
       <div class="np-pages" id="np-pages">
-        ${pages.map((p) => `<div class="np-page">${p.apps.map(tuileApp).join('')}</div>`).join('')}
+        ${pages.map((p) => `<div class="np-page">${p.apps.map((a) => tuileApp(a, ouvrable(a))).join('')}</div>`).join('')}
       </div>
       <button class="np-arrow np-arrow-prev" id="np-prev" aria-label="Page précédente">‹</button>
       <button class="np-arrow np-arrow-next" id="np-next" aria-label="Page suivante">›</button>
@@ -126,6 +147,12 @@ export async function renderLauncher(root, profile) {
         // Un glissement se termine par un « click » sur la tuile survolée :
         // sans ce garde, chaque changement de page ouvrirait une application.
         if (aGlisse) return;
+        if (el.getAttribute('data-locked')) {
+          // Une icône verrouillée n'est pas un bouton mort : elle explique ce
+          // qu'il manque et comment l'obtenir.
+          navigate('/acces/' + el.getAttribute('data-slug'));
+          return;
+        }
         navigate(el.getAttribute('data-route'));
       });
     });

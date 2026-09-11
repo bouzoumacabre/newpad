@@ -19,12 +19,19 @@ import { ICON_KEYS, appIconSvg } from '../../../lib/appIcons.js';
 import {
   listApps, upsertApp, deleteApp, setAppLayout,
   isNewpadAdmin, uploadAppImage, listOrganizations,
+  listAppAccess, grantAppAccess, revokeAppAccess, searchProfiles,
 } from '../../../lib/newpadApi.js';
+import { formatDate } from '../../../lib/format.js';
 
 const STATUTS = [
   ['live', 'En service'],
   ['soon', 'En construction'],
   ['maintenance', 'En maintenance'],
+];
+const NIVEAUX_ACCES = [
+  ['guest', 'Invité — ouverte à tous, même sans compte'],
+  ['client', 'Client — réservée aux clients Newman Bank'],
+  ['restricted', 'Restreinte — autorisation nominative'],
 ];
 const VISIBILITES = [
   ['public', 'Publique — visible par tous'],
@@ -243,7 +250,8 @@ export async function renderNewpadApps(root, profile) {
     const a = nouvelle
       ? { slug: '', name: '', short_name: '', description: '', icon_key: 'grid', icon_url: '',
           logo_url: '', accent_color: '#c9a227', route: '/', admin_route: '', page: 1, is_enabled: true,
-          status: 'soon', visibility: 'public', owner_organization_id: '', is_system_app: false }
+          status: 'soon', visibility: 'public', access_level: 'client',
+          owner_organization_id: '', is_system_app: false }
       : selection;
 
     f.innerHTML = `
@@ -312,6 +320,19 @@ export async function renderNewpadApps(root, profile) {
             <option value="0" ${!a.is_enabled ? 'selected' : ''}>Masquée</option>
           </select></div>
       </div>
+
+      <div class="field"><label for="f-access">Niveau d'accès</label>
+        <select id="f-access">${NIVEAUX_ACCES.map(([v, l]) =>
+          `<option value="${v}" ${a.access_level === v ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}</select>
+        <div class="muted" style="font-size:12px;margin-top:4px;">
+          Une application « invité » est visible et ouvrable sans compte : c'est le régime
+          des applications qui ont besoin d'une audience. Une application « restreinte »
+          n'apparaît même pas sur la tablette de qui n'y est pas autorisé.
+        </div></div>
+
+      ${!nouvelle && a.access_level === 'restricted'
+        ? '<button class="btn btn-secondary" id="np-access" style="width:100%;margin-bottom:16px;">Gérer les personnes autorisées</button>'
+        : ''}
 
       <div class="grid" style="grid-template-columns:1fr 1fr;">
         <div class="field"><label for="f-vis">Visibilité</label>
@@ -382,6 +403,8 @@ export async function renderNewpadApps(root, profile) {
       }
     });
 
+    $('np-access')?.addEventListener('click', () => panneauAcces(a));
+
     $('np-cancel').addEventListener('click', () => { selection = null; dessinerFormulaire(); dessinerListes(); });
 
     $('np-del')?.addEventListener('click', async () => {
@@ -415,6 +438,7 @@ export async function renderNewpadApps(root, profile) {
           status: $('f-status').value,
           visibility: $('f-vis').value,
           admin_route: $('f-adminroute').value.trim() || null,
+          access_level: $('f-access').value,
         });
         apps = await listApps({ force: true });
         selection = nouvelle ? null : apps.find((x) => x.id === a.id) || null;
@@ -425,6 +449,102 @@ export async function renderNewpadApps(root, profile) {
       } catch (e) {
         msg.textContent = 'Échec : ' + (e.message || e);
       }
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Personnes autorisées sur une application restreinte (NewDark)
+  // --------------------------------------------------------------------------
+  function panneauAcces(appli) {
+    document.getElementById('np-access-panel')?.remove();
+    const el = document.createElement('aside');
+    el.className = 'app-panel';
+    el.id = 'np-access-panel';
+    el.style.position = 'fixed';
+    el.innerHTML = `
+      <div class="app-panel-head">
+        <strong>${escapeHtml(appli.name)} — accès</strong>
+        <button class="btn btn-ghost" id="npa-close" style="padding:2px 9px;">✕</button>
+      </div>
+      <div class="app-panel-body">
+        <p class="muted" style="font-size:12.5px;margin-bottom:12px;">
+          Sans autorisation, l'application n'apparaît même pas sur la tablette.
+          Les personnes listées ici la voient et peuvent l'ouvrir.
+        </p>
+        <div class="field"><label for="npa-search">Autoriser quelqu'un</label>
+          <input id="npa-search" placeholder="Nom ou identifiant" autocomplete="off" />
+          <div id="npa-results" class="app-list" style="margin-top:6px;"></div>
+        </div>
+        <div class="field"><label for="npa-note">Motif (facultatif)</label>
+          <input id="npa-note" maxlength="120" /></div>
+        <hr style="border:0;border-top:1px solid var(--card-border);margin:14px 0;" />
+        <strong style="font-size:13px;color:var(--ivory);">Personnes autorisées</strong>
+        <div id="npa-list" class="app-list" style="margin-top:8px;"></div>
+      </div>`;
+    document.body.appendChild(el);
+    document.getElementById('npa-close').addEventListener('click', () => el.remove());
+
+    const champ = document.getElementById('npa-search');
+    const zone = document.getElementById('npa-results');
+    let minuteur = null;
+    champ.addEventListener('input', () => {
+      clearTimeout(minuteur);
+      minuteur = setTimeout(async () => {
+        const q = champ.value.trim();
+        if (q.length < 2) { zone.innerHTML = ''; return; }
+        let r = [];
+        try { r = await searchProfiles(q); } catch (_) { /* liste vide */ }
+        zone.innerHTML = r.length
+          ? r.map((p) => `<div class="app-row" style="padding:7px 10px;cursor:pointer;" data-pick="${p.id}">
+              <span class="app-row-main"><strong>${escapeHtml(p.display_name)}</strong>
+                <small>${escapeHtml(p.username)}</small></span></div>`).join('')
+          : '<div class="muted" style="font-size:12.5px;">Aucun résultat.</div>';
+        zone.querySelectorAll('[data-pick]').forEach((n) => {
+          n.addEventListener('click', async () => {
+            try {
+              await grantAppAccess(appli.id, n.getAttribute('data-pick'),
+                document.getElementById('npa-note').value || null);
+              champ.value = ''; zone.innerHTML = '';
+              await listerAcces(appli.id);
+            } catch (e) { await showAlert('Autorisation impossible : ' + (e.message || e)); }
+          });
+        });
+      }, 280);
+    });
+
+    listerAcces(appli.id);
+  }
+
+  async function listerAcces(appId) {
+    const zone = document.getElementById('npa-list');
+    if (!zone) return;
+    let lignes = [];
+    try { lignes = await listAppAccess(appId); } catch (e) {
+      zone.innerHTML = `<div class="muted" style="font-size:12.5px;">${escapeHtml(String(e.message || e))}</div>`;
+      return;
+    }
+    if (!lignes.length) {
+      zone.innerHTML = '<div class="muted" style="font-size:12.5px;">Personne n\'est autorisé pour le moment.</div>';
+      return;
+    }
+    zone.innerHTML = lignes.map((l) => `
+      <div class="app-row" style="padding:8px 10px;">
+        <span class="app-row-main">
+          <strong>${escapeHtml(l.display_name)}</strong>
+          <small>${escapeHtml(l.username)}${l.note ? ' · ' + escapeHtml(l.note) : ''}
+            · depuis le ${formatDate(l.created_at)}</small>
+        </span>
+        <span class="app-row-actions">
+          <button class="btn btn-ghost" data-revoke="${l.profile_id}">Retirer</button>
+        </span>
+      </div>`).join('');
+    zone.querySelectorAll('[data-revoke]').forEach((b) => {
+      b.addEventListener('click', async () => {
+        try {
+          await revokeAppAccess(appId, b.getAttribute('data-revoke'));
+          await listerAcces(appId);
+        } catch (e) { await showAlert('Retrait impossible : ' + (e.message || e)); }
+      });
     });
   }
 
