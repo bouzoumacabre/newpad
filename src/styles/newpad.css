@@ -494,3 +494,118 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* --------------------------------------------------------------------------
+   Page de présentation
+   -------------------------------------------------------------------------- */
+.np-landing { max-width: 860px; margin: 0 auto; padding: 8px 28px 40px; }
+
+.np-hero { padding: 46px 0 34px; text-align: center; border-bottom: 1px solid var(--card-border); }
+.np-hero-eyebrow {
+  display: inline-block;
+  font-size: 10.5px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+  margin-bottom: 12px;
+}
+.np-hero h1 {
+  font-family: var(--font-display);
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: .06em;
+  color: var(--ivory);
+  margin-bottom: 14px;
+}
+.np-hero-claim {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--gold-light);
+  margin-bottom: 10px;
+}
+.np-hero-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 520px;
+  margin: 0 auto 24px;
+}
+.np-hero-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.np-hero-count {
+  margin-top: 16px;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.np-section { padding: 32px 0; border-bottom: 1px solid var(--card-border); }
+.np-section h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--ivory);
+  letter-spacing: .04em;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.np-usages { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.np-usage {
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+}
+.np-usage-icon { display: inline-flex; color: var(--gold); margin-bottom: 9px; }
+.np-usage h3 { font-size: 14px; color: var(--ivory); margin-bottom: 5px; font-weight: 600; }
+.np-usage p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+
+.np-levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.np-level {
+  padding: 18px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+}
+.np-level.is-highlight { border-color: var(--gold-dark); box-shadow: var(--shadow-gold-glow); }
+.np-level-cond {
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--gold-dark);
+}
+.np-level h3 { font-family: var(--font-display); font-size: 17px; color: var(--ivory); margin: 6px 0 7px; }
+.np-level p { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; }
+
+.np-note {
+  margin-top: 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.np-closing { padding: 34px 0 10px; text-align: center; }
+.np-closing p {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--ivory);
+  margin-bottom: 14px;
+}
+
+/* Icône verrouillée sur le lanceur : l'application existe, elle demande un
+   compte Newman Bank. On la montre plutôt que de la cacher — c'est ce qui
+   donne envie d'ouvrir un compte. */
+.np-app-locked .np-app-tile { opacity: .45; }
+.np-app-locked .np-app-name { color: var(--text-muted); }
+.np-app-lock {
+  position: absolute;
+  right: -5px; bottom: -5px;
+  width: 22px; height: 22px;
+  border-radius: 999px;
+  background: var(--bg-950);
+  border: 1px solid var(--gold-dark);
+  color: var(--gold-light);
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}

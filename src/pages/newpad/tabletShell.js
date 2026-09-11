@@ -15,6 +15,7 @@ import { navigate } from '../../lib/router.js';
 import { setupNotifications } from '../../lib/shell.js';
 import { escapeHtml } from '../../lib/format.js';
 import { isNewpadAdmin } from '../../lib/newpadApi.js';
+import { quitterLeModeInvite } from '../../lib/guestMode.js';
 
 function initiales(nom) {
   return (nom || '?').split(' ').filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase()).join('');
@@ -42,6 +43,10 @@ export function renderTabletShell(root, profile, opts = {}) {
   // commandes qui n'ont pas de sens sans session — notifications, profil,
   // déconnexion.
   const verrouille = !profile;
+  // Le mode invité n'est ni « connecté » ni « verrouillé » : la tablette est
+  // utilisable, mais il n'y a ni profil, ni notifications, ni déconnexion — à
+  // la place, une invitation à se connecter.
+  const invite = verrouille && opts.invite === true;
 
   // Le châssis (fond, cadre, écran) vit désormais dans index.html et enveloppe
   // toute l'application. Ici on ne dessine plus que ce qui appartient à
@@ -62,6 +67,7 @@ export function renderTabletShell(root, profile, opts = {}) {
       </div>
 
       <div class="np-header-actions" style="position:relative;">
+        ${invite ? '<button id="np-signin" class="np-chip">Se connecter</button>' : ''}
         ${verrouille ? '' : `
         <button id="np-admin" class="np-chip" style="display:none;" title="Console d'administration">⚙</button>
         <button id="notif-bell" class="notif-bell" aria-label="Notifications">
@@ -87,12 +93,18 @@ export function renderTabletShell(root, profile, opts = {}) {
     <footer class="np-footer">
       <span>${escapeHtml(opts.footerLeft || 'Newpad')}</span>
       <div id="np-footer-center" style="margin:0 auto;"></div>
-      ${verrouille ? '<span></span>'
-        : '<button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>'}
+      ${invite
+        ? '<span class="muted" style="font-size:11px;letter-spacing:.12em;">Mode invité</span>'
+        : (verrouille ? '<span></span>'
+          : '<button id="np-logout" class="np-chip" style="height:28px;font-size:11px;letter-spacing:.1em;">Déconnexion</button>')}
     </footer>
   `;
 
   document.getElementById('np-home')?.addEventListener('click', () => navigate('/'));
+  document.getElementById('np-signin')?.addEventListener('click', () => {
+    quitterLeModeInvite();
+    navigate('/login');
+  });
   document.getElementById('np-user')?.addEventListener('click', () => navigate('/newpad/profil'));
   document.getElementById('np-logout')?.addEventListener('click', async () => {
     await supabase.auth.signOut();

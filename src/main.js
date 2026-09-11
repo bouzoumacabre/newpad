@@ -87,12 +87,16 @@ import { swallow, clearLoadFailures } from './lib/loadState.js';
 import { resetNotificationsSubscription } from './lib/notifications.js';
 import { renderLauncher } from './pages/newpad/launcher.js';
 import { renderLockScreen } from './pages/newpad/lockScreen.js';
+import { renderLanding } from './pages/newpad/landing.js';
+import { estInvite, quitterLeModeInvite } from './lib/guestMode.js';
+import { canOpenApp, findAppBySlug } from './lib/newpadApi.js';
 import { renderTabletShell } from './pages/newpad/tabletShell.js';
 import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
 const renderNewpadApps = (...a) => import('./pages/newpad/admin/apps.js').then((m) => m.renderNewpadApps(...a));
 const renderNewpadConsole = (...a) => import('./pages/newpad/admin/console.js').then((m) => m.renderNewpadConsole(...a));
 const renderFilesApp = (...a) => import('./apps/files/index.js').then((m) => m.renderFilesApp(...a));
+const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
 const app = document.getElementById('app');
@@ -167,6 +171,22 @@ async function dansLaTablette(renderFn, opts = {}) {
   await renderFn(body, profile);
 }
 
+// Garde d'entrée dans une application. La question « ai-je le droit ? » est
+// posée à la BASE, pas au code : le calcul fait dans le lanceur ne sert qu'à
+// dessiner un cadenas, et taper une adresse à la main contourne l'affichage.
+async function guardedAppRender(slug, renderFn) {
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (profile && profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
+  const autorise = await canOpenApp(slug).catch(() => false);
+  if (!autorise) {
+    const cible = await findAppBySlug(slug).catch(() => null);
+    if (cible) { await renderLockedApp(app, profile, cible); return; }
+    navigate('/');
+    return;
+  }
+  await renderFn(profile);
+}
+
 async function guardedNewpadRender(renderFn) {
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
   if (!profile) { navigate('/login'); return; }
@@ -181,9 +201,27 @@ async function guardedNewpadRender(renderFn) {
 // c'est une application de Newpad, pas sa porte d'entrée.
 route('/', async () => {
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
-  if (!profile) { renderLockScreen(app); return; }
-  if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
-  await renderLauncher(app, profile);
+  if (profile) {
+    // Une session ouverte l'emporte toujours sur un drapeau invité resté posé.
+    quitterLeModeInvite();
+    if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
+    await renderLauncher(app, profile);
+    return;
+  }
+  // Sans compte : la présentation d'abord, la tablette ensuite si le visiteur a
+  // choisi d'entrer en invité.
+  if (estInvite()) { await renderLauncher(app, null); return; }
+  await renderLanding(app);
+});
+
+// Écran d'une application que l'on n'a pas le droit d'ouvrir. Il est atteint
+// depuis le lanceur, mais aussi par le garde ci-dessous : taper l'adresse à la
+// main mène au même endroit, pas à un refus muet.
+route('/acces/:slug', async (params) => {
+  const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  const cible = await findAppBySlug(params.slug).catch(() => null);
+  if (!cible) { navigate('/'); return; }
+  await renderLockedApp(app, profile, cible);
 });
 
 route('/bank', async () => guardedNewpadRender((p) => enterBank(p)));
@@ -191,7 +229,7 @@ route('/bank/home', async () => dansLaTablette((c) => renderPublicHome(c), { ave
 // ----------------------------------------------------------------------------
 // Applications Newpad
 // ----------------------------------------------------------------------------
-route('/files', async () => guardedNewpadRender((p) => renderFilesApp(app, p)));
+route('/files', async () => guardedAppRender('files', (p) => renderFilesApp(app, p)));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
@@ -307,7 +345,7 @@ setNotFound(async () => {
   try {
     const appEnregistree = await findAppByRoute(chemin);
     if (appEnregistree && appEnregistree.is_enabled) {
-      await guardedNewpadRender((p) => renderAppPlaceholder(app, p, appEnregistree));
+      await guardedAppRender(appEnregistree.slug, (p) => renderAppPlaceholder(app, p, appEnregistree));
       return;
     }
   } catch (_) { /* registre injoignable : on retombe sur l'accueil */ }
