@@ -122,3 +122,40 @@
 }
 .app-panel-head strong { font-family: var(--font-display); color: var(--ivory); font-size: 15px; }
 .app-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
+
+/* --------------------------------------------------------------------------
+   Annuaire (NewPage) et back-office (NewPro)
+   -------------------------------------------------------------------------- */
+.np-directory { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.np-dir-card {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 13px; text-align: left;
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  background: var(--card-bg); color: var(--text); cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.np-dir-card:hover { border-color: var(--gold-dark); transform: translateY(-1px); }
+.np-dir-logo {
+  width: 38px; height: 38px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: rgba(255,255,255,.04);
+  color: var(--app-accent, var(--gold));
+}
+.np-dir-logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
+.np-dir-main { display: flex; flex-direction: column; min-width: 0; line-height: 1.35; }
+.np-dir-main strong { color: var(--ivory); font-size: 14px; }
+.np-dir-main small { color: var(--text-muted); font-size: 12px; }
+.np-dir-main em {
+  color: var(--text-muted); font-size: 12px; font-style: normal; margin-top: 5px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.np-dir-facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 12.5px; }
+.np-dir-facts dt { color: var(--text-muted); }
+.np-dir-facts dd { margin: 0; color: var(--text); }
+
+.np-pro-head {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--card-border);
+}
