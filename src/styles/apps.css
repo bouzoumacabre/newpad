@@ -228,3 +228,56 @@
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 .nn-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+/* --------------------------------------------------------------------------
+   NewTube
+   -------------------------------------------------------------------------- */
+.nt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.nt-card {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 0; text-align: left; background: none; border: 0;
+  color: var(--text); cursor: pointer;
+}
+.nt-thumb {
+  position: relative; display: block; aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md); overflow: hidden;
+  background: linear-gradient(160deg, #16264a, #0d1a33);
+  border: 1px solid var(--card-border);
+  display: flex; align-items: center; justify-content: center;
+}
+.nt-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.nt-thumb-vide { color: var(--app-accent, var(--gold)); opacity: .5; }
+.nt-card:hover .nt-thumb { border-color: var(--gold-dark); }
+.nt-duree {
+  position: absolute; right: 6px; bottom: 6px;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(0, 0, 0, .78); color: #fff; font-size: 11px;
+}
+.nt-title { font-size: 13.5px; color: var(--ivory); line-height: 1.35; }
+.nt-meta { font-size: 11.5px; color: var(--text-muted); }
+
+.nt-player { border-radius: var(--radius-md); overflow: hidden; background: #000; }
+.nt-player video { width: 100%; display: block; max-height: 300px; background: #000; }
+
+/* --------------------------------------------------------------------------
+   NewLife
+   -------------------------------------------------------------------------- */
+.nl-feed { display: flex; flex-direction: column; gap: 12px; max-width: 620px; margin: 0 auto; }
+.nl-post {
+  padding: 14px;
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  background: var(--card-bg);
+}
+.nl-post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.nl-auteur {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  color: var(--ivory); font-size: 14px; font-weight: 600;
+}
+.nl-auteur:hover { color: var(--gold-light); }
+.nl-date { margin-left: auto; font-size: 11.5px; color: var(--text-muted); }
+.nl-body { font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
+.nl-tag {
+  border: 0; background: none; padding: 0; cursor: pointer;
+  color: var(--gold-light); font: inherit;
+}
+.nl-media { width: 100%; border-radius: var(--radius-md); margin-top: 10px; }
