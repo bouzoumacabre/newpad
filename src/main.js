@@ -104,6 +104,8 @@ const renderWorkApp = (...a) => import('./apps/work/index.js').then((m) => m.ren
 const renderNewsApp = (...a) => import('./apps/news/index.js').then((m) => m.renderNewsApp(...a));
 const renderTubeApp = (...a) => import('./apps/tube/index.js').then((m) => m.renderTubeApp(...a));
 const renderLifeApp = (...a) => import('./apps/life/index.js').then((m) => m.renderLifeApp(...a));
+const renderMarketApp = (...a) => import('./apps/market/index.js').then((m) => m.renderMarketApp(...a));
+const renderEventsApp = (...a) => import('./apps/events/index.js').then((m) => m.renderEventsApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -245,6 +247,8 @@ route('/work', async () => guardedAppRender('work', (p) => renderWorkApp(app, p)
 route('/news', async () => guardedAppRender('news', (p) => renderNewsApp(app, p)));
 route('/youtube', async () => guardedAppRender('youtube', (p) => renderTubeApp(app, p)));
 route('/life', async () => guardedAppRender('life', (p) => renderLifeApp(app, p)));
+route('/market', async () => guardedAppRender('market', (p) => renderMarketApp(app, p)));
+route('/events', async () => guardedAppRender('events', (p) => renderEventsApp(app, p)));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
