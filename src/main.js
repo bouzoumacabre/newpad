@@ -107,6 +107,7 @@ const renderLifeApp = (...a) => import('./apps/life/index.js').then((m) => m.ren
 const renderMarketApp = (...a) => import('./apps/market/index.js').then((m) => m.renderMarketApp(...a));
 const renderEventsApp = (...a) => import('./apps/events/index.js').then((m) => m.renderEventsApp(...a));
 const renderShowcaseApp = (...a) => import('./apps/showcase/index.js').then((m) => m.renderShowcaseApp(...a));
+const renderServicesApp = (...a) => import('./apps/services/index.js').then((m) => m.renderServicesApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -256,6 +257,12 @@ route('/events', async () => guardedAppRender('events', (p) => renderEventsApp(a
 route('/dynasty', async () => guardedAppRender('dynasty', (p) => renderShowcaseApp(app, p, 'dynasty')));
 route('/luxury', async () => guardedAppRender('luxury', (p) => renderShowcaseApp(app, p, 'luxury')));
 route('/vangelico', async () => guardedAppRender('vangelico', (p) => renderShowcaseApp(app, p, 'vangelico')));
+
+// Les trois guichets partagent le même écran : les démarches et leurs
+// formulaires vivent en base, composés par chaque administration (0054).
+route('/gov', async () => guardedAppRender('gov', (p) => renderServicesApp(app, p, 'gov')));
+route('/doc', async () => guardedAppRender('doc', (p) => renderServicesApp(app, p, 'doc')));
+route('/insurance', async () => guardedAppRender('insurance', (p) => renderServicesApp(app, p, 'insurance')));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));

@@ -462,3 +462,71 @@
 @media (max-width: 420px) {
   .vt-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
+
+/* ==========================================================================
+   Guichets — NewGov, NewDoc, NewInsurance
+   ========================================================================== */
+.sv-guichet {
+  font-family: var(--font-display); font-size: 13px; color: var(--gold-light);
+  margin: 18px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+.sv-guichet:first-child { margin-top: 0; }
+.sv-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px;
+}
+.sv-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 12px; cursor: pointer; transition: border-color .15s ease;
+}
+.sv-card:hover { border-color: var(--app-accent, var(--gold)); }
+.sv-card-title { font-size: 13.5px; color: var(--ivory); }
+.sv-card-desc {
+  font-size: 12px; color: var(--muted); margin: 5px 0 0; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sv-card-foot {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--muted); margin-top: 8px;
+}
+.sv-fiche-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 4px;
+}
+.sv-fiche-head strong { font-family: var(--font-display); font-size: 15px; color: var(--ivory); }
+.sv-sous-titre {
+  font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em;
+  margin: 16px 0 6px;
+}
+.sv-answers {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px 12px; margin: 0 0 4px;
+}
+.sv-answers dt { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.sv-answers dd { margin: 0; font-size: 13px; color: var(--text); }
+.sv-fil { display: flex; flex-direction: column; gap: 8px; }
+.sv-msg {
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px;
+}
+.sv-msg.is-mine { border-color: rgba(201, 162, 39, .35); }
+/* Une note interne se voit d'un coup d'œil : c'est ce qui évite de la
+   confondre avec une réponse envoyée à l'usager. */
+.sv-msg.is-internal {
+  background: rgba(240, 168, 56, .07);
+  border-color: rgba(240, 168, 56, .3);
+  border-left-width: 3px;
+}
+.sv-msg-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--gold-light); margin-bottom: 4px;
+}
+.sv-msg-body { font-size: 13px; color: var(--text); white-space: pre-wrap; line-height: 1.55; }
+.sv-check {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--muted); margin: 4px 0 10px;
+}
+.sv-check input { width: auto; margin: 0; }
+
+@media (max-width: 420px) {
+  .sv-cards { grid-template-columns: 1fr; }
+}
