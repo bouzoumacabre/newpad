@@ -11,6 +11,7 @@ import { escapeHtml, formatDate } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 import { appIconSvg } from '../../lib/appIcons.js';
 import { supabase } from '../../lib/supabaseClient.js';
+import { mountAdSlot } from '../../components/adSlot.js';
 import { trackView, contentStats } from '../../lib/engagement.js';
 import { engagementBarHtml, wireEngagement } from '../../components/engagementBar.js';
 
@@ -70,9 +71,12 @@ export async function renderTubeApp(root, profile) {
         <input id="nt-q" placeholder="Rechercher une vidéo, une chaîne…" value="${escapeHtml(recherche)}"
                style="flex:1;min-width:200px;margin:0;" />
       </div>
+      <div id="ad-zone"></div>
       ${videos.length ? `<div class="nt-grid">${videos.map((v) => vignette(v, stats[v.id])).join('')}</div>`
         : '<div class="app-empty">Aucune vidéo pour le moment.</div>'}
     `;
+
+    mountAdSlot(document.getElementById('ad-zone'), 'youtube');
 
     const champ = document.getElementById('nt-q');
     let minuteur = null;

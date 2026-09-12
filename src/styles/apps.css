@@ -530,3 +530,63 @@
 @media (max-width: 420px) {
   .sv-cards { grid-template-columns: 1fr; }
 }
+
+/* ==========================================================================
+   NewAds — l'encart, et la régie
+   ========================================================================== */
+/* L'encart s'affiche DANS les autres applications : il doit se distinguer du
+   contenu sans le concurrencer. D'où la mention « Annonce », discrète mais
+   toujours présente, et l'absence de couleur d'accent. */
+.ad-slot {
+  position: relative;
+  display: flex; align-items: center; gap: 11px;
+  background: rgba(255, 255, 255, .025);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 12px;
+}
+.ad-slot.is-clickable { cursor: pointer; }
+.ad-slot.is-clickable:hover { border-color: rgba(201, 162, 39, .4); }
+.ad-visuel {
+  width: 62px; height: 46px; object-fit: cover;
+  border-radius: 6px; border: 1px solid var(--border); flex: 0 0 auto;
+}
+.ad-texte { flex: 1; min-width: 0; }
+.ad-titre { font-size: 13px; color: var(--ivory); }
+.ad-corps { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.ad-pied { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.ad-mention {
+  position: absolute; top: 6px; right: 8px;
+  font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); opacity: .75;
+}
+.ad-section {
+  font-family: var(--font-display); font-size: 13px; color: var(--gold-light);
+  margin: 18px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+.ad-section:first-child { margin-top: 0; }
+.ad-review {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 12px; margin-bottom: 10px;
+}
+.ad-review-apercu .ad-slot { margin-bottom: 0; }
+.ad-note { margin-bottom: 8px !important; }
+.ad-places {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 10px;
+}
+.ad-place {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--text);
+}
+.ad-place input { width: auto; margin: 0; }
+.ad-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.ad-stats dt {
+  font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
+}
+.ad-stats dd {
+  margin: 2px 0 0; font-family: var(--font-display);
+  font-size: 19px; color: var(--gold-light);
+}

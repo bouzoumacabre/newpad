@@ -14,6 +14,7 @@ import { renderAppShell } from '../appShell.js';
 import { escapeHtml, formatDateTime, formatMoney } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 import { supabase } from '../../lib/supabaseClient.js';
+import { mountAdSlot } from '../../components/adSlot.js';
 import { contentStats, trackView } from '../../lib/engagement.js';
 import { engagementBarHtml, wireEngagement } from '../../components/engagementBar.js';
 import { myOrganizations } from '../organizations/api.js';
@@ -90,6 +91,7 @@ export async function renderMarketApp(root, profile) {
           ${CATEGORIES.map(([v, l]) => `<option value="${v}" ${v === categorie ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
       </div>
+      <div id="ad-zone"></div>
       ${annonces.length
         ? `<div class="nm-grid">${annonces.map((a) => carte(a, stats[a.id])).join('')}</div>`
         : '<div class="app-empty">Aucune annonce pour le moment.</div>'}
@@ -104,6 +106,8 @@ export async function renderMarketApp(root, profile) {
     document.getElementById('nm-cat').addEventListener('change', (e) => {
       categorie = e.target.value; fil();
     });
+
+    mountAdSlot(document.getElementById('ad-zone'), 'market');
 
     body.querySelectorAll('[data-annonce]').forEach((c) => {
       c.addEventListener('click', () => fiche(c.getAttribute('data-annonce')));

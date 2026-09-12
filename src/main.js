@@ -89,7 +89,7 @@ import { renderLauncher } from './pages/newpad/launcher.js';
 import { renderLockScreen } from './pages/newpad/lockScreen.js';
 import { renderLanding } from './pages/newpad/landing.js';
 import { estInvite, quitterLeModeInvite } from './lib/guestMode.js';
-import { canOpenApp, findAppBySlug } from './lib/newpadApi.js';
+import { canOpenApp, findAppBySlug, isNewpadAdmin } from './lib/newpadApi.js';
 import { renderTabletShell } from './pages/newpad/tabletShell.js';
 import { renderAppPlaceholder } from './pages/newpad/appPlaceholder.js';
 import { enterBank } from './pages/newpad/bankEntry.js';
@@ -108,6 +108,7 @@ const renderMarketApp = (...a) => import('./apps/market/index.js').then((m) => m
 const renderEventsApp = (...a) => import('./apps/events/index.js').then((m) => m.renderEventsApp(...a));
 const renderShowcaseApp = (...a) => import('./apps/showcase/index.js').then((m) => m.renderShowcaseApp(...a));
 const renderServicesApp = (...a) => import('./apps/services/index.js').then((m) => m.renderServicesApp(...a));
+const renderAdsApp = (...a) => import('./apps/ads/index.js').then((m) => m.renderAdsApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -263,6 +264,12 @@ route('/vangelico', async () => guardedAppRender('vangelico', (p) => renderShowc
 route('/gov', async () => guardedAppRender('gov', (p) => renderServicesApp(app, p, 'gov')));
 route('/doc', async () => guardedAppRender('doc', (p) => renderServicesApp(app, p, 'doc')));
 route('/insurance', async () => guardedAppRender('insurance', (p) => renderServicesApp(app, p, 'insurance')));
+
+// NewAds : l'annonceur compose, la régie — l'administration Newpad — valide.
+route('/ads', async () => guardedAppRender('ads', async (p) => {
+  const admin = await isNewpadAdmin().catch(() => false);
+  return renderAdsApp(app, p, admin);
+}));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));

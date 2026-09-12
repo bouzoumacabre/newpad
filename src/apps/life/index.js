@@ -10,6 +10,7 @@ import { escapeHtml, formatDateTime } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 import { appIconSvg } from '../../lib/appIcons.js';
 import { supabase } from '../../lib/supabaseClient.js';
+import { mountAdSlot } from '../../components/adSlot.js';
 import { contentStats } from '../../lib/engagement.js';
 import { engagementBarHtml, wireEngagement } from '../../components/engagementBar.js';
 
@@ -56,6 +57,7 @@ export async function renderLifeApp(root, profile) {
         <input id="nl-q" placeholder="Rechercher, ou #motclé" value="${escapeHtml(recherche)}"
                style="flex:1;min-width:200px;margin:0;" />
       </div>
+      <div id="ad-zone"></div>
       ${posts.length ? `<div class="nl-feed">${posts.map((p) => publication(p, stats[p.id])).join('')}</div>`
         : `<div class="app-empty">${portee === 'following'
             ? "Vous ne suivez encore personne, ou personne n'a rien publié."
@@ -68,6 +70,8 @@ export async function renderLifeApp(root, profile) {
       clearTimeout(minuteur);
       minuteur = setTimeout(() => { recherche = champ.value; charger(); }, 300);
     });
+
+    mountAdSlot(document.getElementById('ad-zone'), 'life');
 
     posts.forEach((p) => {
       const hote = document.getElementById('eng-' + p.id);
