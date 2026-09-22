@@ -27,17 +27,6 @@ export async function trackView(appSlug, entityType, entityId, metadata = {}) {
   }
 }
 
-// Un événement passif quelconque (impression, clic) — l'équivalent de
-// `trackView` sans la déduplication : un encart vu deux fois compte deux fois.
-export async function trackEvent(appSlug, entityType, entityId, eventType, metadata = {}) {
-  try {
-    await supabase.rpc('track_event', {
-      p_app_slug: appSlug, p_entity_type: entityType, p_entity_id: entityId,
-      p_event_type: eventType, p_metadata: metadata,
-    });
-  } catch (_) { /* une mesure perdue ne casse pas un écran */ }
-}
-
 export async function react(entityType, entityId, reaction = 'like') {
   const { data, error } = await supabase.rpc('react', {
     p_entity_type: entityType, p_entity_id: entityId, p_reaction: reaction,
