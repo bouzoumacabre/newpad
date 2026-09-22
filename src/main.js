@@ -101,6 +101,12 @@ const renderMailApp = (...a) => import('./apps/mail/index.js').then((m) => m.ren
 const renderPageApp = (...a) => import('./apps/page/index.js').then((m) => m.renderPageApp(...a));
 const renderProApp = (...a) => import('./apps/pro/index.js').then((m) => m.renderProApp(...a));
 const renderWorkApp = (...a) => import('./apps/work/index.js').then((m) => m.renderWorkApp(...a));
+const renderNewsApp = (...a) => import('./apps/news/index.js').then((m) => m.renderNewsApp(...a));
+const renderTubeApp = (...a) => import('./apps/tube/index.js').then((m) => m.renderTubeApp(...a));
+const renderLifeApp = (...a) => import('./apps/life/index.js').then((m) => m.renderLifeApp(...a));
+const renderMarketApp = (...a) => import('./apps/market/index.js').then((m) => m.renderMarketApp(...a));
+const renderEventsApp = (...a) => import('./apps/events/index.js').then((m) => m.renderEventsApp(...a));
+const renderShowcaseApp = (...a) => import('./apps/showcase/index.js').then((m) => m.renderShowcaseApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -239,6 +245,17 @@ route('/mail', async () => guardedAppRender('mail', (p) => renderMailApp(app, p)
 route('/page', async () => guardedAppRender('page', (p) => renderPageApp(app, p)));
 route('/pro', async () => guardedAppRender('pro', (p) => renderProApp(app, p)));
 route('/work', async () => guardedAppRender('work', (p) => renderWorkApp(app, p)));
+route('/news', async () => guardedAppRender('news', (p) => renderNewsApp(app, p)));
+route('/youtube', async () => guardedAppRender('youtube', (p) => renderTubeApp(app, p)));
+route('/life', async () => guardedAppRender('life', (p) => renderLifeApp(app, p)));
+route('/market', async () => guardedAppRender('market', (p) => renderMarketApp(app, p)));
+route('/events', async () => guardedAppRender('events', (p) => renderEventsApp(app, p)));
+
+// Les trois vitrines partagent le même écran : ce qui les distingue est en base
+// (catégories, vocabulaire, entreprises), pas dans le code (migration 0053).
+route('/dynasty', async () => guardedAppRender('dynasty', (p) => renderShowcaseApp(app, p, 'dynasty')));
+route('/luxury', async () => guardedAppRender('luxury', (p) => renderShowcaseApp(app, p, 'luxury')));
+route('/vangelico', async () => guardedAppRender('vangelico', (p) => renderShowcaseApp(app, p, 'vangelico')));
 
 route('/newpad/admin', async () => guardedNewpadRender((p) => renderNewpadConsole(app, p)));
 route('/newpad/apps', async () => guardedNewpadRender((p) => renderNewpadApps(app, p)));
