@@ -11,6 +11,7 @@ import { escapeHtml, formatDateTime } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 import { appIconSvg } from '../../lib/appIcons.js';
 import { supabase } from '../../lib/supabaseClient.js';
+import { mountAdSlot } from '../../components/adSlot.js';
 import { myOrganizations } from '../organizations/api.js';
 import { trackView, contentStats } from '../../lib/engagement.js';
 import { engagementBarHtml, wireEngagement } from '../../components/engagementBar.js';
@@ -90,9 +91,12 @@ export async function renderNewsApp(root, profile) {
           <span class="nn-breaking-tag">Alerte</span>
           <span>${escapeHtml(alerte.title)}</span>
         </button>` : ''}
+      <div id="ad-zone"></div>
       ${articles.length ? `<div class="nn-grid">${articles.map((a) => carte(a, stats[a.id])).join('')}</div>`
         : '<div class="app-empty">Aucun article pour le moment.</div>'}
     `;
+
+    mountAdSlot(document.getElementById('ad-zone'), 'news');
 
     const champ = document.getElementById('nn-q');
     let minuteur = null;

@@ -13,6 +13,7 @@ import { renderAppShell } from '../appShell.js';
 import { escapeHtml, formatDateTime } from '../../lib/format.js';
 import { showAlert, showConfirm } from '../../lib/uiDialogs.js';
 import { supabase } from '../../lib/supabaseClient.js';
+import { mountAdSlot } from '../../components/adSlot.js';
 import { contentStats, trackView } from '../../lib/engagement.js';
 import { engagementBarHtml, wireEngagement } from '../../components/engagementBar.js';
 import { myOrganizations } from '../organizations/api.js';
@@ -99,6 +100,7 @@ export async function renderEventsApp(root, profile) {
           ${CATEGORIES.map(([v, l]) => `<option value="${v}" ${v === categorie ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
       </div>
+      <div id="ad-zone"></div>
       ${jours.length ? jours.map((g) => `
         <section class="ne-jour">
           <h3 class="ne-jour-titre">${escapeHtml(g.label)}</h3>
@@ -110,6 +112,8 @@ export async function renderEventsApp(root, profile) {
     document.getElementById('ne-cat').addEventListener('change', (e) => {
       categorie = e.target.value; agenda();
     });
+    mountAdSlot(document.getElementById('ad-zone'), 'events');
+
     body.querySelectorAll('[data-event]').forEach((c) => {
       c.addEventListener('click', () => fiche(c.getAttribute('data-event')));
     });
