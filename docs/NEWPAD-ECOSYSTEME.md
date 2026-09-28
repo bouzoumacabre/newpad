@@ -92,9 +92,28 @@ NewFiles, NewMail, NewPage, NewPro, NewWork, News24, NewTube, NewLife,
 NewMarket, NewEvent, Dynasty, Concess Luxury, Bijouterie Vangelico, NewGov,
 NewDoc, NewInsurance, NewAds, SACEM.
 
-Migrations `0040` à `0056`, toutes appliquées en base.
+Migrations `0040` à `0060`, toutes appliquées en base.
 
-**Reste à construire** — NewLeague, NewDark, NEW AI, Créer votre App.
+**Livré le 28 septembre** — les quatre dernières applications :
+- *Créer votre App* (`0057`) : aucune table nouvelle, c'est un guichet (0054)
+  tenu par l'organisation `newpad`, dont les administrateurs Newpad sont
+  membres. Au passage, toute application marquée `is_service` dans le registre
+  ouvre désormais l'écran des démarches sans route codée — la promesse
+  « un guichet sans déploiement » n'était vraie que pour gov/doc/insurance.
+  Un futur administrateur Newpad doit être ajouté à l'organisation `newpad`.
+- *NewLeague* (`0058`) : compétitions, équipes, rencontres. Le classement se
+  calcule depuis les résultats (3/1/0, départage différence puis buts
+  marqués), il n'est jamais stocké.
+- *NewDark* (`0059`) : pseudonymes définitifs, annonces par rubrique,
+  effacement à 14 jours. Tables sans aucune policy de lecture, chaque fonction
+  revérifie `can_open_app('dark')`, aucune ne renvoie l'identité réelle.
+- *NEW AI* (`0060` + Edge Function `new-ai`) : discussion avec Claude, quota
+  de 30 messages par jour décompté en base avant l'appel. **Inactive tant que
+  le secret `ANTHROPIC_API_KEY` n'est pas posé** ; l'application reste en
+  statut `soon` jusque-là. Modèle par défaut `claude-opus-5` (secret
+  `AI_MODEL` pour en changer), effort `low`, repli serveur en cas de refus.
+  Pas de fonction de remboursement du quota : appelable par le joueur, elle
+  lui donnerait un quota infini.
 
 **Refait le 28 septembre** — les correctifs frontend perdus des étapes 6 à 34 :
 - *Échappement du CMS* sur l'accueil public (`home.js`) : tout le contenu de
