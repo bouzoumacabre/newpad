@@ -111,6 +111,7 @@ const renderServicesApp = (...a) => import('./apps/services/index.js').then((m) 
 const renderAdsApp = (...a) => import('./apps/ads/index.js').then((m) => m.renderAdsApp(...a));
 const renderSacemApp = (...a) => import('./apps/sacem/index.js').then((m) => m.renderSacemApp(...a));
 const renderLeagueApp = (...a) => import('./apps/league/index.js').then((m) => m.renderLeagueApp(...a));
+const renderDarkApp = (...a) => import('./apps/dark/index.js').then((m) => m.renderDarkApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -284,6 +285,7 @@ route('/insurance', async () => guardedAppRender('insurance', (p) => renderServi
 // NewAds : l'annonceur compose, la régie — l'administration Newpad — valide.
 route('/sacem', async () => guardedAppRender('sacem', (p) => renderSacemApp(app, p)));
 route('/league', async () => guardedAppRender('league', (p) => renderLeagueApp(app, p)));
+route('/dark', async () => guardedAppRender('dark', (p) => renderDarkApp(app, p)));
 route('/ads', async () => guardedAppRender('ads', async (p) => {
   const admin = await isNewpadAdmin().catch(() => false);
   return renderAdsApp(app, p, admin);
