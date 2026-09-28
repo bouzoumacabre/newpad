@@ -39,6 +39,12 @@ const PAROLES = {
     intro: 'Souscriptions, déclarations de sinistre et demandes de prise en charge.',
     categories: ['insurance', 'vehicle', 'property', 'identity', 'other'],
   },
+  'create-app': {
+    guichet: 'Demander une app', dossier: 'demande', dossiers: 'Mes demandes',
+    usager: 'Entreprise', bureau: 'Instruction',
+    intro: "Votre entreprise veut sa propre application dans Newpad ? Décrivez-la ici : l'administration Newpad étudie la demande, vous répond dans le dossier, puis la publie dans la tablette.",
+    categories: ['other'],
+  },
   _defaut: {
     guichet: 'Démarches', dossier: 'dossier', dossiers: 'Mes dossiers',
     usager: 'Usager', bureau: 'Guichet',

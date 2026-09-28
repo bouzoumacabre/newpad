@@ -404,7 +404,13 @@ setNotFound(async () => {
     const appEnregistree = await findAppByRoute(chemin);
     if (!actif()) return;
     if (appEnregistree && appEnregistree.is_enabled) {
-      await guardedAppRender(appEnregistree.slug, (p) => renderAppPlaceholder(app, p, appEnregistree));
+      // Une application déclarée guichet dans le registre (`is_service`) ouvre
+      // l'écran des démarches, sans route codée : c'est ce qui permet à l'admin
+      // d'en créer une sans déploiement (0054).
+      const rendu = appEnregistree.is_service
+        ? (p) => renderServicesApp(app, p, appEnregistree.slug)
+        : (p) => renderAppPlaceholder(app, p, appEnregistree);
+      await guardedAppRender(appEnregistree.slug, rendu);
       return;
     }
   } catch (_) { /* registre injoignable : on retombe sur l'accueil */ }
