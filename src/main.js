@@ -109,6 +109,7 @@ const renderEventsApp = (...a) => import('./apps/events/index.js').then((m) => m
 const renderShowcaseApp = (...a) => import('./apps/showcase/index.js').then((m) => m.renderShowcaseApp(...a));
 const renderServicesApp = (...a) => import('./apps/services/index.js').then((m) => m.renderServicesApp(...a));
 const renderAdsApp = (...a) => import('./apps/ads/index.js').then((m) => m.renderAdsApp(...a));
+const renderSacemApp = (...a) => import('./apps/sacem/index.js').then((m) => m.renderSacemApp(...a));
 const renderLockedApp = (...a) => import('./pages/newpad/lockedApp.js').then((m) => m.renderLockedApp(...a));
 import { findAppByRoute } from './lib/newpadApi.js';
 
@@ -266,6 +267,7 @@ route('/doc', async () => guardedAppRender('doc', (p) => renderServicesApp(app, 
 route('/insurance', async () => guardedAppRender('insurance', (p) => renderServicesApp(app, p, 'insurance')));
 
 // NewAds : l'annonceur compose, la régie — l'administration Newpad — valide.
+route('/sacem', async () => guardedAppRender('sacem', (p) => renderSacemApp(app, p)));
 route('/ads', async () => guardedAppRender('ads', async (p) => {
   const admin = await isNewpadAdmin().catch(() => false);
   return renderAdsApp(app, p, admin);

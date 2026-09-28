@@ -590,3 +590,64 @@
   margin: 2px 0 0; font-family: var(--font-display);
   font-size: 19px; color: var(--gold-light);
 }
+
+/* ==========================================================================
+   SACEM — le registre et les parts
+   ========================================================================== */
+.sc-parts {
+  font-size: 11.5px; color: var(--muted); margin-top: 4px;
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sc-ref {
+  font-family: var(--font-display); color: var(--gold-light);
+  font-size: 14px; letter-spacing: .04em; margin-bottom: 6px;
+}
+.sc-repartition { display: flex; flex-direction: column; gap: 9px; }
+.sc-part-tete {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; color: var(--text);
+}
+.sc-part-tete span { font-family: var(--font-display); color: var(--gold-light); }
+/* La jauge n'est pas décorative : c'est la seule façon de voir d'un coup d'œil
+   qu'une répartition est déséquilibrée. */
+.sc-jauge {
+  height: 5px; background: rgba(255, 255, 255, .06);
+  border-radius: 3px; overflow: hidden; margin: 4px 0 3px;
+}
+.sc-jauge span {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+}
+.sc-ligne {
+  display: grid; grid-template-columns: 1fr 108px 74px 28px;
+  gap: 6px; align-items: center; margin-bottom: 6px;
+}
+.sc-ligne-nom {
+  font-size: 12.5px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sc-ligne select, .sc-ligne input { margin: 0; padding: 5px 7px; font-size: 12px; }
+.sc-total {
+  font-size: 12.5px; margin-top: 6px; padding: 5px 9px; border-radius: 6px;
+}
+.sc-total.is-ok { color: var(--success); background: rgba(74, 222, 128, .08); }
+.sc-total.is-ko { color: var(--warning); background: rgba(240, 168, 56, .08); }
+.sc-artiste {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 12px; margin-bottom: 14px;
+}
+.sc-artiste-nom { font-family: var(--font-display); font-size: 16px; color: var(--ivory); }
+.sc-inscription {
+  max-width: 400px; margin: 0 auto; text-align: left;
+}
+.sc-inscription h3 {
+  font-family: var(--font-display); font-size: 17px; color: var(--ivory);
+  margin: 12px 0 6px;
+}
+.sc-inscription p { font-size: 12.5px; line-height: 1.6; margin-bottom: 14px; }
+
+@media (max-width: 420px) {
+  .sc-ligne { grid-template-columns: 1fr 64px 26px; }
+  .sc-ligne select { grid-column: 1 / -1; }
+}

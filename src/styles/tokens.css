@@ -30,6 +30,19 @@
   --status-pending: #f0a838;
   --status-danger: #f0605a;
 
+  /* Alias courts.
+     Les feuilles des applications se sont mises à écrire --card, --border,
+     --muted, --success, --warning : des noms plus courts, mais qui
+     n'existaient pas. Une variable inconnue rend la déclaration invalide en
+     silence — pas d'erreur, juste une couleur héritée et un fond transparent.
+     On déclare donc les deux orthographes plutôt que de renommer partout. */
+  --card: var(--card-bg);
+  --border: var(--card-border);
+  --muted: var(--text-muted);
+  --success: var(--status-success);
+  --warning: var(--status-pending);
+  --danger: var(--status-danger);
+
   /* Typographie */
   --font-display: 'Playfair Display', 'Georgia', serif;
   --font-body: 'Inter', -apple-system, 'Segoe UI', sans-serif;
