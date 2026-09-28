@@ -36,7 +36,19 @@ function showRouteError(err) {
   `;
 }
 
+// Jeton de navigation. Un écran attend la base avant de s'afficher : si le
+// joueur change de page entre-temps, l'ancien écran arrivait en retard et
+// écrasait le nouveau. `navToken()` se prend au début d'un gestionnaire et dit,
+// après chaque `await`, si cette navigation est toujours la courante.
+let navCount = 0;
+export function navToken() {
+  const t = navCount;
+  return () => t === navCount;
+}
+
 export async function resolve() {
+  navCount++;
+  const actif = navToken();
   const path = currentPath().split('?')[0];
   try {
     for (const r of routes) {
@@ -50,7 +62,10 @@ export async function resolve() {
     }
     await notFoundHandler();
   } catch (err) {
-    showRouteError(err);
+    // Un écran abandonné qui plante en retard (ses éléments ont été remplacés
+    // par l'écran suivant) ne doit pas effacer l'écran courant.
+    if (actif()) showRouteError(err);
+    else console.warn('[router] erreur ignorée sur une navigation abandonnée :', err);
   }
 }
 

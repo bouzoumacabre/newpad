@@ -152,6 +152,18 @@ td {
 }
 tr:last-child td { border-bottom: none; }
 
+/* Un tableau plus large que son écran défile dans son propre conteneur au
+   lieu de pousser toute la page (ou la tablette) de côté. L'ancienne règle
+   mobile passait thead et tbody en `display: table` séparés : deux tableaux
+   indépendants, en-têtes désalignés de leurs colonnes. */
+.table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Écran tactile : cibles d'au moins 44 px (WCAG 2.5.5). Le navigateur du jeu
+   est piloté à la souris et garde les boutons compacts. */
+@media (pointer: coarse) {
+  .btn, button, select { min-height: 44px; }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Scrollbar sobre */
 /* ---------------------------------------------------------------------- */
@@ -205,10 +217,9 @@ tr:last-child td { border-bottom: none; }
     grid-template-columns: 1fr !important;
   }
 
-  /* Les tableaux larges (journal, registre de lingots...) défilent
-     horizontalement au lieu d'écraser leurs colonnes. */
-  table { display: block; width: 100%; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-  table thead, table tbody { display: table; width: 100%; table-layout: auto; }
+  /* Les tableaux larges gardent leurs colonnes lisibles : c'est leur
+     conteneur (.table-scroll, posé par main.js) qui défile. */
+  table { white-space: nowrap; }
 
   .btn { padding: 10px 14px; font-size: 13px; }
 

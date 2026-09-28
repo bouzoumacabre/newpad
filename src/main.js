@@ -1,7 +1,7 @@
 import './styles/base.css';
 import './styles/newpad.css';
 import './styles/apps.css';
-import { route, setNotFound, initRouter, navigate, resolve } from './lib/router.js';
+import { route, setNotFound, initRouter, navigate, resolve, navToken } from './lib/router.js';
 import { renderPublicHome } from './pages/public/home.js';
 import { renderLogin } from './pages/auth/login.js';
 import { renderSignup } from './pages/auth/signup.js';
@@ -154,7 +154,9 @@ function renderBlockedProfile(profile) {
 }
 
 async function guardedRoleRender(expectedRole, renderFn) {
+  const actif = navToken();
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!actif()) return;
   if (!profile) { navigate('/login'); return; }
   if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   if (profile.role !== expectedRole) { navigate('/' + profile.role); return; }
@@ -174,9 +176,11 @@ async function guardedRoleRender(expectedRole, renderFn) {
 // eux-mêmes ne sont pas réécrits — on leur donne simplement pour conteneur le
 // corps de la tablette au lieu de la page entière.
 async function dansLaTablette(renderFn, opts = {}) {
+  const actif = navToken();
   const profile = opts.avecProfil
     ? await getCurrentProfile().catch(swallow('getCurrentProfile', null))
     : null;
+  if (!actif()) return;
   const { body } = renderTabletShell(app, profile, {
     scroll: true,
     showHome: opts.showHome !== false,
@@ -189,11 +193,15 @@ async function dansLaTablette(renderFn, opts = {}) {
 // posée à la BASE, pas au code : le calcul fait dans le lanceur ne sert qu'à
 // dessiner un cadenas, et taper une adresse à la main contourne l'affichage.
 async function guardedAppRender(slug, renderFn) {
+  const actif = navToken();
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!actif()) return;
   if (profile && profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   const autorise = await canOpenApp(slug).catch(() => false);
+  if (!actif()) return;
   if (!autorise) {
     const cible = await findAppBySlug(slug).catch(() => null);
+    if (!actif()) return;
     if (cible) { await renderLockedApp(app, profile, cible); return; }
     navigate('/');
     return;
@@ -202,7 +210,9 @@ async function guardedAppRender(slug, renderFn) {
 }
 
 async function guardedNewpadRender(renderFn) {
+  const actif = navToken();
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!actif()) return;
   if (!profile) { navigate('/login'); return; }
   if (profile.status && profile.status !== 'active') { renderBlockedProfile(profile); return; }
   await renderFn(profile);
@@ -214,7 +224,9 @@ async function guardedNewpadRender(renderFn) {
 // publique de Newman Bank reste accessible depuis cet écran (#/bank/home) —
 // c'est une application de Newpad, pas sa porte d'entrée.
 route('/', async () => {
+  const actif = navToken();
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
+  if (!actif()) return;
   if (profile) {
     // Une session ouverte l'emporte toujours sur un drapeau invité resté posé.
     quitterLeModeInvite();
@@ -232,8 +244,10 @@ route('/', async () => {
 // depuis le lanceur, mais aussi par le garde ci-dessous : taper l'adresse à la
 // main mène au même endroit, pas à un refus muet.
 route('/acces/:slug', async (params) => {
+  const actif = navToken();
   const profile = await getCurrentProfile().catch(swallow('getCurrentProfile', null));
   const cible = await findAppBySlug(params.slug).catch(() => null);
+  if (!actif()) return;
   if (!cible) { navigate('/'); return; }
   await renderLockedApp(app, profile, cible);
 });
@@ -385,8 +399,10 @@ route('/irs/settings', async () => guardedRoleRender('irs', (p) => renderIrsSett
 // qui laisse intactes les 81 routes existantes, toujours prioritaires.
 setNotFound(async () => {
   const chemin = (window.location.hash || '#/').slice(1).split('?')[0];
+  const actif = navToken();
   try {
     const appEnregistree = await findAppByRoute(chemin);
+    if (!actif()) return;
     if (appEnregistree && appEnregistree.is_enabled) {
       await guardedAppRender(appEnregistree.slug, (p) => renderAppPlaceholder(app, p, appEnregistree));
       return;
@@ -394,6 +410,24 @@ setNotFound(async () => {
   } catch (_) { /* registre injoignable : on retombe sur l'accueil */ }
   navigate('/');
 });
+
+// Chaque tableau rendu est glissé dans un conteneur défilant (.table-scroll,
+// base.css). Fait ici, une fois, plutôt que dans chacun des écrans.
+function envelopperTableaux(racine) {
+  racine.querySelectorAll?.('table').forEach((t) => {
+    if (t.parentElement?.classList.contains('table-scroll')) return;
+    const conteneur = document.createElement('div');
+    conteneur.className = 'table-scroll';
+    t.replaceWith(conteneur);
+    conteneur.appendChild(t);
+  });
+}
+new MutationObserver((mutations) => {
+  for (const m of mutations) m.addedNodes.forEach((n) => {
+    if (n.nodeType !== 1) return;
+    if (n.tagName === 'TABLE') envelopperTableaux(n.parentElement); else envelopperTableaux(n);
+  });
+}).observe(app, { childList: true, subtree: true });
 
 initRouter();
 

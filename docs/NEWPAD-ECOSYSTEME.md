@@ -96,9 +96,19 @@ Migrations `0040` à `0056`, toutes appliquées en base.
 
 **Reste à construire** — NewLeague, NewDark, NEW AI, Créer votre App.
 
-**Reste à refaire** — les correctifs frontend perdus des étapes 6 à 34 (jeton
-de navigation du routeur, conteneurs défilants des tableaux, cibles tactiles,
-échappement du CMS sur l'accueil public).
+**Refait le 28 septembre** — les correctifs frontend perdus des étapes 6 à 34 :
+- *Échappement du CMS* sur l'accueil public (`home.js`) : tout le contenu de
+  `site_content` est échappé en bloc au chargement — c'était une XSS stockée
+  lisible par les visiteurs anonymes.
+- *Jeton de navigation* (`router.js`, `navToken()`) : les gardes de `main.js`
+  abandonnent si la navigation a changé pendant leurs `await`, et l'erreur
+  d'un écran abandonné n'efface plus l'écran courant (constaté en test :
+  `renderLanding` plantait en retard et affichait « Une erreur est survenue »
+  par-dessus la vitrine).
+- *Conteneurs défilants* : chaque `<table>` est enveloppé automatiquement dans
+  `.table-scroll` (observateur dans `main.js`). L'ancienne règle mobile
+  désalignait les en-têtes de leurs colonnes.
+- *Cibles tactiles* : 44 px minimum sous `pointer: coarse` uniquement.
 
 **Arbitrages en attente, repris des lots bancaires** — migration `0016` écrite
 non appliquée ; réparation des 3 004 531 $ de monnaie fantôme ; deux comptes
