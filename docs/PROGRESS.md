@@ -1,5 +1,9 @@
 # Newpad — Inventaire, phases, état d'avancement
 
+> **Ce document s'arrête au 25 août 2026 et ne couvre que Newman Bank.**
+> La suite du chantier — Newpad, l'écosystème de 23 applications — est dans
+> [`NEWPAD-ECOSYSTEME.md`](./NEWPAD-ECOSYSTEME.md).
+
 Dernière mise à jour : 25 août 2026 (4ème passe d'audit : **fuite monétaire réelle** trouvée par vérification de l'invariant de conservation sur les données de production — voir §5duodecies ; passes précédentes du même jour — voir §5undecies, §5decies, §5nonies).
 
 ## 5duodecies. Conservation de la monnaie : fuite trouvée sur les données réelles (25/08/2026)
