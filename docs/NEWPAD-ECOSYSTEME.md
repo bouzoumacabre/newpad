@@ -107,13 +107,17 @@ Migrations `0040` à `0060`, toutes appliquées en base.
 - *NewDark* (`0059`) : pseudonymes définitifs, annonces par rubrique,
   effacement à 14 jours. Tables sans aucune policy de lecture, chaque fonction
   revérifie `can_open_app('dark')`, aucune ne renvoie l'identité réelle.
-- *NEW AI* (`0060` + Edge Function `new-ai`) : discussion avec Claude, quota
-  de 30 messages par jour décompté en base avant l'appel. **Inactive tant que
-  le secret `ANTHROPIC_API_KEY` n'est pas posé** ; l'application reste en
-  statut `soon` jusque-là. Modèle par défaut `claude-opus-5` (secret
-  `AI_MODEL` pour en changer), effort `low`, repli serveur en cas de refus.
-  Pas de fonction de remboursement du quota : appelable par le joueur, elle
-  lui donnerait un quota infini.
+- *NEW AI* (`0061`) : **guide gratuit, sans IA** — l'utilisateur ne voulait
+  aucune dépense. `src/apps/ai/guide.js` compare la question à des mots-clés
+  et propose l'application qui convient, avec un bouton qui l'ouvre **dans la
+  même fenêtre** (`navigate`, jamais `window.open` ni `target="_blank"` —
+  consigne explicite, vérifiée au navigateur : un seul onglet avant et après).
+  Les applications restreintes ne sont jamais proposées. Contrôle :
+  `node src/apps/ai/guide.check.mjs`.
+  Une version générative reste prête côté serveur, inutilisée : quota `0060`
+  (30 messages/jour, sans fonction de remboursement — appelable par le
+  joueur, elle lui donnerait un quota infini) et Edge Function `new-ai`
+  (inactive sans le secret `ANTHROPIC_API_KEY`, payante à l'usage).
 
 **Refait le 28 septembre** — les correctifs frontend perdus des étapes 6 à 34 :
 - *Échappement du CMS* sur l'accueil public (`home.js`) : tout le contenu de
