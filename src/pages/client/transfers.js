@@ -49,9 +49,8 @@ export async function renderClientTransfers(app, profile) {
 
   const minAmount = minSetting?.amount ?? 100000;
   const maxAmount = maxSetting?.amount ?? 0; // 0 = pas de plafond configuré
-  // La commission est prélevée sur le MONTANT REÇU : l'émetteur est débité du
-  // montant saisi, le destinataire reçoit ce montant moins la commission.
-  // Elle n'était annoncée nulle part — ni avant l'envoi, ni sur le relevé.
+  // La commission est payée par l'ÉMETTEUR (0062) : il est débité du montant
+  // saisi plus la commission, le destinataire reçoit le montant entier.
   const feeRate = Number(feeSetting?.amount ?? 0);
 
   // Un compte gelé ou clôturé ne peut ni émettre ni recevoir : la base le
@@ -114,7 +113,7 @@ export async function renderClientTransfers(app, profile) {
           </div>
           ${
             feeRate > 0
-              ? `<div id="fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Commission de ${feeRate} % sur un virement externe, prélevée sur le montant reçu.</div>`
+              ? `<div id="fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Commission de ${feeRate} % sur un virement externe, à votre charge en plus du montant.</div>`
               : ''
           }
         </div>
@@ -207,7 +206,7 @@ export async function renderClientTransfers(app, profile) {
   beneficiarySelect?.addEventListener('change', () => resolveIban(beneficiarySelect.value));
   if (modeSelect.value === 'beneficiary' && beneficiarySelect) resolveIban(beneficiarySelect.value);
 
-  // Le montant réellement reçu, recalculé à la saisie. Un virement entre ses
+  // Le montant réellement débité, recalculé à la saisie. Un virement entre ses
   // propres comptes ne coûte rien : la commission ne s'applique qu'à l'externe.
   function majCommission() {
     const notice = document.getElementById('fee-notice');
@@ -221,13 +220,13 @@ export async function renderClientTransfers(app, profile) {
       return;
     }
     if (!montant || montant <= 0) {
-      notice.textContent = `Commission de ${feeRate} % sur un virement externe, prélevée sur le montant reçu.`;
+      notice.textContent = `Commission de ${feeRate} % sur un virement externe, à votre charge en plus du montant.`;
       return;
     }
     const frais = Math.round(montant * feeRate) / 100;
     notice.textContent =
-      `Vous serez débité de ${formatMoney(montant)} ; le destinataire recevra ${formatMoney(montant - frais)} ` +
-      `(${formatMoney(frais)} de commission).`;
+      `Vous serez débité de ${formatMoney(montant + frais)} (dont ${formatMoney(frais)} de commission) ; ` +
+      `le destinataire recevra ${formatMoney(montant)}.`;
   }
   document.getElementById('amount')?.addEventListener('input', majCommission);
   modeSelect.addEventListener('change', majCommission);

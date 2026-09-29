@@ -96,9 +96,14 @@ export async function renderClientTransactions(app, profile) {
                       <td style="text-align:right; font-weight:600;" class="${Number(t.net_amount) < 0 ? 'text-danger' : 'text-success'}">
                         ${Number(t.net_amount) < 0 ? '−' : '+'}${formatMoney(Math.abs(Number(t.net_amount)))}
                         ${
-                          Number(t.fee_amount) > 0 && t.sens === 'credit'
+                          // Qui a payé la commission se lit dans le net calculé par la
+                          // base (0062) : les anciens virements la retiraient au
+                          // destinataire, les nouveaux la font payer à l'émetteur.
+                          Number(t.fee_amount) > 0 && t.sens === 'credit' && Number(t.net_amount) < Number(t.amount)
                             ? `<div class="muted" style="font-size:11px; font-weight:400;">${formatMoney(t.amount)} envoyés, ${formatMoney(t.fee_amount)} de commission</div>`
-                            : ''
+                            : Number(t.fee_amount) > 0 && t.sens === 'debit' && Math.abs(Number(t.net_amount)) > Number(t.amount)
+                              ? `<div class="muted" style="font-size:11px; font-weight:400;">dont ${formatMoney(t.fee_amount)} de commission</div>`
+                              : ''
                         }
                       </td>
                       <td>${statusBadge(t.status)}</td>

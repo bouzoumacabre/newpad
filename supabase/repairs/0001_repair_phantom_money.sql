@@ -1,4 +1,8 @@
 -- ============================================================================
+-- ⚠ REMPLACÉ PAR 0002_repair_ledger_applied.sql, APPLIQUÉ LE 29/09/2026.
+-- NE PAS EXÉCUTER : le §1 a déjà été appliqué, et le §2 ci-dessous est faux
+-- (il laissait l'écart de 0,50 $ en place). Conservé pour l'historique.
+-- ============================================================================
 -- NEWPAD — RÉPARATION DE DONNÉES (À NE PAS EXÉCUTER SANS DÉCISION EXPLICITE)
 -- ============================================================================
 -- Ce fichier n'est PAS une migration : il ne décrit pas le schéma, il modifie

@@ -41,7 +41,9 @@ export async function renderClientGoldMarket(app, profile) {
     const minPrice = minSetting?.amount ?? 0;
     const maxPrice = maxSetting?.amount ?? 999999999;
     const feeRate = Number(feeSetting?.amount ?? 0);
-    const netVendeur = (prix) => prix - Math.round(prix * feeRate) / 100;
+    // Commission payée par l'ACHETEUR, en plus du prix (0062) ; aucune quand
+    // c'est la banque elle-même qui vend (seller_client_id vide).
+    const commission = (l) => (l.seller_client_id ? Math.round(Number(l.listed_price) * feeRate) / 100 : 0);
 
     content.innerHTML = `
       <h1 style="margin-bottom:14px;">Marché de revente de lingots</h1>
@@ -57,8 +59,9 @@ export async function renderClientGoldMarket(app, profile) {
           <div class="card card-tight">
             <div class="muted" style="font-size:11px;">N° ${escapeHtml(l.gold_bars?.serial_number || '')}</div>
             <div class="font-display" style="font-size:18px; margin:6px 0;">${l.gold_bars?.weight_grams} g</div>
-            <div class="gold" style="font-weight:600; margin-bottom:10px;">${formatMoney(l.listed_price)}</div>
-            <button class="btn btn-primary buy-listing" data-id="${l.id}" data-price="${l.listed_price}" style="width:100%; font-size:13px;">Acheter</button>
+            <div class="gold" style="font-weight:600; margin-bottom:${commission(l) > 0 ? 2 : 10}px;">${formatMoney(l.listed_price)}</div>
+            ${commission(l) > 0 ? `<div class="muted" style="font-size:11px; margin-bottom:10px;">+ ${formatMoney(commission(l))} de commission</div>` : ''}
+            <button class="btn btn-primary buy-listing" data-id="${l.id}" data-price="${Number(l.listed_price) + commission(l)}" style="width:100%; font-size:13px;">Acheter</button>
           </div>
         `
                 )
@@ -85,7 +88,7 @@ export async function renderClientGoldMarket(app, profile) {
               <div class="muted" style="font-size:12px; margin-top:4px;">Entre ${formatMoney(minPrice)} et ${formatMoney(maxPrice)}.</div>
               ${
                 feeRate > 0
-                  ? `<div id="sell-fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Commission de ${feeRate} % prélevée sur le produit de la vente.</div>`
+                  ? `<div id="sell-fee-notice" class="muted" style="font-size:12px; margin-top:4px;">Vous recevez le prix entier ; la commission de ${feeRate} % est payée par l'acheteur.</div>`
                   : ''
               }
             </div>
@@ -105,7 +108,6 @@ export async function renderClientGoldMarket(app, profile) {
                 <tr>
                   <td>
                     N° ${escapeHtml(l.gold_bars?.serial_number || '')} — ${formatMoney(l.listed_price)}
-                    ${feeRate > 0 ? `<div class="muted" style="font-size:11px;">vous recevrez ${formatMoney(netVendeur(Number(l.listed_price)))}</div>` : ''}
                   </td>
                   <td style="text-align:right;">
                     ${statusBadge(l.status)}
@@ -151,12 +153,12 @@ export async function renderClientGoldMarket(app, profile) {
         }
         if (price > Number(payingAccount.balance)) {
           await showAlert(
-            `Solde insuffisant : ce lingot coûte ${formatMoney(price)} et votre compte ${payingAccount.iban} ` +
+            `Solde insuffisant : ce lingot coûte ${formatMoney(price)} commission comprise, et votre compte ${payingAccount.iban} ` +
             `dispose de ${formatMoney(payingAccount.balance)}.`
           );
           return;
         }
-        if (!await showConfirm(`Confirmer l'achat de ce lingot pour ${formatMoney(price)} ?`)) return;
+        if (!await showConfirm(`Confirmer l'achat de ce lingot pour ${formatMoney(price)} (commission comprise) ?`)) return;
         btn.disabled = true;
         try {
           await buyFromMarket(btn.getAttribute('data-id'));
@@ -187,10 +189,11 @@ export async function renderClientGoldMarket(app, profile) {
       const notice = document.getElementById('sell-fee-notice');
       if (!notice || !(feeRate > 0)) return;
       const prix = parseFloat(document.getElementById('sell-price')?.value || '');
+      const frais = Math.round(prix * feeRate) / 100;
       notice.textContent =
         prix > 0
-          ? `L'acheteur paiera ${formatMoney(prix)} ; vous recevrez ${formatMoney(netVendeur(prix))} (${formatMoney(prix - netVendeur(prix))} de commission).`
-          : `Commission de ${feeRate} % prélevée sur le produit de la vente.`;
+          ? `Vous recevrez ${formatMoney(prix)} ; l'acheteur paiera ${formatMoney(prix + frais)} (dont ${formatMoney(frais)} de commission).`
+          : `Vous recevez le prix entier ; la commission de ${feeRate} % est payée par l'acheteur.`;
     }
     document.getElementById('sell-price')?.addEventListener('input', majCommissionVente);
     majCommissionVente();
