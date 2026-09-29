@@ -158,7 +158,11 @@ Migrations `0040` à `0060`, toutes appliquées en base.
   « Répéter automatiquement » sur l'écran de virement). Sa partie documents
   était déjà couverte par la 0034.
 
-**Reste en attente** — plafond d'arriérés de loyer de coffre à 8 semaines.
+- *Arriérés de loyer de coffre* — `0065` : au plus 8 semaines prélevées, le
+  reste est effacé et le client en est prévenu (avant : le reste tombait les
+  jours suivants, 8 semaines à la fois, jusqu'au négatif).
+
+**Plus aucun arbitrage bancaire en attente.**
 
 ## Pièges rencontrés, pour ne pas les repayer
 
