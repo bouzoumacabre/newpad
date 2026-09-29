@@ -1,4 +1,8 @@
 -- ============================================================================
+-- ⚠ NE PAS APPLIQUER — REMPLACÉE PAR 0064 (29/09/2026).
+-- Son submit_transfer date d'août et effacerait les correctifs posés depuis ;
+-- sa partie « documents » est remplacée par la 0034. Conservée pour l'historique.
+-- ============================================================================
 -- NEWPAD — Migration 0016 : plafonds de virement, virements permanents,
 --                           documents/relevés, transparence client
 -- ============================================================================

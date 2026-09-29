@@ -132,6 +132,28 @@ export async function submitTransfer({ senderAccountId, recipientAccountId, amou
   );
 }
 
+// Virements permanents (0064) : chaque échéance dépose une demande ordinaire,
+// validée par le personnel — jamais de débit automatique.
+export async function createScheduledTransfer({ senderAccountId, recipientAccountId, amount, motif, frequencyDays }) {
+  return unwrap(
+    await supabase.rpc('create_scheduled_transfer', {
+      p_sender_account_id: senderAccountId,
+      p_recipient_account_id: recipientAccountId,
+      p_amount: amount,
+      p_motif: motif,
+      p_frequency_days: frequencyDays,
+    })
+  );
+}
+
+export async function getMyScheduledTransfers() {
+  return unwrap(await supabase.rpc('list_my_scheduled_transfers'));
+}
+
+export async function cancelScheduledTransfer(id) {
+  return unwrap(await supabase.rpc('cancel_scheduled_transfer', { p_id: id, p_reason: null }));
+}
+
 export async function getMyTransfers() {
   // NB : la table `transfers` n'a pas de colonne `created_at` — la date de
   // dépôt s'appelle `requested_at`. Trier sur une colonne inexistante faisait

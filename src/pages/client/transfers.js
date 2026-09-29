@@ -6,8 +6,14 @@ import {
   submitTransfer,
   getMyTransfers,
   getEconomicSetting,
+  createScheduledTransfer,
+  getMyScheduledTransfers,
+  cancelScheduledTransfer,
 } from '../../lib/clientApi.js';
 import { formatMoney, formatDateTime, escapeHtml } from '../../lib/format.js';
+import { showConfirm, showAlert } from '../../lib/uiDialogs.js';
+
+const FREQUENCES = [[7, 'Chaque semaine'], [14, 'Toutes les deux semaines'], [30, 'Chaque mois']];
 import { loadAll, loadErrorBanner } from '../../lib/loadState.js';
 
 // Libellés spécifiques au suivi de virement (distincts du statut générique
@@ -44,8 +50,10 @@ export async function renderClientTransfers(app, profile) {
     minSetting: { promise: getEconomicSetting('min_transfer_amount'), fallback: null },
     maxSetting: { promise: getEconomicSetting('max_transfer_amount'), fallback: null },
     feeSetting: { promise: getEconomicSetting('transfer_commission_rate'), fallback: null },
+    scheduled: { promise: getMyScheduledTransfers(), fallback: [] },
   });
-  const { accounts, beneficiaries, transfers, minSetting, maxSetting, feeSetting } = data;
+  const { accounts, beneficiaries, transfers, minSetting, maxSetting, feeSetting, scheduled } = data;
+  const permanents = (scheduled || []).filter((s) => s.status === 'active');
 
   const minAmount = minSetting?.amount ?? 100000;
   const maxAmount = maxSetting?.amount ?? 0; // 0 = pas de plafond configuré
@@ -123,6 +131,19 @@ export async function renderClientTransfers(app, profile) {
           <input type="text" id="motif" placeholder="Ex: Loyer, remboursement..." />
         </div>
 
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="repeat" style="width:auto;" /> Répéter automatiquement
+          </label>
+          <select id="repeat-freq" style="display:none; margin-top:6px;">
+            ${FREQUENCES.map(([j, l]) => `<option value="${j}">${l}</option>`).join('')}
+          </select>
+          <div id="repeat-note" class="muted" style="font-size:12px; margin-top:4px; display:none;">
+            À chaque échéance, une demande de virement est déposée et validée par la banque, comme un virement ordinaire.
+            La première part dans une période.
+          </div>
+        </div>
+
         <div id="transfer-error" class="text-danger" style="font-size:13px; margin-bottom:12px; display:none;"></div>
         <div id="transfer-success" class="text-success" style="font-size:13px; margin-bottom:12px; display:none;"></div>
 
@@ -130,6 +151,21 @@ export async function renderClientTransfers(app, profile) {
       </div>
 
       <div class="card">
+        ${permanents.length ? `
+          <h3 style="margin-bottom:12px;">Virements permanents</h3>
+          <table style="margin-bottom:20px;">
+            <tbody>
+              ${permanents.map((s) => `
+                <tr>
+                  <td>
+                    <div style="font-weight:600;">${formatMoney(s.amount)} → ${escapeHtml(s.recipient_name)}</div>
+                    <div class="muted" style="font-size:12px;">${escapeHtml((FREQUENCES.find(([j]) => j === s.frequency_days) || [0, `Tous les ${s.frequency_days} jours`])[1])}
+                      · prochaine échéance ${formatDateTime(s.next_run_at)}${s.motif ? ' · ' + escapeHtml(s.motif) : ''}</div>
+                  </td>
+                  <td style="text-align:right;"><button class="btn btn-secondary stop-permanent" data-id="${s.id}" style="font-size:12px; padding:4px 10px;">Arrêter</button></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>` : ''}
         <h3 style="margin-bottom:12px;">Historique des virements</h3>
         ${
           transfers.length
@@ -232,6 +268,27 @@ export async function renderClientTransfers(app, profile) {
   modeSelect.addEventListener('change', majCommission);
   majCommission();
 
+  const repeat = document.getElementById('repeat');
+  repeat.addEventListener('change', () => {
+    document.getElementById('repeat-freq').style.display = repeat.checked ? 'block' : 'none';
+    document.getElementById('repeat-note').style.display = repeat.checked ? 'block' : 'none';
+    document.getElementById('submit-transfer').textContent = repeat.checked ? 'Programmer le virement permanent' : 'Envoyer le virement';
+  });
+
+  content.querySelectorAll('.stop-permanent').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!(await showConfirm('Arrêter ce virement permanent ? Les échéances déjà déposées ne sont pas annulées.'))) return;
+      btn.disabled = true;
+      try {
+        await cancelScheduledTransfer(btn.getAttribute('data-id'));
+        renderClientTransfers(app, profile);
+      } catch (err) {
+        await showAlert(err.message || 'Erreur lors de l’arrêt du virement permanent.');
+        btn.disabled = false;
+      }
+    });
+  });
+
   document.getElementById('submit-transfer')?.addEventListener('click', async () => {
     const errorEl = document.getElementById('transfer-error');
     const successEl = document.getElementById('transfer-success');
@@ -275,26 +332,39 @@ export async function renderClientTransfers(app, profile) {
     // Doublon du garde-fou serveur (correctif 0023) : un virement ne peut plus
     // rendre le compte émetteur négatif. Dit ici tout de suite, avec le solde
     // réellement disponible, plutôt qu'après un aller-retour réseau.
+    // La commission est à la charge de l'émetteur (0062) : elle compte dans le
+    // solde nécessaire, sauf entre ses propres comptes.
     const sender = usableAccounts.find((a) => a.id === senderAccountId);
-    if (sender && amount > Number(sender.balance)) {
-      errorEl.textContent = `Solde insuffisant : ${formatMoney(sender.balance)} disponibles sur ce compte.`;
+    const interne = usableAccounts.some((a) => a.id === recipientAccountId);
+    const frais = interne ? 0 : Math.round(amount * feeRate) / 100;
+    const permanent = repeat.checked;
+    if (!permanent && sender && amount + frais > Number(sender.balance)) {
+      errorEl.textContent = `Solde insuffisant : ${formatMoney(sender.balance)} disponibles sur ce compte` +
+        (frais ? ` (il faut ${formatMoney(amount + frais)}, commission comprise).` : '.');
       errorEl.style.display = 'block';
       return;
     }
 
     const btn = document.getElementById('submit-transfer');
+    const libelle = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Envoi…';
     try {
-      await submitTransfer({ senderAccountId, recipientAccountId, amount, motif });
-      successEl.textContent = 'Demande de virement envoyée — vous serez notifié à chaque étape du traitement.';
+      if (permanent) {
+        const frequencyDays = Number(document.getElementById('repeat-freq').value);
+        await createScheduledTransfer({ senderAccountId, recipientAccountId, amount, motif, frequencyDays });
+        successEl.textContent = 'Virement permanent programmé — chaque échéance sera déposée puis validée par la banque.';
+      } else {
+        await submitTransfer({ senderAccountId, recipientAccountId, amount, motif });
+        successEl.textContent = 'Demande de virement envoyée — vous serez notifié à chaque étape du traitement.';
+      }
       successEl.style.display = 'block';
       setTimeout(() => renderClientTransfers(app, profile), 1200);
     } catch (err) {
       errorEl.textContent = err.message || 'Une erreur est survenue.';
       errorEl.style.display = 'block';
       btn.disabled = false;
-      btn.textContent = 'Envoyer le virement';
+      btn.textContent = libelle;
     }
   });
 }

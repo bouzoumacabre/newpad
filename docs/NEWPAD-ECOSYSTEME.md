@@ -133,10 +133,32 @@ Migrations `0040` à `0060`, toutes appliquées en base.
   désalignait les en-têtes de leurs colonnes.
 - *Cibles tactiles* : 44 px minimum sous `pointer: coarse` uniquement.
 
-**Arbitrages en attente, repris des lots bancaires** — migration `0016` écrite
-non appliquée ; réparation des 3 004 531 $ de monnaie fantôme ; deux comptes
-clôturés à −2 490 $ ; qui supporte la commission de virement et de lingot ;
-plafond d'arriérés de loyer de coffre à 8 semaines.
+**Arbitrages bancaires tranchés le 29 septembre** (décisions de l'exploitant) :
+- *Monnaie fantôme et dettes* — `repairs/0002`, appliqué : la trésorerie paie
+  les 9 dépôts d'ouverture d'août (3 004 531 $), 0,50 $ rendus au solde
+  détruit par l'ancienne commission interne, les deux dettes de comptes
+  clôturés (2 × 2 490 $) passées en perte. Aucun joueur ne perd d'argent. Le
+  §2 de `repairs/0001` était faux (l'écart restait) : ne pas l'exécuter.
+  Contrôle d'intégrité propre ensuite (restent deux signalements attendus :
+  le virement d'août vers le même compte, trace historique ; l'information
+  sur l'émission monétaire). La masse monétaire n'est plus de 250 M$ comme
+  le disaient d'anciens commentaires : un admin a retiré 243 M$ à la trésorerie.
+- *Commission* — `0062` : payée par l'émetteur d'un virement et l'acheteur
+  d'un lingot, en plus du montant. `transactions.fee_paid_by` garde
+  l'historique juste ; intégrité, relevé, correction admin et rapport de
+  caisse suivent le payeur.
+- *Rapport de caisse* — `0063` : une correction manuelle se reporte au
+  lendemain (elle disparaissait et l'alerte revenait chaque jour) ; la
+  réparation du 29/09 y est consignée.
+- *Migration 0016* — **non appliquée, remplacée par `0064`** : son
+  `submit_transfer` d'août aurait effacé les correctifs posés depuis. `0064`
+  crée les plafonds (par virement et sur 24 h, à 0 = illimité tant que
+  l'admin ne les règle pas) et les virements permanents (une échéance dépose
+  une demande validée par le personnel, jamais de débit direct ; case
+  « Répéter automatiquement » sur l'écran de virement). Sa partie documents
+  était déjà couverte par la 0034.
+
+**Reste en attente** — plafond d'arriérés de loyer de coffre à 8 semaines.
 
 ## Pièges rencontrés, pour ne pas les repayer
 
